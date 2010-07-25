@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindowClass</class>
+ <widget class="QMainWindow" name="MainWindowClass">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>546</width>
+    <height>369</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>FreePCB</string>
+  </property>
+  <widget class="QWidget" name="centralWidget"/>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>546</width>
+     <height>18</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionNew"/>
+    <addaction name="actionOpen"/>
+    <addaction name="actionSave"/>
+    <addaction name="actionSave_as"/>
+    <addaction name="actionClose"/>
+    <addaction name="separator"/>
+    <addaction name="actionLoad_Library"/>
+    <addaction name="actionSave_Library"/>
+    <addaction name="actionConvert_Library"/>
+    <addaction name="separator"/>
+    <addaction name="actionGenerate_CAM_Files"/>
+    <addaction name="actionGenerate_Report_File"/>
+    <addaction name="separator"/>
+    <addaction name="actionOpen_Footprint_Editor"/>
+    <addaction name="separator"/>
+    <addaction name="actionE_xit"/>
+   </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="action_Undo"/>
+    <addaction name="action_Redo"/>
+    <addaction name="separator"/>
+    <addaction name="actionCut"/>
+    <addaction name="actionCopy"/>
+    <addaction name="actionPaste"/>
+    <addaction name="separator"/>
+    <addaction name="actionSave_Group_to_File"/>
+    <addaction name="actionPaste_Group_from_File"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="actionShow_all"/>
+    <addaction name="actionShow_board_outline"/>
+    <addaction name="actionShow_part"/>
+    <addaction name="separator"/>
+    <addaction name="actionLayers"/>
+    <addaction name="separator"/>
+    <addaction name="actionShow_Log"/>
+   </widget>
+   <widget class="QMenu" name="menuProject">
+    <property name="title">
+     <string>Project</string>
+    </property>
+    <addaction name="actionOptions"/>
+    <addaction name="actionParts"/>
+    <addaction name="actionNets"/>
+   </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <addaction name="actionMove_Origin"/>
+    <addaction name="separator"/>
+    <addaction name="actionFootprint_Wizard"/>
+    <addaction name="actionFootprint_Editor"/>
+    <addaction name="separator"/>
+    <addaction name="actionCheck_parts_and_nets"/>
+    <addaction name="actionCheck_connectivity"/>
+    <addaction name="actionCheck_traces"/>
+    <addaction name="actionCheck_copper_areas"/>
+    <addaction name="separator"/>
+    <addaction name="actionDesign_Rule_Check"/>
+    <addaction name="actionRepeat_DRC"/>
+    <addaction name="actionClear_DRC_errors"/>
+    <addaction name="separator"/>
+   </widget>
+   <widget class="QMenu" name="menuAdd">
+    <property name="title">
+     <string>Add</string>
+    </property>
+    <addaction name="actionBoard_outline"/>
+    <addaction name="actionPart"/>
+    <addaction name="actionNet"/>
+    <addaction name="actionCopper_area"/>
+    <addaction name="actionText"/>
+    <addaction name="actionSolder_mask_cutout"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionUser_Guide"/>
+    <addaction name="separator"/>
+    <addaction name="actionKeyboard_shortcuts"/>
+    <addaction name="actionAbout"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuView"/>
+   <addaction name="menuProject"/>
+   <addaction name="menuTools"/>
+   <addaction name="menuAdd"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <widget class="QToolBar" name="mainToolBar">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>0</width>
+     <height>0</height>
+    </size>
+   </property>
+   <property name="baseSize">
+    <size>
+     <width>0</width>
+     <height>0</height>
+    </size>
+   </property>
+   <property name="windowTitle">
+    <string>Standard</string>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>22</width>
+     <height>22</height>
+    </size>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonIconOnly</enum>
+   </property>
+   <property name="floatable">
+    <bool>true</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionNew"/>
+   <addaction name="actionOpen"/>
+   <addaction name="actionSave"/>
+   <addaction name="separator"/>
+   <addaction name="actionCut"/>
+   <addaction name="actionCopy"/>
+   <addaction name="actionPaste"/>
+   <addaction name="separator"/>
+   <addaction name="action_Undo"/>
+   <addaction name="action_Redo"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar">
+   <property name="sizeGripEnabled">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QToolBar" name="gridToolbar">
+   <property name="windowTitle">
+    <string>Grid Toolbar</string>
+   </property>
+   <property name="floatable">
+    <bool>false</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+  </widget>
+  <action name="actionNew">
+   <property name="icon">
+    <iconset resource="qtfreepcb.qrc">
+     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-new.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-new.png</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;New</string>
+   </property>
+  </action>
+  <action name="actionOpen">
+   <property name="icon">
+    <iconset resource="qtfreepcb.qrc">
+     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-open.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-open.png</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Open...</string>
+   </property>
+  </action>
+  <action name="actionSave">
+   <property name="icon">
+    <iconset resource="qtfreepcb.qrc">
+     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-save.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-save.png</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Save</string>
+   </property>
+  </action>
+  <action name="actionSave_as">
+   <property name="icon">
+    <iconset resource="qtfreepcb.qrc">
+     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-save-as.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-save-as.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save &amp;As...</string>
+   </property>
+  </action>
+  <action name="actionClose">
+   <property name="text">
+    <string>Close</string>
+   </property>
+  </action>
+  <action name="actionLoad_Library">
+   <property name="text">
+    <string>Load Library...</string>
+   </property>
+  </action>
+  <action name="actionSave_Library">
+   <property name="text">
+    <string>Save Library...</string>
+   </property>
+  </action>
+  <action name="actionConvert_Library">
+   <property name="text">
+    <string>Convert Library...</string>
+   </property>
+  </action>
+  <action name="actionGenerate_CAM_Files">
+   <property name="text">
+    <string>Generate CAM files...</string>
+   </property>
+  </action>
+  <action name="actionGenerate_Report_File">
+   <property name="text">
+    <string>Generate report file...</string>
+   </property>
+  </action>
+  <action name="actionOpen_Footprint_Editor">
+   <property name="text">
+    <string>Open Footprint Editor...</string>
+   </property>
+  </action>
+  <action name="actionE_xit">
+   <property name="text">
+    <string>E&amp;xit</string>
+   </property>
+  </action>
+  <action name="action_Undo">
+   <property name="icon">
+    <iconset resource="qtfreepcb.qrc">
+     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-undo.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-undo.png</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Undo</string>
+   </property>
+  </action>
+  <action name="action_Redo">
+   <property name="icon">
+    <iconset resource="qtfreepcb.qrc">
+     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-redo.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-redo.png</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Redo</string>
+   </property>
+  </action>
+  <action name="actionCut">
+   <property name="icon">
+    <iconset resource="qtfreepcb.qrc">
+     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-cut.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-cut.png</iconset>
+   </property>
+   <property name="text">
+    <string>Cut</string>
+   </property>
+  </action>
+  <action name="actionCopy">
+   <property name="icon">
+    <iconset resource="qtfreepcb.qrc">
+     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-copy.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-copy.png</iconset>
+   </property>
+   <property name="text">
+    <string>Copy</string>
+   </property>
+  </action>
+  <action name="actionPaste">
+   <property name="icon">
+    <iconset resource="qtfreepcb.qrc">
+     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-paste.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-paste.png</iconset>
+   </property>
+   <property name="text">
+    <string>Paste</string>
+   </property>
+  </action>
+  <action name="actionSave_Group_to_File">
+   <property name="text">
+    <string>Save Group to File...</string>
+   </property>
+  </action>
+  <action name="actionPaste_Group_from_File">
+   <property name="text">
+    <string>Paste Group from File...</string>
+   </property>
+  </action>
+  <action name="actionShow_board_outline">
+   <property name="text">
+    <string>Show board outline</string>
+   </property>
+  </action>
+  <action name="actionShow_part">
+   <property name="text">
+    <string>Show part...</string>
+   </property>
+  </action>
+  <action name="actionShow_all">
+   <property name="text">
+    <string>Show all</string>
+   </property>
+  </action>
+  <action name="actionLayers">
+   <property name="text">
+    <string>Layers...</string>
+   </property>
+  </action>
+  <action name="actionShow_Log">
+   <property name="text">
+    <string>Show Log...</string>
+   </property>
+  </action>
+  <action name="actionOptions">
+   <property name="icon">
+    <iconset resource="qtfreepcb.qrc">
+     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-properties.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-properties.png</iconset>
+   </property>
+   <property name="text">
+    <string>Options...</string>
+   </property>
+  </action>
+  <action name="actionParts">
+   <property name="text">
+    <string>Parts...</string>
+   </property>
+  </action>
+  <action name="actionNets">
+   <property name="text">
+    <string>Nets...</string>
+   </property>
+  </action>
+  <action name="actionCombine_Nets">
+   <property name="text">
+    <string>Combine Nets...</string>
+   </property>
+  </action>
+  <action name="actionMove_Origin">
+   <property name="text">
+    <string>Move origin</string>
+   </property>
+  </action>
+  <action name="actionFootprint_Wizard">
+   <property name="text">
+    <string>Footprint Wizard</string>
+   </property>
+  </action>
+  <action name="actionFootprint_Editor">
+   <property name="text">
+    <string>Footprint Editor...</string>
+   </property>
+  </action>
+  <action name="actionCheck_parts_and_nets">
+   <property name="text">
+    <string>Check parts and nets</string>
+   </property>
+  </action>
+  <action name="actionCheck_connectivity">
+   <property name="text">
+    <string>Check connectivity</string>
+   </property>
+  </action>
+  <action name="actionCheck_traces">
+   <property name="text">
+    <string>Check traces</string>
+   </property>
+  </action>
+  <action name="actionCheck_copper_areas">
+   <property name="text">
+    <string>Check copper areas</string>
+   </property>
+  </action>
+  <action name="actionDesign_Rule_Check">
+   <property name="text">
+    <string>Design Rule Check...</string>
+   </property>
+  </action>
+  <action name="actionRepeat_DRC">
+   <property name="text">
+    <string>Repeat DRC</string>
+   </property>
+  </action>
+  <action name="actionClear_DRC_errors">
+   <property name="text">
+    <string>Clear DRC errors</string>
+   </property>
+  </action>
+  <action name="actionBoard_outline">
+   <property name="text">
+    <string>Board outline</string>
+   </property>
+  </action>
+  <action name="actionPart">
+   <property name="text">
+    <string>Part</string>
+   </property>
+  </action>
+  <action name="actionNet">
+   <property name="text">
+    <string>Net</string>
+   </property>
+  </action>
+  <action name="actionCopper_area">
+   <property name="text">
+    <string>Copper area</string>
+   </property>
+  </action>
+  <action name="actionText">
+   <property name="text">
+    <string>Text</string>
+   </property>
+  </action>
+  <action name="actionSolder_mask_cutout">
+   <property name="text">
+    <string>Solder mask cutout</string>
+   </property>
+  </action>
+  <action name="actionUser_Guide">
+   <property name="text">
+    <string>User Guide...</string>
+   </property>
+  </action>
+  <action name="actionKeyboard_shortcuts">
+   <property name="text">
+    <string>Keyboard shortcuts</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About...</string>
+   </property>
+  </action>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <resources>
+  <include location="qtfreepcb.qrc"/>
+ </resources>
+ <connections/>
+</ui>
