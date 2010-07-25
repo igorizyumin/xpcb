@@ -18,7 +18,13 @@ SOURCES += main.cpp\
     Netlist.cpp \
     PolyLine.cpp \
     gpc.cpp \
-    utility.cpp
+    utility.cpp \
+    PartList.cpp \
+    smcharacter.cpp \
+    Shape.cpp \
+    UndoList.cpp \
+    smfontutil.cpp \
+    Part.cpp
 
 HEADERS  += MainWindow.h \
     PCBView.h \
@@ -28,7 +34,13 @@ HEADERS  += MainWindow.h \
     PolyLine.h \
     gpc.h \
     global.h \
-    utility.h
+    utility.h \
+    PartList.h \
+    smcharacter.h \
+    Shape.h \
+    UndoList.h \
+    smfontutil.h \
+    Part.h
 
 FORMS    += MainWindow.ui \
     GridToolbarWidget.ui \
