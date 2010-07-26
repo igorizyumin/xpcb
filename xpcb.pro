@@ -24,7 +24,9 @@ SOURCES += main.cpp\
     Shape.cpp \
     UndoList.cpp \
     smfontutil.cpp \
-    Part.cpp
+    Part.cpp \
+    DesignRules.cpp \
+    TextList.cpp
 
 HEADERS  += MainWindow.h \
     PCBView.h \
@@ -40,7 +42,9 @@ HEADERS  += MainWindow.h \
     Shape.h \
     UndoList.h \
     smfontutil.h \
-    Part.h
+    Part.h \
+    DesignRules.h \
+    TextList.h
 
 FORMS    += MainWindow.ui \
     GridToolbarWidget.ui \

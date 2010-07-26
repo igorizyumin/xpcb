@@ -3,8 +3,7 @@
 #pragma once
 
 #include "PolyLine.h"
-#include "SMFontUtil.h"
-#include "TextList.h"
+#include "smfontutil.h"
 
 class CTextList;
 
@@ -53,21 +52,21 @@ enum GLUE_POS_TYPE
 };
 
 // structure describing pad flags
-struct flag
+struct Flag
 {
 	unsigned int mask : 1;
 	unsigned int area : 2;
 };
 
 // structure describing adhesive spot
-struct glue
+struct Glue
 {
 	GLUE_POS_TYPE type;
 	int w, x_rel, y_rel;
 };
 
 // structure describing stroke (ie. line segment)
-struct stroke
+struct Stroke
 {
 	int w, xi, yi, xf, yf;	// thickness + endpoints
 	int type;				// CDisplayList g_type
@@ -75,7 +74,7 @@ struct stroke
 
 // structure describing mounting hole
 // only used during conversion of Ivex files
-struct mtg_hole
+struct Mtg_Hole
 {
 	int pad_shape;		// used for pad on top and bottom
 	int x, y, diam, pad_diam;
@@ -83,45 +82,45 @@ struct mtg_hole
 
 
 // structure describing pad
-class pad
+class Pad
 {
 public:
-	pad();
-	BOOL operator==(pad p);
+	Pad();
+	bool operator==(Pad p);
 	int shape;	// see enum above
 	int size_l, size_r, size_h, radius;
 	int connect_flag;	// only for copper pads
 };
 
 // padstack is pads and hole associated with a pin
-class padstack
+class Padstack
 {
 public:
-	padstack();
-	BOOL operator==(padstack p);
-	BOOL exists;		// only used when converting Ivex footprints or editing
-	CString name;		// identifier such as "1" or "B24"
+	Padstack();
+	bool operator==(Padstack p);
+	bool exists;		// only used when converting Ivex footprints or editing
+	QString name;		// identifier such as "1" or "B24"
 	int hole_size;		// 0 = no hole (i.e SMT)
 	int x_rel, y_rel;	// position relative to part origin
 	int angle;			// orientation: 0=left, 90=top, 180=right, 270=bottom
-	pad top, top_mask, top_paste;
-	pad bottom, bottom_mask, bottom_paste;
-	pad inner;
+	Pad top, top_mask, top_paste;
+	Pad bottom, bottom_mask, bottom_paste;
+	Pad inner;
 };
 
 // CShape class represents a footprint
 //
-class CShape
+class Footprint
 {
 	// if variables are added, remember to modify Copy!
 public:
 	enum { MAX_NAME_SIZE = 59 };	// max. characters
 	enum { MAX_PIN_NAME_SIZE = 39 };
 	enum { MAX_VALUE_SIZE = 39 };
-	CString m_name;		// name of shape (e.g. "DIP20")
-	CString m_author;
-	CString m_source;
-	CString m_desc;
+	QString m_name;		// name of shape (e.g. "DIP20")
+	QString m_author;
+	QString m_source;
+	QString m_desc;
 	int m_units;		// units used for original definition (MM, NM or MIL)
 	int m_sel_xi, m_sel_yi, m_sel_xf, m_sel_yf;			// selection rectangle
 	int m_ref_size, m_ref_xi, m_ref_yi, m_ref_angle;	// ref text
@@ -131,14 +130,14 @@ public:
 	CENTROID_TYPE m_centroid_type;		// type of centroid
 	int m_centroid_x, m_centroid_y;		// position of centroid
 	int m_centroid_angle;				// angle of centroid (CCW)
-	CArray<padstack> m_padstack;		// array of padstacks for shape
-	CArray<CPolyLine> m_outline_poly;	// array of polylines for part outline
+	QList<Padstack> m_padstack;		// array of padstacks for shape
+	QList<CPolyLine> m_outline_poly;	// array of polylines for part outline
 	CTextList * m_tl;					// list of text strings
-	CArray<glue> m_glue;		// array of adhesive dots
+	QList<Glue> m_glue;		// array of adhesive dots
 
 public:
-	CShape();
-	~CShape();
+	Footprint();
+	~Footprint();
 	void Clear();
 	int MakeFromString( CString name, CString str );
 	int MakeFromFile( CStdioFile * in_file, CString name, CString file_path, int pos );
@@ -146,17 +145,17 @@ public:
 	int GetNumPins();
 	int GetPinIndexByName( LPCTSTR name );
 	CString GetPinNameByIndex( int index );
-	CRect GetBounds( BOOL bIncludeLineWidths=TRUE );
+	CRect GetBounds( bool bIncludeLineWidths=true );
 	CRect GetCornerBounds();
 	CRect GetPadBounds( int i );
 	CRect GetPadRowBounds( int i, int num );
 	CPoint GetDefaultCentroid();
 	CRect GetAllPadBounds();
-	int Copy( CShape * shape );	// copy all data from shape
-	BOOL Compare( CShape * shape );	// compare shapes, return true if same
+	int Copy( Footprint * shape );	// copy all data from shape
+	bool Compare( Footprint * shape );	// compare shapes, return true if same
 };
 
-
+#if 0
 // CEditShape class represents a footprint whose elements can be edited
 //
 class CEditShape : public CShape
@@ -186,7 +185,7 @@ public:
 	void StartDraggingCentroid( CDC * pDC );
 	void CancelDraggingCentroid();
 	void ShiftToInsertPadName( CString * astr, int n );
-	BOOL GenerateSelectionRectangle( CRect * r );
+	bool GenerateSelectionRectangle( CRect * r );
 
 public:
 	CDisplayList * m_dlist;
@@ -208,3 +207,4 @@ public:
 	CArray<dl_element*> m_dot_el;		// adhesive dots
 	CArray<dl_element*> m_dot_sel;		// adhesive dot selectors
 };
+#endif

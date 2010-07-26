@@ -62,7 +62,7 @@ private:
 class Part
 {
 public:
-	Part();
+	Part(SMFontUtil * fontutil);
 	~Part();
 
 	int SetPartData( CShape * shape, QString ref_des, QString package,
@@ -73,7 +73,7 @@ public:
 	void ResizeRefText(  int size, int width, bool vis=true );
 	void ResizeValueText(  int size, int width, bool vis=true );
 	void SetValue( QString value, int x, int y, int angle, int size, int w, bool vis=true );
-	int Draw(  );
+
 	void setVisible(bool bVisible );
 	int SelectPart( );
 	int SelectRefText( );
@@ -99,6 +99,8 @@ public:
 	Net * GetPinNet( QString pin_name );
 	Net * GetPinNet( int pin_index );
 	int GetPinWidth( QString pin_name );
+#if 0
+	int Draw(  );
 	int StartDraggingPart( CDC * pDC, bool bRatlines,
 								 bool bBelowPinCount, int pin_count );
 	int StartDraggingRefText( CDC * pDC );
@@ -107,16 +109,16 @@ public:
 	int CancelDraggingPart();
 	int CancelDraggingRefText();
 	int CancelDraggingValue();
+#endif
 	int SetPartString(QString str );
 	int GetPinConnectionStatus( QString pin_name, int layer );
 
 //	undo_part * CreatePartUndoRecord(CString * new_ref_des );
 //	static void PartUndoCallback( int type, void * ptr, bool undo );
 
-
-
-
 private:
+	QPoint partToWorld(QPoint pt);
+
 	id m_id;			// instance id for this part
 	bool drawn;			// true if part has been drawn to display list
 	bool visible;		// 0 to hide part
@@ -155,6 +157,8 @@ private:
 	int layers;		// bit mask for layers with pads
 	// flag used for importing
 	bool bPreserve;	// preserve connections to this part
+	SMFontUtil * m_fontutil;	// class for Hershey font
+
 };
 
 #endif // PART_H

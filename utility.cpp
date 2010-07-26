@@ -1,11 +1,101 @@
 // utility routines
 //
 #include <QPainter>
-#include "stdafx.h"
 #include <math.h>
 #include <time.h>
-#include "DisplayList.h" 
 #include "Shape.h"
+#include "utility.h"
+
+// file i/o functions
+
+// parse a string into fields, where fields are delimited by whitespace
+// if a field is enclosed by "", embedded spaces are allowed
+//
+int ParseStringFields( QString str, QList<QString> & field )
+{
+	typedef enum { NONE, INFIELD, INQUOTE } STATE;
+	STATE state = NONE;
+	QString field_str;
+	field.clear();
+	for( int i=0; i<=str.size(); i++ )
+	{
+		QChar c;
+		if( i == len )
+			c = '\n';	// force eol
+		else
+			c = str.at(i);
+		if( c == ' ' || c == '\t' || c == '\n' )
+		{
+			// whitespace char
+			if( state == INQUOTE )
+				field_str.append( c );
+			else if( state == INFIELD )
+			{
+				// end field
+				field.append(field_str);
+				field_str.clear();
+				state = NONE;
+			}
+		}
+		else if( state == INQUOTE && c == '\"' )
+		{
+			// end quoted field
+			field.append(field_str);
+			field_str.clear();
+			state = NONE;
+		}
+		else if( state == INQUOTE || state == INFIELD )
+		{
+			// non-whitespace char in field
+			field_str.append( c );
+		}
+		else
+		{
+			// non-whitespace char, not in field
+			if( c == '\"' )
+				state = INQUOTE;	// start next field in quotes
+			else
+			{
+				state = INFIELD;	// start next field (no quotes)
+				field_str.append( c );
+			}
+		}
+	}
+	return field.size();
+}
+
+// parse string in format "keyword: param1 param2 param3 ..."
+//
+// if successful, returns number of params+1 and sets key_str to keyword,
+// fills array param_str[] with params
+//
+// ignores whitespace and trailing comments beginning with "/"
+// if the entire line is a comment or blank, returns 0
+// if param is a string, must be enclosed in " " if it includes spaces and must be first param
+//		then quotes are stripped
+// if unable to parse, returns -1
+//
+int ParseKeyString( QString str, QString & key_str, QList<QString> & param_str )
+{
+	str = str.trimmed();
+	if (!str.size() || str.at(0)=='/')
+		return 0;
+	QRegExp regex("^[\\s]*([\\S]*)[\\s]*:(.*)$");
+	bool ok = regex.exactMatch(str);
+	if (!ok) return -1;
+	key_str = regex.cap(1);
+	str = regex.cap(2);
+
+	regex = QRegExp("[\\s]*(?:([^\\s\"]+)|\"([^\"]*)\")[\\s]*");
+	int pos = 0;
+	while((pos = regex.indexIn(str, pos)) != -1)
+	{
+		param_str.append(rx.cap(1));
+		pos += regex.matchedLength();
+	}
+}
+
+
 
 // function to find inflection-pont to create a "dogleg" of two straight-line segments
 // where one segment is vertical or horizontal and the other is at 45 degrees or 90 degrees

@@ -1,10 +1,12 @@
 #include "Part.h"
 #include "utility.h"
+#include "Netlist.h"
 
-Part::Part()
+Part::Part(SMFontUtil * fontutil)
 {
 	// zero out pointers
 	shape = 0;
+	m_fontutil = fontutil;
 }
 
 Part::~Part()
@@ -262,34 +264,28 @@ int Part::MoveRefText( int x, int y, int angle, int size, int w )
 
 	// correct for part on bottom of board (reverse relative x-axis)
 	if( part->side == 1 )
-		tb_org.x = -tb_org.x;
+		tb_org.setX(-tb_org.x());
 
 	// reset ref text position
-	part->m_ref_xi = tb_org.x;
-	part->m_ref_yi = tb_org.y;
-	part->m_ref_angle = angle % 360;
-	part->m_ref_size = size;
-	part->m_ref_w = w;
+	this->m_ref_xi = tb_org.x();
+	this->m_ref_yi = tb_org.y();
+	this->m_ref_angle = angle % 360;
+	this->m_ref_size = size;
+	this->m_ref_w = w;
 
-	// now redraw part
-	DrawPart( part );
 	return PL_NOERR;
 }
 
 // Resize ref text for part
 //
-void Part::ResizeRefText( Part * part, int size, int width, bool vis )
+void Part::ResizeRefText( int size, int width, bool vis )
 {
-	if( part->shape )
+	if( this->shape )
 	{
-		// remove all display list elements
-		UndrawPart( part );
 		// change ref text size
-		part->m_ref_size = size;
-		part->m_ref_w = width;
-		part->m_ref_vis = vis;
-		// now redraw part
-		DrawPart( part );
+		this->m_ref_size = size;
+		this->m_ref_w = width;
+		this->m_ref_vis = vis;
 	}
 }
 
@@ -297,158 +293,226 @@ void Part::ResizeRefText( Part * part, int size, int width, bool vis )
 // x and y are in absolute world coords
 // angle is relative to part angle
 //
-int Part::MoveValueText( Part * part, int x, int y, int angle, int size, int w )
+int Part::MoveValueText( int x, int y, int angle, int size, int w )
 {
-	// remove all display list elements
-	UndrawPart( part );
 
 	// get position of new text box origin relative to part
-	CPoint part_org, tb_org;
-	tb_org.x = x - part->x;
-	tb_org.y = y - part->y;
+	QPoint tb_org(x - this->x, y - this->y);
 
 	// correct for rotation of part
-	RotatePoint( &tb_org, 360-part->angle, zero );
+	RotatePoint( tb_org, 360-this->angle, zero );
 
 	// correct for part on bottom of board (reverse relative x-axis)
-	if( part->side == 1 )
-		tb_org.x = -tb_org.x;
+	if( this->side == 1 )
+		tb_org.setX( -tb_org.x());
 
 	// reset value text position
-	part->m_value_xi = tb_org.x;
-	part->m_value_yi = tb_org.y;
-	part->m_value_angle = angle % 360;
-	part->m_value_size = size;
-	part->m_value_w = w;
+	this->m_value_xi = tb_org.x();
+	this->m_value_yi = tb_org.y();
+	this->m_value_angle = angle % 360;
+	this->m_value_size = size;
+	this->m_value_w = w;
 
-	// now redraw part
-	DrawPart( part );
 	return PL_NOERR;
 }
 
 // Resize value text for part
 //
-void Part::ResizeValueText( Part * part, int size, int width, bool vis )
+void Part::ResizeValueText(int size, int width, bool vis )
 {
-	if( part->shape )
+	if( this->shape )
 	{
-		// remove all display list elements
-		UndrawPart( part );
 		// change ref text size
-		part->m_value_size = size;
-		part->m_value_w = width;
-		part->m_value_vis = vis;
-		// now redraw part
-		DrawPart( part );
+		this->m_value_size = size;
+		this->m_value_w = width;
+		this->m_value_vis = vis;
 	}
 }
 
 // Set part value
 //
-void Part::SetValue( Part * part, CString * value,
+void Part::SetValue( QString value,
 						 int x, int y, int angle, int size, int w, bool vis )
 {
-	part->value = *value;
-	part->m_value_xi = x;
-	part->m_value_yi = y;
-	part->m_value_angle = angle;
-	part->m_value_size = size;
-	part->m_value_w = w;
-	part->m_value_vis = vis;
-	if( part->shape && m_dlist )
-	{
-		UndrawPart( part );
-		DrawPart( part );
-	}
+	this->value = value;
+	this->m_value_xi = x;
+	this->m_value_yi = y;
+	this->m_value_angle = angle;
+	this->m_value_size = size;
+	this->m_value_w = w;
+	this->m_value_vis = vis;
 }
 
 
 // Get side of part
 //
-int Part::GetSide( Part * part )
+int Part::GetSide()
 {
-	return part->side;
+	return this->side;
 }
 
 // Get angle of part
 //
-int Part::GetAngle( Part * part )
+int Part::GetAngle( )
 {
-	return part->angle;
+	return this->angle;
 }
 
 // Get angle of ref text for part
 //
-int Part::GetRefAngle( Part * part )
+int Part::GetRefAngle( )
 {
-	return part->m_ref_angle;
+	return this->m_ref_angle;
 }
 
 // Get angle of value for part
 //
-int Part::GetValueAngle( Part * part )
+int Part::GetValueAngle( )
 {
-	return part->m_value_angle;
+	return this->m_value_angle;
 }
 
 // get actual position of ref text
 //
-CPoint Part::GetRefPoint( Part * part )
+QPoint Part::GetRefPoint( )
 {
-	CPoint ref_pt;
-
 	// move origin of text box to position relative to part
-	ref_pt.x = part->m_ref_xi;
-	ref_pt.y = part->m_ref_yi;
+	QPoint ref_pt(m_ref_xi, m_ref_yi);
+
 	// flip if part on bottom
-	if( part->side )
+	if( this->side )
 	{
-		ref_pt.x = -ref_pt.x;
+		ref_pt.rx() *= -1;
 	}
 	// rotate with part about part origin
-	RotatePoint( &ref_pt, part->angle, zero );
-	ref_pt.x += part->x;
-	ref_pt.y += part->y;
+	RotatePoint( ref_pt, this->angle, zero );
+	ref_pt.rx() += this->x;
+	ref_pt.ry() += part->y;
 	return ref_pt;
 }
 
 // get actual position of value text
 //
-CPoint Part::GetValuePoint( Part * part )
+QPoint Part::GetValuePoint( )
 {
-	CPoint value_pt;
-
 	// move origin of text box to position relative to part
-	value_pt.x = part->m_value_xi;
-	value_pt.y = part->m_value_yi;
+	QPoint value_pt(m_value_xi, m_value_yi);
+
 	// flip if part on bottom
-	if( part->side )
+	if( this->side )
 	{
-		value_pt.x = -value_pt.x;
+		value_pt.rx() *= -1;
 	}
 	// rotate with part about part origin
-	RotatePoint( &value_pt, part->angle, zero );
-	value_pt.x += part->x;
-	value_pt.y += part->y;
+	RotatePoint( value_pt, this->angle, zero );
+	value_pt.rx() += this->x;
+	value_pt.ry() += this->y;
 	return value_pt;
+}
+
+
+// generate an array of strokes for a string that is attached to a part
+// enter with:
+//  str = text string
+//	strokes = reference to QList of strokes to receive data
+//	br = reference to QRect to receive bounding rectangle
+//	dlist = pointer to display list to use for drawing (not used)
+//	sm = pointer to SMFontUtil for character data
+// returns number of strokes generated
+//
+int Part::GenerateStrokesForString( QString str, QList<stroke> & strokes, QRect & br)
+{
+	//strokes->SetSize( 10000 );
+	double x_scale = (double)m_size/22.0;
+	double y_scale = (double)m_size/22.0;
+	double y_offset = 9.0*y_scale;
+	int i = 0;
+	double xc = 0.0;
+	QPoint si, sf;
+	int xmin = INT_MAX;
+	int xmax = INT_MIN;
+	int ymin = INT_MAX;
+	int ymax = INT_MIN;
+	strokes.clear();
+	for( int ic=0; ic<str.size(); ic++ )
+	{
+		// get stroke info for character
+		int xi, yi, xf, yf;
+		double coord[64][4];
+		double min_x, min_y, max_x, max_y;
+		int nstrokes = m_fontutil->GetCharStrokes( str.at(ic), SIMPLEX,
+			&min_x, &min_y, &max_x, &max_y, coord, 64 );
+		for( int is=0; is<nstrokes; is++ )
+		{
+			xi = (coord[is][0] - min_x)*x_scale + xc;
+			yi = coord[is][1]*y_scale + y_offset;
+			xf = (coord[is][2] - min_x)*x_scale + xc;
+			yf = coord[is][3]*y_scale + y_offset;
+			xmax = max( xi, xmax );
+			xmax = max( xf, xmax );
+			xmin = min( xi, xmin );
+			xmin = min( xf, xmin );
+			ymax = max( yi, ymax );
+			ymax = max( yf, ymax );
+			ymin = min( yi, ymin );
+			ymin = min( yf, ymin );
+			// get stroke relative to text box
+			if( yi > yf )
+			{
+				si = QPoint(xi, yi);
+				sf = QPoint(xf, yf);
+			}
+			else
+			{
+				si = QPoint(xf, yf);
+				sf = QPoint(xi, yi);
+			}
+			// rotate about text box origin
+			RotatePoint( si, rel_angle, zero );
+			RotatePoint( sf, rel_angle, zero );
+			// move origin of text box to position relative to part
+			si += QPoint(rel_xi, rel_yi);
+			sf += QPoint(rel_xi, rel_yi);
+			// flip if part on bottom
+			if( side )
+			{
+				si.rx() *= -1;
+				sf.rx() *= -1;
+			}
+			// rotate with part about part origin
+			RotatePoint( si, angle, zero );
+			RotatePoint( sf, angle, zero );
+
+			// add x, y to part origin and draw
+			stroke st;
+			st.type = DL_LINE;
+			st.w = this->w;
+			st.xi = this->x + si.x();
+			st.yi = this->y + si.y();
+			st.xf = this->x + sf.x();
+			st.yf = this->y + sf.y();
+			strokes.append(st);
+			i++;
+		}
+		xc += (max_x - min_x + 8.0)*x_scale;
+	}
+	br = QRect(xmin-w/2, ymin-w/2, xmax-xmin+w, ymax-ymin+w);
+	return i;
 }
 
 
 // get bounding rect of value text relative to part origin
 // works even if part isn't drawn
 //
-CRect Part::GetValueRect( Part * part )
+QRect Part::GetValueRect( )
 {
-	CArray<stroke> m_stroke;
-	CRect br;
-	int nstrokes = ::GenerateStrokesForPartString( &part->value, part->m_value_size,
-		part->m_value_angle, part->m_value_xi, part->m_value_yi, part->m_value_w,
-		part->x, part->y, part->angle, part->side,
-		&m_stroke, &br, NULL, m_fontutil );
+	QList<stroke> m_stroke;
+	QRect br;
+	GenerateStrokesForString( this->value, m_stroke, br );
 	return br;
 }
 
-
+#if 0
 // Draw part into display list
 //
 int Part::DrawPart( Part * part )
@@ -984,6 +1048,7 @@ int Part::DrawPart( Part * part )
 	return PL_NOERR;
 }
 
+#endif
 
 // normal completion of any dragging operation
 //
@@ -1390,24 +1455,23 @@ int Part::CancelDraggingValue( Part * part )
 // the footprint was changed for a particular part
 // note that this function also updates the netlist
 //
-void Part::PartFootprintChanged( Part * part, CShape * new_shape )
+void Part::PartFootprintChanged( CShape * new_shape )
 {
-	UndrawPart( part );
 	// new footprint
-	part->shape = new_shape;
-	part->pin.SetSize( new_shape->GetNumPins() );
+	this->shape = new_shape;
+	part->pin.clear();
 	// calculate new pin positions
 	if( part->shape )
 	{
 		for( int ip=0; ip<part->pin.GetSize(); ip++ )
 		{
-			CPoint pt = GetPinPoint( part, ip );
-			part->pin[ip].x = pt.x;
-			part->pin[ip].y = pt.y;
+			QPoint pt = GetPinPoint( ip );
+			this->pin[ip].x = pt.x();
+			this->pin[ip].y = pt.y();
 		}
 	}
-	DrawPart( part );
-	m_nlist->PartFootprintChanged( part );
+	// XXX IGOR XXX
+//	m_nlist->PartFootprintChanged( this );
 }
 
 
@@ -1489,12 +1553,10 @@ int Part::UndrawPart( Part * part )
 // Currently, just uses selection rect
 // returns 1 if successful
 //
-int Part::GetPartBoundingRect( Part * part, CRect * part_r )
+int Part::GetPartBoundingRect( CRect * part_r )
 {
 	CRect r;
 
-	if( !part )
-		return 0;
 	if( !part->shape )
 		return 0;
 	if( part->dl_sel )
@@ -1512,129 +1574,90 @@ int Part::GetPartBoundingRect( Part * part, CRect * part_r )
 
 // Get pin info from part
 //
-CPoint Part::GetPinPoint( Part * part, LPCTSTR pin_name )
+QPoint Part::GetPinPoint( QString pin_name )
 {
 	// get pin coords relative to part origin
-	CPoint pp;
-	int pin_index = part->shape->GetPinIndexByName( pin_name );
+	int pin_index = this->shape->GetPinIndexByName( pin_name );
 	if( pin_index == -1 )
 		ASSERT(0);
-	return GetPinPoint( part, pin_index );
+	return GetPinPoint( pin_index );
+}
+
+QPoint Part::partToWorld(QPoint pt)
+{
+	// flip if part on bottom
+	if( this->side )
+	{
+		pt.rx() *= -1;
+	}
+	// rotate if necess.
+	int angle = this->angle;
+	if( angle > 0 )
+	{
+		RotatePoint( pp, angle, zero );
+	}
+	// add coords of part origin
+	pt += QPoint(this->x, this->y);
+	return pt;
 }
 
 // Get pin info from part
 //
-CPoint Part::GetPinPoint( Part * part, int pin_index )
+QPoint Part::GetPinPoint( int pin_index )
 {
-	if( !part->shape )
+	if( !this->shape )
 		ASSERT(0);
 
-	// get pin coords relative to part origin
-	CPoint pp;
-	if( pin_index == -1 )
+	if( pin_index < 0 )
 		ASSERT(0);
-	pp.x = part->shape->m_padstack[pin_index].x_rel;
-	pp.y = part->shape->m_padstack[pin_index].y_rel;
-	// flip if part on bottom
-	if( part->side )
-	{
-		pp.x = -pp.x;
-	}
-	// rotate if necess.
-	int angle = part->angle;
-	if( angle > 0 )
-	{
-		CPoint org;
-		org.x = 0;
-		org.y = 0;
-		RotatePoint( &pp, angle, org );
-	}
-	// add coords of part origin
-	pp.x = part->x + pp.x;
-	pp.y = part->y + pp.y;
-	return pp;
+
+	return partToWorld(QPoint(this->shape->m_padstack[pin_index].x_rel,
+			  this->shape->m_padstack[pin_index].y_rel));
 }
 
 // Get centroid info from part
 //
-CPoint Part::GetCentroidPoint( Part * part )
+QPoint Part::GetCentroidPoint()
 {
-	if( part->shape == NULL )
+	if( this->shape == NULL )
 		ASSERT(0);
+
 	// get coords relative to part origin
-	CPoint pp;
-	pp.x = part->shape->m_centroid_x;
-	pp.y = part->shape->m_centroid_y;
-	// flip if part on bottom
-	if( part->side )
-	{
-		pp.x = -pp.x;
-	}
-	// rotate if necess.
-	int angle = part->angle;
-	if( angle > 0 )
-	{
-		CPoint org;
-		org.x = 0;
-		org.y = 0;
-		RotatePoint( &pp, angle, org );
-	}
-	// add coords of part origin
-	pp.x = part->x + pp.x;
-	pp.y = part->y + pp.y;
-	return pp;
+	return partToWorld(QPoint(this->shape->m_centroid_x,
+			  this->shape->m_centroid_y));
 }
 
 // Get glue spot info from part
 //
-CPoint Part::GetGluePoint( Part * part, int iglue )
+QPoint Part::GetGluePoint( int iglue )
 {
 	if( part->shape == NULL )
 		ASSERT(0);
 	if( iglue >= part->shape->m_glue.GetSize() )
 		ASSERT(0);
 	// get coords relative to part origin
-	CPoint pp;
-	pp.x = part->shape->m_glue[iglue].x_rel;
-	pp.y = part->shape->m_glue[iglue].x_rel;
-	// flip if part on bottom
-	if( part->side )
-	{
-		pp.x = -pp.x;
-	}
-	// rotate if necess.
-	int angle = part->angle;
-	if( angle > 0 )
-	{
-		CPoint org;
-		org.x = 0;
-		org.y = 0;
-		RotatePoint( &pp, angle, org );
-	}
-	// add coords of part origin
-	pp.x = part->x + pp.x;
-	pp.y = part->y + pp.y;
-	return pp;
+	return partToWorld(QPoint(this->shape->m_glue[iglue].x_rel,
+							  this->shape->m_glue[iglue].y_rel));
 }
 
 // Get pin layer
 // returns LAY_TOP_COPPER, LAY_BOTTOM_COPPER or LAY_PAD_THRU
 //
-int Part::GetPinLayer( Part * part, CString * pin_name )
+int Part::GetPinLayer( QString pin_name )
 {
-	int pin_index = part->shape->GetPinIndexByName( *pin_name );
-	return GetPinLayer( part, pin_index );
+	int pin_index = this->shape->GetPinIndexByName( pin_name );
+	return GetPinLayer( pin_index );
 }
 
 // Get pin layer
 // returns LAY_TOP_COPPER, LAY_BOTTOM_COPPER or LAY_PAD_THRU
 //
-int Part::GetPinLayer( Part * part, int pin_index )
+int Part::GetPinLayer( int pin_index )
 {
-	if( part->shape->m_padstack[pin_index].hole_size )
+	if( this->shape->m_padstack[pin_index].hole_size )
 		return LAY_PAD_THRU;
-	else if( part->side == 0 && part->shape->m_padstack[pin_index].top.shape != PAD_NONE
-		|| part->side == 1 && part->shape->m_padstack[pin_index].bottom.shape != PAD_NONE )
+	else if( this->side == 0 && this->shape->m_padstack[pin_index].top.shape != PAD_NONE
+		|| this->side == 1 && this->shape->m_padstack[pin_index].bottom.shape != PAD_NONE )
 		return LAY_TOP_COPPER;
 	else
 		return LAY_BOTTOM_COPPER;
@@ -1642,79 +1665,72 @@ int Part::GetPinLayer( Part * part, int pin_index )
 
 // Get pin net
 //
-cnet * Part::GetPinNet( Part * part, CString * pin_name )
+Net * Part::GetPinNet(QString pin_name )
 {
-	int pin_index = part->shape->GetPinIndexByName( *pin_name );
+	int pin_index = this->shape->GetPinIndexByName( pin_name );
 	if( pin_index == -1 )
 		return NULL;
-	return part->pin[pin_index].net;
+	return this->pin[pin_index].net;
 }
 
 // Get pin net
 //
-cnet * Part::GetPinNet( Part * part, int pin_index )
+Net * Part::GetPinNet( int pin_index )
 {
-	return part->pin[pin_index].net;
+	return this->pin[pin_index].net;
 }
 
 // Get max pin width, for drawing thermal symbol
 // enter with pin_num = pin # (1-based)
 //
-int Part::GetPinWidth( Part * part, CString * pin_name )
+int Part::GetPinWidth(QString pin_name )
 {
-	if( !part->shape )
+	if( !this->shape )
 		ASSERT(0);
-	int pin_index = part->shape->GetPinIndexByName( *pin_name );
-	int w = part->shape->m_padstack[pin_index].top.size_h;
-	w = max( w, part->shape->m_padstack[pin_index].bottom.size_h );
-	w = max( w, part->shape->m_padstack[pin_index].hole_size );
+	int pin_index = this->shape->GetPinIndexByName(pin_name );
+	int w = this->shape->m_padstack[pin_index].top.size_h;
+	w = max( w, this->shape->m_padstack[pin_index].bottom.size_h );
+	w = max( w, this->shape->m_padstack[pin_index].hole_size );
 	return w;
 }
 
-
-
-// set CString to description of part
+// returns description of part
 //
-int Part::SetPartString( Part * part, CString * str )
+QString Part::GetDescription()
 {
-	CString line;
+	QString line = QString("part: %1\n").arg(part->ref_des );
 
-	line.Format( "part: %s\n", part->ref_des );
-	*str = line;
 	if( part->shape )
-		line.Format( "  ref_text: %d %d %d %d %d %d\n",
-					part->m_ref_size, part->m_ref_w, part->m_ref_angle%360,
-					part->m_ref_xi, part->m_ref_yi, part->m_ref_vis );
+		line.append( QString("  ref_text: %1 %2 %3 %4 %5 %6\n").arg(part->m_ref_size)
+					 .arg(part->m_ref_w).arg(part->m_ref_angle%360)
+					 .arg(part->m_ref_xi).arg(part->m_ref_yi).arg(part->m_ref_vis ));
 	else
-		line.Format( "  ref_text: \n" );
-	str->Append( line );
-	line.Format( "  package: \"%s\"\n", part->package );
-	str->Append( line );
+		line.append( "  ref_text: \n" );
+
+	line.append(QString("  package: \"%1\"\n").arg(part->package) );
+
 	if( part->value != "" )
 	{
 		if( part->shape )
-			line.Format( "  value: \"%s\" %d %d %d %d %d %d\n",
-			part->value, part->m_value_size,
-			part->m_value_w, part->m_value_angle%360,
-			part->m_value_xi, part->m_value_yi,
-			part->m_value_vis );
+			line.append( QString("  value: \"%1\" %2 %3 %4 %5 %6 %7\n")
+						 .arg(part->value).arg(part->m_value_size)
+						 .arg(part->m_value_w).arg(part->m_value_angle%360)
+						 .arg(part->m_value_xi).arg(part->m_value_yi)
+						 .arg(part->m_value_vis) );
 		else
-			line.Format( "  value: \"%s\"\n", part->value );
-		str->Append( line );
+			line.append( QString("  value: \"%1\"\n").arg(part->value) );
 	}
 	if( part->shape )
-		line.Format( "  shape: \"%s\"\n", part->shape->m_name );
+		line.append( QString("  shape: \"%1\"\n").arg(part->shape->m_name) );
 	else
-		line.Format( "  shape: \n" );
-	str->Append( line );
-	line.Format( "  pos: %d %d %d %d %d\n", part->x, part->y, part->side, part->angle%360, part->glued );
-	str->Append( line );
+		line.append( "  shape: \n" );
 
-	line.Format( "\n" );
-	str->Append( line );
-	return 0;
+	line.append( QString("  pos: %d %d %d %d %d\n\n").arg(part->x).arg(part->y).arg(part->side).arg(part->angle%360).arg(part->glued) );
+
+	return line;
 }
 
+#if 0
 // create record describing part for use by CUndoList
 // if part == NULL, just set m_plist and new_ref_des
 //
@@ -1773,6 +1789,7 @@ undo_part * Part::CreatePartUndoRecord( Part * part, CString * new_ref_des )
 		strcpy( upart->new_ref_des, part->ref_des );
 	return upart;
 }
+#endif
 
 #if 0
 // create special record for use by CUndoList
@@ -1788,7 +1805,7 @@ void * Part::CreatePartUndoRecordForRename( Part * part, CString * old_ref_des )
 }
 #endif
 
-
+#if 0
 // undo an operation on a part
 // note that this is a static function, for use as a callback
 //
@@ -1905,6 +1922,8 @@ void Part::PartUndoCallback( int type, void * ptr, bool undo )
 	}
 	free(ptr);	// delete the undo record
 }
+#endif
+
 
 // checks to see if a pin is connected to a trace or a copper area on a
 // particular layer
@@ -1915,10 +1934,10 @@ void Part::PartUndoCallback( int type, void * ptr, bool undo )
 //		TRACE_CONNECT = 2 if pin connects to a trace
 //		AREA_CONNECT = 4 if pin connects to copper area
 //
-int Part::GetPinConnectionStatus( Part * part, CString * pin_name, int layer )
+int Part::GetPinConnectionStatus( QString pin_name, int layer )
 {
-	int pin_index = part->shape->GetPinIndexByName( *pin_name );
-	cnet * net = part->pin[pin_index].net;
+	int pin_index = this->shape->GetPinIndexByName( pin_name );
+	Net * net = this->pin[pin_index].net;
 	if( !net )
 		return NOT_CONNECTED;
 
@@ -1931,13 +1950,13 @@ int Part::GetPinConnectionStatus( Part * part, CString * pin_name, int layer )
 		int p1 = net->connect[ic].start_pin;
 		int p2 = net->connect[ic].end_pin;
 		if( net->pin[p1].part == part &&
-			net->pin[p1].pin_name == *pin_name &&
+			net->pin[p1].pin_name == pin_name &&
 			net->connect[ic].seg[0].layer == layer )
 		{
 			// first segment connects to pin on this layer
 			status |= TRACE_CONNECT;
 		}
-		else if( p2 == cconnect::NO_END )
+		else if( p2 == Connection::NO_END )
 		{
 			// stub trace, ignore end pin
 		}
@@ -1953,11 +1972,11 @@ int Part::GetPinConnectionStatus( Part * part, CString * pin_name, int layer )
 	// now check for connection to copper area
 	for( int ia=0; ia<net->nareas; ia++ )
 	{
-		carea * a = &net->area[ia];
+		Area * a = &net->area[ia];
 		for( int ip=0; ip<a->npins; ip++ )
 		{
-			cpin * pin = &net->pin[a->pin[ip]];
-			if( pin->part == part
+			Pin * pin = &net->pin[a->pin[ip]];
+			if( pin->part == this
 				&& pin->pin_name == *pin_name
 				&& a->poly->GetLayer() == layer )
 			{
@@ -2001,49 +2020,49 @@ int Part::GetPinConnectionStatus( Part * part, CString * pin_name, int layer )
 //	Uses GetPinConnectionStatus() to determine connections, this uses the area
 //	connection info from the netlist
 //
-int Part::GetPadDrawInfo( Part * part, int ipin, int layer,
+int Part::GetPadDrawInfo( int ipin, int layer,
 							  bool bUse_TH_thermals, bool bUse_SMT_thermals,
 							  int solder_mask_swell, int paste_mask_shrink,
 							  int * type, int * x, int * y, int * w, int * l, int * r, int * hole,
-							  int * angle, cnet ** net,
+							  int * angle, Net ** net,
 							  int * connection_status, int * pad_connect_flag,
 							  int * clearance_type )
 {
 	// get footprint
-	CShape * s = part->shape;
+	CShape * s = this->shape;
 	if( !s )
 		return 0;
 
 	// get pin and padstack info
 	padstack * ps = &s->m_padstack[ipin];
 	bool bUseDefault = false; // if true, use copper pad for mask
-	CString pin_name = s->GetPinNameByIndex( ipin );
-	int connect_status = GetPinConnectionStatus( part, &pin_name, layer );
+	QString pin_name = s->GetPinNameByIndex( ipin );
+	int connect_status = GetPinConnectionStatus( pin_name, layer );
 	// set default return values for no pad and no hole
 	int ret_code = 0;
 	int ttype = PAD_NONE;
-	int xx = part->pin[ipin].x;
-	int yy = part->pin[ipin].y;
+	int xx = this->pin[ipin].x;
+	int yy = this->pin[ipin].y;
 	int ww = 0;
 	int ll = 0;
 	int rr = 0;
-	int aangle = s->m_padstack[ipin].angle + part->angle;
+	int aangle = s->m_padstack[ipin].angle + this->angle;
 	aangle = aangle%180;
 	int hole_size = s->m_padstack[ipin].hole_size;
-	cnet * nnet = part->pin[ipin].net;
+	Net * nnet = this->pin[ipin].net;
 	int clear_type = CLEAR_NORMAL;
 	int connect_flag = PAD_CONNECT_DEFAULT;
 
 	// get pad info
 	pad * p = NULL;
-	if( (layer == LAY_TOP_COPPER && part->side == 0 )
-		|| (layer == LAY_BOTTOM_COPPER && part->side == 1 ) )
+	if( (layer == LAY_TOP_COPPER && this->side == 0 )
+		|| (layer == LAY_BOTTOM_COPPER && this->side == 1 ) )
 	{
 		// top copper pad is on this layer
 		p = &ps->top;
 	}
-	else if( (layer == LAY_MASK_TOP && part->side == 0 )
-		|| (layer == LAY_MASK_BOTTOM && part->side == 1 ) )
+	else if( (layer == LAY_MASK_TOP && this->side == 0 )
+		|| (layer == LAY_MASK_BOTTOM && this->side == 1 ) )
 	{
 		// top mask pad is on this layer
 		if( ps->top_mask.shape != PAD_DEFAULT )
@@ -2054,8 +2073,8 @@ int Part::GetPadDrawInfo( Part * part, int ipin, int layer,
 			p = &ps->top;
 		}
 	}
-	else if( (layer == LAY_PASTE_TOP && part->side == 0 )
-		|| (layer == LAY_PASTE_BOTTOM && part->side == 1 ) )
+	else if( (layer == LAY_PASTE_TOP && this->side == 0 )
+		|| (layer == LAY_PASTE_BOTTOM && this->side == 1 ) )
 	{
 		// top paste pad is on this layer
 		if( ps->top_paste.shape != PAD_DEFAULT )
@@ -2066,14 +2085,14 @@ int Part::GetPadDrawInfo( Part * part, int ipin, int layer,
 			p = &ps->top;
 		}
 	}
-	else if( (layer == LAY_TOP_COPPER && part->side == 1 )
-			|| (layer == LAY_BOTTOM_COPPER && part->side == 0 ) )
+	else if( (layer == LAY_TOP_COPPER && this->side == 1 )
+			|| (layer == LAY_BOTTOM_COPPER && this->side == 0 ) )
 	{
 		// bottom copper pad is on this layer
 		p = &ps->bottom;
 	}
-	else if( (layer == LAY_MASK_TOP && part->side == 1 )
-		|| (layer == LAY_MASK_BOTTOM && part->side == 0 ) )
+	else if( (layer == LAY_MASK_TOP && this->side == 1 )
+		|| (layer == LAY_MASK_BOTTOM && this->side == 0 ) )
 	{
 		// bottom mask pad is on this layer
 		if( ps->bottom_mask.shape != PAD_DEFAULT )
@@ -2084,8 +2103,8 @@ int Part::GetPadDrawInfo( Part * part, int ipin, int layer,
 			p = &ps->bottom;
 		}
 	}
-	else if( (layer == LAY_PASTE_TOP && part->side == 1 )
-		|| (layer == LAY_PASTE_BOTTOM && part->side == 0 ) )
+	else if( (layer == LAY_PASTE_TOP && this->side == 1 )
+		|| (layer == LAY_PASTE_BOTTOM && this->side == 0 ) )
 	{
 		// bottom paste pad is on this layer
 		if( ps->bottom_paste.shape != PAD_DEFAULT )

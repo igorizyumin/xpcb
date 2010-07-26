@@ -1,31 +1,29 @@
 // Shape.cpp : implementation of CShape class
 //
-#include "stdafx.h"
-#include "afx.h"
-#include "SMFontUtil.h"
-#include "shape.h"
+#include "smfontutil.h"
+#include "Shape.h"
 #include <math.h> 
+#include "utility.h"
+#include "TextList.h"
 
 #define NO_MM	// this restores backward compatibility for project files
 
 // utility function make strings for dimensions
 //
-CString ws( int n, int units )
+QString ws( int n, int units )
 {
-	CString str;
-	MakeCStringFromDimension( &str, n, units, FALSE, FALSE, FALSE, 6 ); 
-	return str;
+	return DimensionToStr( n, units, false, false, false, 6 );
 }
  
 
 // class pad
-pad::pad()
+Pad::Pad()
 {
 	radius = 0;
 	connect_flag = 0;
 }
 
-BOOL pad::operator==(pad p)
+bool Pad::operator==(Pad p)
 { 
 	return( shape==p.shape 
 			&& size_l==p.size_l 
@@ -37,9 +35,9 @@ BOOL pad::operator==(pad p)
 }
 
 // class padstack
-padstack::padstack()
+Padstack::Padstack()
 { 
-	exists = FALSE;
+	exists = false;
 	top_mask.shape = PAD_DEFAULT;
 	top_paste.shape = PAD_DEFAULT;
 	inner.shape = PAD_NONE;
@@ -47,7 +45,7 @@ padstack::padstack()
 	bottom_paste.shape = PAD_DEFAULT;
 }
 
-BOOL padstack::operator==(padstack p)
+bool Padstack::operator==(Padstack p)
 { 
 	return( name == p.name
 			&& angle==p.angle 
@@ -67,7 +65,7 @@ BOOL padstack::operator==(padstack p)
 // class CShape
 // this constructor creates an empty shape
 //
-CShape::CShape()
+Footprint::Footprint()
 {
 	m_tl = new CTextList;	
 	Clear();
@@ -75,13 +73,13 @@ CShape::CShape()
 
 // destructor
 //
-CShape::~CShape()
+Footprint::~Footprint()
 {
 	Clear();
 	delete m_tl;
 }
 
-void CShape::Clear()
+void Footprint::Clear()
 {
 	m_name = "EMPTY_SHAPE";
 	m_author = "";
@@ -104,16 +102,16 @@ void CShape::Clear()
 	m_centroid_x = 0;
 	m_centroid_y = 0;
 	m_centroid_angle = 0;
-	m_padstack.SetSize(0);
-	m_outline_poly.SetSize(0);
+	m_padstack.clear();
+	m_outline_poly.clear();
 	m_tl->RemoveAllTexts();
-	m_glue.SetSize(0);
+	m_glue.clear();
 }
 
 // function to create shape from definition string
 // returns 0 if successful
 //
-int CShape::MakeFromString( CString name, CString str )
+int Footprint::MakeFromString( QString name, QString str )
 {
 	enum {	
 		MAX_PARAMS = 40,
@@ -189,22 +187,17 @@ int CShape::MakeFromString( CString name, CString str )
 	// delete original shape info
 	Clear();
 
-	char param[MAX_PARAMS][MAX_CHARS_PER_PARAM];
-	char * pstr;
 	int np = 0;
 
 	// parse string, separator is "_"
-	pstr = mystrtok( str , "_" );
-	while( pstr )
+	QStringList params = str.split('_');
+	for(np = 0; np < params.size(); np++)
 	{
-		if( strlen( pstr ) < MAX_CHARS_PER_PARAM )
-			strcpy( param[np++], pstr );
-		else 
+		if (params.at(np).size() >= MAX_CHARS_PER_PARAM)
 			return 1;
-		if( np >= MAX_PARAMS )
-			return 1;
-		pstr = mystrtok( NULL , "_" );
 	}
+	if (np >= MAX_PARAMS)
+		return 1;
 
 	// now parse parameters
 	// defaults
@@ -233,20 +226,21 @@ int CShape::MakeFromString( CString name, CString str )
 	// now loop through all substrings
 	for( int ip=0; ip<np; ip++ )
 	{	
-		CString p = param[ip];	// param 
-		CString p1 = "";		// param minus left-most char
-		CString p2 = "";		// param minus left-most 2 characters
-		int len = p.GetLength();
+		QString p = params[ip];	// param
+		QString p1;				// param minus left-most char
+		QString p2;				// param minus left-most 2 characters
+		int len = p.size();
 		if( len > 0 )
-			p1 = p.Right( len-1 );
+			p1 = p.right( len-1 );
 		if( len > 1 )
-			p2 = p.Right( len-2 );
+			p2 = p.right( len-2 );
 
 		// package type, must be first param
 		if( ip == 0 )
 		{
-			if( p == "HOLE" )
+			switch(p)
 			{
+			case "HOLE":
 				package = HOLE;
 				pattern = GRID;
 				npins = 1;
@@ -258,9 +252,8 @@ int CShape::MakeFromString( CString name, CString str )
 				pin_spacing_y = PCBU_PER_MIL*100;
 				pad_shape = NONE;
 				pad_hole_w = 100*PCBU_PER_MIL;
-			}
-			else if( p == "DIP" )
-			{
+				break;
+			case "DIP":
 				package = DIP;
 				pattern = EDGE;
 				pin_start = P1BL;
@@ -268,9 +261,8 @@ int CShape::MakeFromString( CString name, CString str )
 				pin_spacing_x = PCBU_PER_MIL*100;
 				pad_shape = RNDSQ1;
 				pad_hole_w = 24*PCBU_PER_MIL;
-			}
-			else if( p == "SIP" )
-			{
+				break;
+			case "SIP":
 				package = SIP;
 				pattern = EDGE;
 				pin_start = P1BL;
@@ -278,9 +270,8 @@ int CShape::MakeFromString( CString name, CString str )
 				pin_spacing_x = PCBU_PER_MIL*100;
 				pad_shape = RNDSQ1;
 				pad_hole_w = 24*PCBU_PER_MIL;
-			}
-			else if( p == "SOIC" )
-			{
+				break;
+			case "SOIC":
 				package = SOIC;
 				pattern = EDGE;
 				pin_start = P1BL;
@@ -288,9 +279,8 @@ int CShape::MakeFromString( CString name, CString str )
 				pin_spacing_x = PCBU_PER_MIL*50;
 				pad_shape = RECT;
 				pad_hole_w = 0;
-			}
-			else if( p == "PLCC" )
-			{
+				break;
+			case "PLCC":
 				package = PLCC;
 				pattern = EDGE;
 				pin_start = P1TC;
@@ -298,9 +288,8 @@ int CShape::MakeFromString( CString name, CString str )
 				pin_spacing_x = PCBU_PER_MIL*50;
 				pad_shape = RECT;
 				pad_hole_w = 0;
-			}
-			else if( p == "QFP" )
-			{
+				break;
+			case "QFP":
 				package = QFP;
 				pattern = EDGE;
 				pin_start = P1TL;
@@ -308,9 +297,8 @@ int CShape::MakeFromString( CString name, CString str )
 				pin_spacing_x = PCBU_PER_MIL*50;
 				pad_shape = RECT;
 				pad_hole_w = 0;
-			}
-			else if( p == "HDR" )
-			{
+				break;
+			case "HDR":
 				package = HDR;
 				pattern = GRID;
 				pin_start = P1BL;
@@ -319,9 +307,8 @@ int CShape::MakeFromString( CString name, CString str )
 				pin_spacing_y = PCBU_PER_MIL*100;
 				pad_shape = RNDSQ1;
 				pad_hole_w = PCBU_PER_MIL*24;
-			}
-			else if( p == "CHIP" )
-			{
+				break;
+			case  "CHIP":
 				package = CHIP;
 				pattern = GRID;
 				pin_start = P1BL;
@@ -330,9 +317,11 @@ int CShape::MakeFromString( CString name, CString str )
 				pin_spacing_y = PCBU_PER_MIL*100;
 				pad_shape = RECT;
 				pad_hole_w = 0;
-			}
-			else
+				break;
+			default:
 				return 1;
+				break;
+			}
 			pad_w = pin_spacing_x/2;
 		}
 		
@@ -461,7 +450,7 @@ int CShape::MakeFromString( CString name, CString str )
 		// horizontal pin spacing
 		else if( p[0] == 'P' && p[1] == 'H' )
 		{
-			pin_spacing_x = GetDimensionFromString( &p2 );
+			pin_spacing_x = StrToDimension( p2 );
 			if( pin_spacing_x == 0 && npins_x > 1 )
 				return 1;
 			if( pin_spacing_y == P_UNDEFINED )
@@ -471,7 +460,7 @@ int CShape::MakeFromString( CString name, CString str )
 		// vertical pin spacing
 		else if( p[0] == 'P' && p[1] == 'V' )
 		{
-			pin_spacing_y = GetDimensionFromString( &p2 );
+			pin_spacing_y = StrToDimension( p2 );
 			if( pin_spacing_y == 0 && npins_y > 1 )
 				return 1;
 		}
@@ -479,21 +468,21 @@ int CShape::MakeFromString( CString name, CString str )
 		// pin row offsets (or use defaults)
 		else if( p[0] == 'R' && p[1] == 'L' )
 		{
-			offset_left = GetDimensionFromString( &p2 );
+			offset_left = StrToDimension( p2 );
 		}
 		else if( p[0] == 'R' && p[1] == 'R' )
 		{
-			offset_right = GetDimensionFromString( &p2 );
+			offset_right = StrToDimension( p2 );
 			if( offset_right == 0 )
 				return 1;
 		}
 		else if( p[0] == 'R' && p[1] == 'B' )
 		{
-			offset_bottom = GetDimensionFromString( &p2 );
+			offset_bottom = StrToDimension( p2 );
 		}
 		else if( p[0] == 'R' && p[1] == 'T' )
 		{
-			offset_top = GetDimensionFromString( &p2 );
+			offset_top = StrToDimension( p2 );
 			if( offset_top == 0 )
 				return 1;
 		}
@@ -519,7 +508,7 @@ int CShape::MakeFromString( CString name, CString str )
 		// pad width
 		if( p[0] == 'P' && p[1] == 'W' )
 		{
-			pad_w = GetDimensionFromString( &p2 );
+			pad_w = StrToDimension( p2 );
 			if( pad_w == 0 && pad_shape != NONE )
 				return 1;
 		}
@@ -527,29 +516,29 @@ int CShape::MakeFromString( CString name, CString str )
 		// pad lengths
 		else if( p[0] == 'P' && p[1] == 'E' )
 		{
-			pad_len_ext = GetDimensionFromString( &p2 );
+			pad_len_ext = StrToDimension( p2 );
 		}
 		else if( p[0] == 'P' && param[ip][1] == 'I' )
 		{
-			pad_len_int = GetDimensionFromString( &p2 );
+			pad_len_int = StrToDimension( p2 );
 		}
 		
 		// pad radius
 		else if( p[0] == 'P' && p[1] == 'R' )
 		{
-			pad_radius = GetDimensionFromString( &p2 );
+			pad_radius = StrToDimension( p2 );
 		}
 		
 		// hole width
 		else if( param[ip][0] == 'H' && param[ip][1] == 'W' )
 		{
-			pad_hole_w = GetDimensionFromString( &p2 );
+			pad_hole_w = StrToDimension( p2 );
 		}
 		
 		// text size
 		else if( param[ip][0] == 'T' && param[ip][1] == 'S' )
 		{
-			ref_text_size = GetDimensionFromString( &p2 );
+			ref_text_size = StrToDimension( p2 );
 			if( ref_text_size == 0 )
 				return 1;
 		}
@@ -599,7 +588,7 @@ int CShape::MakeFromString( CString name, CString str )
 		return 1;
 
 	// create array of padstacks
-	m_padstack.SetSize( npins );
+	m_padstack.resize( npins );
 	if( pattern == EDGE )
 	{
 		// edge pattern, such as DIP, SOIC, PLCC, etc.
@@ -635,9 +624,7 @@ int CShape::MakeFromString( CString name, CString str )
 				i = i - npins;
 
 			// set pin name
-			CString name;
-			name.Format( "%d", i+1 );
-			m_padstack[i].name = name; 
+			m_padstack[i].name = QString::number(i+1);
 
 			// set hole width and determine TH or SMT
 			int pad_type;
@@ -926,8 +913,8 @@ int CShape::MakeFromString( CString name, CString str )
 	else
 		ASSERT(0);	// no pattern
 
-	CRect pad_rect = GetBounds();
-	m_outline_poly.SetSize(1);
+	QRect pad_rect = GetBounds();
+	m_outline_poly.resize(1);
 	if( package == HOLE )
 	{
 		// create ref text box
@@ -1049,34 +1036,32 @@ int CShape::MakeFromString( CString name, CString str )
 
 		// create part outline with 7 mil line width and 13 mil clearance
 		int clear = 13*PCBU_PER_MIL;
-		m_outline_poly[0].Start( 0, 7*PCBU_PER_MIL, 0, pad_rect.left-clear, pad_rect.bottom-clear, 0, 0, 0 ); 
-		m_outline_poly[0].AppendCorner( pad_rect.right+clear, pad_rect.bottom-clear ); 
-		m_outline_poly[0].AppendCorner( pad_rect.right+clear, pad_rect.top+clear ); 
-		m_outline_poly[0].AppendCorner( pad_rect.left-clear, pad_rect.top+clear ); 
+		m_outline_poly[0].Start( 0, 7*PCBU_PER_MIL, 0, pad_rect.left()-clear, pad_rect.bottom()+1-clear, 0, 0, 0 );
+		m_outline_poly[0].AppendCorner( pad_rect.right()+1+clear, pad_rect.bottom()+1-clear );
+		m_outline_poly[0].AppendCorner( pad_rect.right()+1+clear, pad_rect.top()+clear );
+		m_outline_poly[0].AppendCorner( pad_rect.left()-clear, pad_rect.top()+clear );
 		m_outline_poly[0].Close();
 	}
 
 	// now set selection rectangle
-	CRect br = GetBounds();
-	m_sel_xi = br.left - 10*NM_PER_MIL;
-	m_sel_yi = br.bottom - 10*NM_PER_MIL;
-	m_sel_xf = br.right + 10*NM_PER_MIL;
-	m_sel_yf = br.top + 10*NM_PER_MIL;
+	QRect br = GetBounds();
+	m_sel_xi = br.left() - 10*NM_PER_MIL;
+	m_sel_yi = br.bottom()+1 - 10*NM_PER_MIL;
+	m_sel_xf = br.right()+1 + 10*NM_PER_MIL;
+	m_sel_yf = br.top() + 10*NM_PER_MIL;
 
 	// now set pin names
-	for( int ip=0; ip<m_padstack.GetSize(); ip++ )
+	for( int ip=0; ip<m_padstack.size(); ip++ )
 	{
-		CString str;
-		str.Format( "%d", ip+1 );
-		m_padstack[ip].name = str;
+		m_padstack[ip].name = QString::number(ip+1);
 	}
 
 	m_name = name.Left(MAX_NAME_SIZE);	// this is the limit
 	m_units = units;
-	CPoint c = GetDefaultCentroid();
+	QPoint c = GetDefaultCentroid();
 	m_centroid_type = CENTROID_DEFAULT;
-	m_centroid_x = c.x;
-	m_centroid_y = c.y;
+	m_centroid_x = c.x();
+	m_centroid_y = c.y();
 	m_centroid_angle = 0;
 	return 0;
 }
@@ -1095,7 +1080,7 @@ int CShape::MakeFromString( CString name, CString str )
 // returns 3 if unable to parse file
 // returns 4 if name doesn't match (if name is known)
 //
-int CShape::MakeFromFile( CStdioFile * in_file, CString name, 
+int Footprint::MakeFromFile( CStdioFile * in_file, CString name,
 						 CString file_path, int pos )
 {
 	CString key_str;
@@ -1103,8 +1088,8 @@ int CShape::MakeFromFile( CStdioFile * in_file, CString name,
 	CArray<CString> p;
 	int ipin, file_pos;
 	int num_pins;
-	BOOL bValue = FALSE;
-	BOOL bRef = FALSE;
+	bool bValue = false;
+	bool bRef = false;
 	int n_glue = 0;
 
 	p.SetSize( 10 );
@@ -1125,7 +1110,7 @@ int CShape::MakeFromFile( CStdioFile * in_file, CString name,
 	Clear();
 	m_units = NM;
 	int mult = 1;
-	BOOL bCentroidFound = FALSE;
+	bool bCentroidFound = false;
 
 	// now read lines from file and make footprint
 	try
@@ -1249,7 +1234,7 @@ int CShape::MakeFromFile( CStdioFile * in_file, CString name,
 				m_ref_yi = GetDimensionFromString( &p[2], m_units);
 				m_ref_angle = my_atoi( &p[3] ); 
 				m_ref_w = GetDimensionFromString( &p[4], m_units);
-				bRef = TRUE;
+				bRef = true;
 			}
 			else if( key_str == "value_text" && np >= 6 )
 			{
@@ -1258,7 +1243,7 @@ int CShape::MakeFromFile( CStdioFile * in_file, CString name,
 				m_value_yi = GetDimensionFromString( &p[2], m_units);
 				m_value_angle = my_atoi( &p[3] ); 
 				m_value_w = GetDimensionFromString( &p[4], m_units);
-				bValue = TRUE;
+				bValue = true;
 			}
 			else if( key_str == "centroid" && np >= 4 )
 			{
@@ -1268,7 +1253,7 @@ int CShape::MakeFromFile( CStdioFile * in_file, CString name,
 				m_centroid_angle = 0;
 				if( np >= 5 )
 					m_centroid_angle = my_atoi( &p[3] );
-				bCentroidFound = TRUE;
+				bCentroidFound = true;
 			}
 			else if( key_str == "adhesive" && np >= 5 )
 			{
@@ -1288,7 +1273,7 @@ int CShape::MakeFromFile( CStdioFile * in_file, CString name,
 				int stroke_w = GetDimensionFromString( &p[5], m_units);
 				int mirror = 0;
 				int layer = LAY_FP_SILK_TOP;
-				BOOL bNegative = FALSE;
+				bool bNegative = false;
 				if( np >= 9 )
 				{
 					mirror = my_atoi( &p[6] );
@@ -1359,7 +1344,7 @@ int CShape::MakeFromFile( CStdioFile * in_file, CString name,
 			else if( key_str == "top_pad" && np >= 5 )
 			{
 				// testing
-				pad * test_pad = &m_padstack[ipin].top;
+				Pad * test_pad = &m_padstack[ipin].top;
 				if( test_pad->connect_flag != 0 )
 					ASSERT(0);
 				m_padstack[ipin].top.shape = my_atoi( &p[0] ); 
@@ -1514,7 +1499,7 @@ normal_return:
 
 // copy another shape into this shape
 //
-int CShape::Copy( CShape * shape )
+int Footprint::Copy( Footprint * shape )
 {
 	// description
 	m_name = shape->m_name;
@@ -1562,7 +1547,7 @@ int CShape::Copy( CShape * shape )
 	{
 		CText * t = shape->m_tl->text_ptr[it];
 		m_tl->AddText( t->m_x, t->m_y, t->m_angle, t->m_mirror, t->m_bNegative, 
-			LAY_FP_SILK_TOP, t->m_font_size, t->m_stroke_width, &t->m_str, FALSE ); 
+			LAY_FP_SILK_TOP, t->m_font_size, t->m_stroke_width, &t->m_str, false );
 	}
 	// glue spots
 	int nd = shape->m_glue.GetSize();
@@ -1572,7 +1557,7 @@ int CShape::Copy( CShape * shape )
 	return PART_NOERR;
 }
 
-BOOL CShape::Compare( CShape * shape )
+bool Footprint::Compare( Footprint * shape )
 {
 	// parameters
 	if( m_name != shape->m_name 
@@ -1593,41 +1578,41 @@ BOOL CShape::Compare( CShape * shape )
 		|| m_value_xi != shape->m_value_xi 
 		|| m_value_yi != shape->m_value_yi 
 		|| m_value_angle != shape->m_value_angle )
-			return FALSE;
+			return false;
 
 	// padstacks
-	int np = m_padstack.GetSize();
-	if( np != shape->m_padstack.GetSize() )
-		return FALSE;
+	int np = m_padstack.size();
+	if( np != shape->m_padstack.size() )
+		return false;
 	for( int i=0; i<np; i++ )
 	{
 		if(  !(m_padstack[i] == shape->m_padstack[i]) )
-			return FALSE;
+			return false;
 	}
 	// outline polys
-	np = m_outline_poly.GetSize();
-	if( np != shape->m_outline_poly.GetSize() )
-		return FALSE;
+	np = m_outline_poly.size();
+	if( np != shape->m_outline_poly.size() )
+		return false;
 	for( int ip=0; ip<np; ip++ )
 	{
-		if (m_outline_poly[ip].GetLayer() != shape->m_outline_poly[ip].GetLayer() ) return FALSE;
-		if (m_outline_poly[ip].GetClosed() != shape->m_outline_poly[ip].GetClosed() ) return FALSE;
-		if (m_outline_poly[ip].GetHatch() != shape->m_outline_poly[ip].GetHatch() ) return FALSE;
-		if (m_outline_poly[ip].GetW() != shape->m_outline_poly[ip].GetW() ) return FALSE;
-//		if (m_outline_poly[ip].GetSelBoxSize() != shape->m_outline_poly[ip].GetSelBoxSize() ) return FALSE;
-		if (m_outline_poly[ip].GetNumCorners() != shape->m_outline_poly[ip].GetNumCorners() ) return FALSE;
+		if (m_outline_poly[ip].GetLayer() != shape->m_outline_poly[ip].GetLayer() ) return false;
+		if (m_outline_poly[ip].GetClosed() != shape->m_outline_poly[ip].GetClosed() ) return false;
+		if (m_outline_poly[ip].GetHatch() != shape->m_outline_poly[ip].GetHatch() ) return false;
+		if (m_outline_poly[ip].GetW() != shape->m_outline_poly[ip].GetW() ) return false;
+//		if (m_outline_poly[ip].GetSelBoxSize() != shape->m_outline_poly[ip].GetSelBoxSize() ) return false;
+		if (m_outline_poly[ip].GetNumCorners() != shape->m_outline_poly[ip].GetNumCorners() ) return false;
 		for( int ic=0; ic<m_outline_poly[ip].GetNumCorners(); ic++ )
 		{
-			if (m_outline_poly[ip].GetX(ic) != shape->m_outline_poly[ip].GetX(ic) ) return FALSE;
-			if (m_outline_poly[ip].GetY(ic) != shape->m_outline_poly[ip].GetY(ic) ) return FALSE;
+			if (m_outline_poly[ip].GetX(ic) != shape->m_outline_poly[ip].GetX(ic) ) return false;
+			if (m_outline_poly[ip].GetY(ic) != shape->m_outline_poly[ip].GetY(ic) ) return false;
 			if( ic<(m_outline_poly[ip].GetNumCorners()-1) || m_outline_poly[ip].GetClosed() )
-				if (m_outline_poly[ip].GetSideStyle(ic) != shape->m_outline_poly[ip].GetSideStyle(ic) ) return FALSE;
+				if (m_outline_poly[ip].GetSideStyle(ic) != shape->m_outline_poly[ip].GetSideStyle(ic) ) return false;
 		}
 	}
 	// text
 	int nt = m_tl->text_ptr.GetSize();
 	if( nt != shape->m_tl->text_ptr.GetSize() )
-		return FALSE;
+		return false;
 	for( int it=0; it<m_tl->text_ptr.GetSize(); it++ )
 	{
 		CText * t = m_tl->text_ptr[it];
@@ -1640,19 +1625,19 @@ BOOL CShape::Compare( CShape * shape )
 			|| t->m_font_size != st->m_font_size
 			|| t->m_stroke_width != st->m_stroke_width
 			|| t->m_str != st->m_str )
-			return FALSE;
+			return false;
 	}
-	return TRUE;
+	return true;
 }
 
-int CShape::GetNumPins()
+int Footprint::GetNumPins()
 {
-	return m_padstack.GetSize();
+	return m_padstack.size();
 }
 
-int CShape::GetPinIndexByName( LPCTSTR name )
+int Footprint::GetPinIndexByName( QString name )
 {	
-	for( int ip=0; ip<m_padstack.GetSize(); ip++ )
+	for( int ip=0; ip<m_padstack.size(); ip++ )
 	{
 		if( m_padstack[ip].name == name )
 			return ip;
@@ -1660,14 +1645,14 @@ int CShape::GetPinIndexByName( LPCTSTR name )
 	return -1;		// error
 }
 
-CString CShape::GetPinNameByIndex( int ip )
+QString Footprint::GetPinNameByIndex( int ip )
 {
 	return m_padstack[ip].name;
 }
 
 // write one footprint
 //
-int CShape::WriteFootprint( CStdioFile * file )
+int Footprint::WriteFootprint( CStdioFile * file )
 {
 	CString line;
 	CString key;
@@ -1752,7 +1737,7 @@ int CShape::WriteFootprint( CStdioFile * file )
 		file->WriteString( line );
 		for( int ip=0; ip<m_padstack.GetSize(); ip++ )
 		{
-			padstack * p = &(m_padstack[ip]);
+			Padstack * p = &(m_padstack[ip]);
 			line.Format( "    pin: \"%s\" %s %s %s %d\n",
 				p->name, ws(p->hole_size,m_units), ws(p->x_rel,m_units), ws(p->y_rel,m_units), p->angle ); 
 			file->WriteString( line );
@@ -1841,6 +1826,7 @@ int CShape::WriteFootprint( CStdioFile * file )
 	return 0;
 }
 
+#if 0
 // create metafile and draw footprint into it
 //
 HENHMETAFILE CShape::CreateMetafile( CMetaFileDC * mfDC, CDC * pDC, int x_size, int y_size )
@@ -2236,7 +2222,7 @@ HENHMETAFILE CShape::CreateMetafile( CMetaFileDC * mfDC, CDC * pDC, int x_size, 
 				dl_shape = DL_ARC_CW;
 			else
 				ASSERT(0);
-			::DrawArc( mfDC, dl_shape, x+xoffset, -y+yoffset, next_x+xoffset, -next_y+yoffset, TRUE );
+			::DrawArc( mfDC, dl_shape, x+xoffset, -y+yoffset, next_x+xoffset, -next_y+yoffset, true );
 			x = next_x; 
 			y = next_y;
 		}
@@ -2254,7 +2240,7 @@ HENHMETAFILE CShape::CreateMetafile( CMetaFileDC * mfDC, CDC * pDC, int x_size, 
 				dl_shape = DL_ARC_CW;
 			else
 				ASSERT(0);
-			::DrawArc( mfDC, dl_shape, x+xoffset, -y+yoffset, next_x+xoffset, -next_y+yoffset, TRUE );
+			::DrawArc( mfDC, dl_shape, x+xoffset, -y+yoffset, next_x+xoffset, -next_y+yoffset, true );
 		}
 	}
 
@@ -2419,44 +2405,44 @@ HENHMETAFILE CShape::CreateWarningMetafile( CMetaFileDC * mfDC, CDC * pDC, int x
 	HENHMETAFILE hMF = mfDC->CloseEnhanced();
 	return hMF;
 }
+#endif
 
 // Get default centroid
 // if no pads, returns (0,0)
-CPoint CShape::GetDefaultCentroid()
+QPoint Footprint::GetDefaultCentroid()
 {
-	if( m_padstack.GetSize() == 0 )
+	if( m_padstack.size() == 0 )
 		return CPoint(0,0);
-	CRect r = GetAllPadBounds();
-	CPoint c( (r.left+r.right)/2, (r.top+r.bottom)/2 );
-	return c;
+	QRect r = GetAllPadBounds();
+	return r.center();
 }
 
 // Get bounding rectangle of all pads
 // if no pads, returns with rect.left = INT_MAX:
-CRect CShape::GetAllPadBounds()
+QRect Footprint::GetAllPadBounds()
 {
-	CRect r;
-	r.left = r.bottom = INT_MAX;
-	r.right = r.top = INT_MIN;
-	for( int ip=0; ip<m_padstack.GetSize(); ip++ )
+	QRect r;
+	int left, right, bottom, top;
+	left = bottom = INT_MAX;
+	right = top = INT_MIN;
+	for( int ip=0; ip<m_padstack.size(); ip++ )
 	{
-		CRect pad_r = GetPadBounds( ip );
-		r.left = min( r.left, pad_r.left );
-		r.bottom = min( r.bottom, pad_r.bottom );
-		r.right = max( r.right, pad_r.right );
-		r.top = max( r.top, pad_r.top );
+		QRect pad_r = GetPadBounds( ip );
+		left = min( left, pad_r.left() );
+		bottom = min( bottom, pad_r.bottom()+1 );
+		right = max( right, pad_r.right()+1 );
+		top = max( top, pad_r.top() );
 	}
 	return r;
 }
 
 // Get bounding rectangle of pad
 //
-CRect CShape::GetPadBounds( int i )
+QRect Footprint::GetPadBounds( int i )
 {
-	CRect r;
 	int dx=0, dy=0;
-	padstack * ps = &m_padstack[i];
-	pad * p = &ps->top;
+	Padstack * ps = &m_padstack[i];
+	Pad * p = &ps->top;
 	if( ps->top.shape == PAD_NONE && ps->bottom.shape != PAD_NONE )
 		p = &ps->bottom;
 	if( p->shape == PAD_NONE )
@@ -2486,88 +2472,84 @@ CRect CShape::GetPadBounds( int i )
 		else
 			ASSERT(0);	// illegal angle
 	}
-	r.left = ps->x_rel - dx;
-	r.right = ps->x_rel + dx;
-	r.bottom = ps->y_rel - dy;
-	r.top = ps->y_rel + dy;
-	return r;
+	return QRect(ps->x_rel-dx, ps->y_rel-dy, 2*dx, 2*dy);
+
 }
 
 // Get bounding rectangle of row of pads
 //
-CRect CShape::GetPadRowBounds( int i, int num )
+QRect Footprint::GetPadRowBounds( int i, int num )
 {
-	CRect rr;
-
-	rr.left = rr.bottom = INT_MAX;
-	rr.right = rr.top = INT_MIN;
+	QRect r;
+	int left, right, bottom, top;
+	left = bottom = INT_MAX;
+	right = top = INT_MIN;
 	for( int ip=i; ip<(i+num); ip++ )
 	{
-		CRect r = GetPadBounds( ip );
-		rr.left = min( r.left, rr.left );
-		rr.bottom = min( r.bottom, rr.bottom );
-		rr.right = max( r.right, rr.right );
-		rr.top = max( r.top, rr.top );
+		QRect pad_r = GetPadBounds( ip );
+		left = min( left, pad_r.left() );
+		bottom = min( bottom, pad_r.bottom()+1 );
+		right = max( right, pad_r.right()+1 );
+		top = max( top, pad_r.top() );
 	}
-	return rr;
+	return r;
 }
 
 // Get bounding rectangle of footprint
 //
-CRect CShape::GetBounds( BOOL bIncludeLineWidths )
+QRect Footprint::GetBounds( bool bIncludeLineWidths )
 {
-	CRect br;
-
-	br.left = br.bottom = INT_MAX;
-	br.right = br.top = INT_MIN;
+	int left, right, bottom, top;
+	left = bottom = INT_MAX;
+	right = top = INT_MIN;
 	for( int ip=0; ip<GetNumPins(); ip++ )
 	{
-		CRect padr = GetPadBounds( ip );
-		br.left = min( br.left, padr.left ); 
-		br.bottom = min( br.bottom, padr.bottom ); 
-		br.right = max( br.right, padr.right ); 
-		br.top = max( br.top, padr.top ); 
+		QRect r = GetPadBounds( ip );
+		left = min( left, r.left() );
+		bottom = min( bottom, r.bottom()+1);
+		right = max( right, r.right()+1);
+		top = max( top, r.top());
 	}
 	for( int ip=0; ip<m_outline_poly.GetSize(); ip++ )
 	{
-		CRect polyr;
+		QRect r;
 		if( bIncludeLineWidths )
-			polyr = m_outline_poly[ip].GetBounds();
+			r = m_outline_poly[ip].GetBounds();
 		else
-			polyr = m_outline_poly[ip].GetCornerBounds();
-		br.left = min( br.left, polyr.left ); 
-		br.bottom = min( br.bottom, polyr.bottom ); 
-		br.right = max( br.right, polyr.right ); 
-		br.top = max( br.top, polyr.top ); 
+			r = m_outline_poly[ip].GetCornerBounds();
+		left = min( left, r.left() );
+		bottom = min( bottom, r.bottom()+1);
+		right = max( right, r.right()+1);
+		top = max( top, r.top());
 	}
-	CRect tr;
-	BOOL bText = m_tl->GetTextBoundaries( &tr );
+	QRect tr;
+	bool bText = m_tl->GetTextBoundaries( tr );
 	if( bText )
 	{
-		br.left = min( br.left, tr.left ); 
-		br.bottom = min( br.bottom, tr.bottom );  
-		br.right = max( br.right, tr.right ); 
-		br.top = max( br.top, tr.top ); 
+		left = min( left, tr.left() );
+		bottom = min( bottom, tr.bottom()+1);
+		right = max( right, tr.right()+1);
+		top = max( top, tr.top());
 	}
-	if(	br.left == INT_MAX || br.bottom == INT_MAX || br.right == INT_MIN || br.top == INT_MIN )
+	if(	left == INT_MAX || bottom == INT_MAX || right == INT_MIN || top == INT_MIN )
 	{
 		// no elements, make it a 100 mil square
-		br.left = 0;
-		br.right = 100*NM_PER_MIL;
-		br.bottom = 0;
-		br.top = 100*NM_PER_MIL;
+		left = 0;
+		right = 100*NM_PER_MIL;
+		bottom = 0;
+		top = 100*NM_PER_MIL;
 	}
-	return br;
+	return QRect(left, bottom, right-left, top-bottom);
 }
 
 // Get bounding rectangle of footprint, not including polyline widths
 //
-CRect CShape::GetCornerBounds()
+QRect Footprint::GetCornerBounds()
 {
-	return GetBounds( FALSE );
+	return GetBounds( false );
 }
 
-
+# if 0
 //********************************************************
 //
 // Methods for CEditShape
@@ -2987,13 +2969,13 @@ void CEditShape::Draw( CDisplayList * dlist, SMFontUtil * fontutil )
 		axis_offset_x = -CENTROID_WIDTH;
 	else if( m_centroid_angle == 270 )
 		axis_offset_y = -CENTROID_WIDTH;
-	m_centroid_el = m_dlist->Add( c_id, NULL, LAY_FP_CENTROID, DL_CENTROID, TRUE, 
+	m_centroid_el = m_dlist->Add( c_id, NULL, LAY_FP_CENTROID, DL_CENTROID, true,
 		CENTROID_WIDTH, 0, m_centroid_x, m_centroid_y, 
 		m_centroid_x+axis_offset_x, m_centroid_y + axis_offset_y, 
 		0, 0, 0 ); 
 	c_id.st = ID_SEL_CENT; 
 	m_centroid_sel = m_dlist->AddSelector( c_id, NULL, LAY_FP_CENTROID, DL_HOLLOW_RECT, 
-		TRUE, 0, 0, 
+		true, 0, 0,
 		m_centroid_x-CENTROID_WIDTH/2, 
 		m_centroid_y-CENTROID_WIDTH/2, 
 		m_centroid_x+CENTROID_WIDTH/2, 
@@ -3011,11 +2993,11 @@ void CEditShape::Draw( CDisplayList * dlist, SMFontUtil * fontutil )
 		if( w == 0 )
 			w = DEFAULT_GLUE_WIDTH;
 		id g_id( ID_GLUE, ID_SPOT, idot );
-		m_dot_el[idot] = m_dlist->Add( g_id, NULL, LAY_FP_DOT, DL_CIRC, TRUE, 
+		m_dot_el[idot] = m_dlist->Add( g_id, NULL, LAY_FP_DOT, DL_CIRC, true,
 			w, 0, g->x_rel, g->y_rel, 0, 0, 0, 0, 0 ); 
 		g_id.st = ID_SEL_SPOT;
 		m_dot_sel[idot] = m_dlist->AddSelector( g_id, NULL, LAY_FP_DOT, DL_HOLLOW_RECT, 
-			TRUE, 0, 0, 
+			true, 0, 0,
 			g->x_rel-w/2, 
 			g->y_rel-w/2, 
 			g->x_rel+w/2, 
@@ -3408,14 +3390,14 @@ void CEditShape::ShiftToInsertPadName( CString * astr, int n )
 // Generate selection rectangle from footprint elements
 // doesn't draw it
 //
-BOOL CEditShape::GenerateSelectionRectangle( CRect * r )
+bool CEditShape::GenerateSelectionRectangle( CRect * r )
 {
 	int num_elements = GetNumPins() + m_outline_poly.GetSize() + m_tl->GetNumTexts();
 	if( num_elements == 0 )
-		return FALSE;
+		return false;
 
 	CRect br;
-	br = GetBounds( TRUE );
+	br = GetBounds( true );
 
 #if 0
 	br.left = br.bottom = INT_MAX;
@@ -3437,7 +3419,7 @@ BOOL CEditShape::GenerateSelectionRectangle( CRect * r )
 		br.top = max( br.top, polyr.top ); 
 	}
 	CRect tr;
-	BOOL bText = m_tl->GetTextBoundaries( &tr );
+	bool bText = m_tl->GetTextBoundaries( &tr );
 	if( bText )
 	{
 		br.left = min( br.left, tr.left ); 
@@ -3446,7 +3428,7 @@ BOOL CEditShape::GenerateSelectionRectangle( CRect * r )
 		br.top = max( br.top, tr.top ); 
 	}
 	if(	br.left == INT_MAX || br.bottom == INT_MAX || br.right == INT_MIN || br.top == INT_MIN )
-		return FALSE;
+		return false;
 #endif
 
 	br.left -= 10*NM_PER_MIL;
@@ -3458,7 +3440,7 @@ BOOL CEditShape::GenerateSelectionRectangle( CRect * r )
 	m_sel_xf = br.right;
 	m_sel_yi = br.bottom;
 	m_sel_yf = br.top;
-	return TRUE;
+	return true;
 }
 
-
+#endif

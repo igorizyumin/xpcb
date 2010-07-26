@@ -4,6 +4,8 @@
 
 #include <QPoint>
 #include <QRect>
+#include <QList>
+#include <QString>
 
 #define M_PI 3.14159265359  
 
@@ -63,11 +65,14 @@ public:
 	int xi, yi, xf, yf; 
 };
 
+
 // map part angle to reported part angle
 int GetReportedAngleForPart( int part_angle, int cent_angle, int side );
 int GetPartAngleForReportedAngle( int angle, int cent_angle, int side );
 
 // handle strings
+int ParseStringFields( QString str, QList<QString> & field );
+int ParseKeyString( QString str, QString key_str, QList<QString> & param_str );
 double StrToDimension( QString & str, int def_units=MIL, bool bRound10=true );
 QString DimensionToStr( int dim, int units, bool append_units=true,
 							  bool lower_case = false, bool space=false, int max_dp=8, bool strip=true );
