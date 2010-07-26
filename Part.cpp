@@ -17,7 +17,7 @@ Part::~Part()
 
 // Set part data, draw part if m_dlist != NULL
 //
-int Part::SetPartData( CShape * shape, QString ref_des, QString package,
+int Part::SetPartData( Footprint * shape, QString ref_des, QString package,
 							int x, int y, int side, int angle, int visible, int glued )
 {
 	// now copy data into part
@@ -160,8 +160,8 @@ bool Part::TestHitOnPad( QString pin_name, int x, int y, int layer )
 
 	int xx = this->pin[pin_index].x;
 	int yy = this->pin[pin_index].y;
-	padstack * ps = &this->shape->m_padstack[pin_index];
-	pad * p;
+	Padstack * ps = &this->shape->m_padstack[pin_index];
+	Pad * p;
 	if( ps->hole_size == 0 )
 	{
 		// SMT pad
@@ -420,7 +420,7 @@ QPoint Part::GetValuePoint( )
 //	sm = pointer to SMFontUtil for character data
 // returns number of strokes generated
 //
-int Part::GenerateStrokesForString( QString str, QList<stroke> & strokes, QRect & br)
+int Part::GenerateStrokesForString( QString str, QList<Stroke> & strokes, QRect & br)
 {
 	//strokes->SetSize( 10000 );
 	double x_scale = (double)m_size/22.0;
@@ -484,7 +484,7 @@ int Part::GenerateStrokesForString( QString str, QList<stroke> & strokes, QRect 
 			RotatePoint( sf, angle, zero );
 
 			// add x, y to part origin and draw
-			stroke st;
+			Stroke st;
 			st.type = DL_LINE;
 			st.w = this->w;
 			st.xi = this->x + si.x();
@@ -506,7 +506,7 @@ int Part::GenerateStrokesForString( QString str, QList<stroke> & strokes, QRect 
 //
 QRect Part::GetValueRect( )
 {
-	QList<stroke> m_stroke;
+	QList<Stroke> m_stroke;
 	QRect br;
 	GenerateStrokesForString( this->value, m_stroke, br );
 	return br;
@@ -1455,7 +1455,7 @@ int Part::CancelDraggingValue( Part * part )
 // the footprint was changed for a particular part
 // note that this function also updates the netlist
 //
-void Part::PartFootprintChanged( CShape * new_shape )
+void Part::PartFootprintChanged( Footprint * new_shape )
 {
 	// new footprint
 	this->shape = new_shape;
@@ -1488,7 +1488,7 @@ int Part::UndrawPart( Part * part )
 	if( part->drawn == false )
 		return 0;
 
-	CShape * shape = part->shape;
+	Footprint * shape = part->shape;
 	if( shape )
 	{
 		// undraw selection rectangle
@@ -2029,12 +2029,12 @@ int Part::GetPadDrawInfo( int ipin, int layer,
 							  int * clearance_type )
 {
 	// get footprint
-	CShape * s = this->shape;
+	Footprint * s = this->shape;
 	if( !s )
 		return 0;
 
 	// get pin and padstack info
-	padstack * ps = &s->m_padstack[ipin];
+	Padstack * ps = &s->m_padstack[ipin];
 	bool bUseDefault = false; // if true, use copper pad for mask
 	QString pin_name = s->GetPinNameByIndex( ipin );
 	int connect_status = GetPinConnectionStatus( pin_name, layer );
@@ -2054,7 +2054,7 @@ int Part::GetPadDrawInfo( int ipin, int layer,
 	int connect_flag = PAD_CONNECT_DEFAULT;
 
 	// get pad info
-	pad * p = NULL;
+	Pad * p = NULL;
 	if( (layer == LAY_TOP_COPPER && this->side == 0 )
 		|| (layer == LAY_BOTTOM_COPPER && this->side == 1 ) )
 	{

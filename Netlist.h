@@ -28,7 +28,7 @@ public:
 	int npins;			// number of pins
 	QList<Pin> pin;	// array of pins
 	int nareas;			// number of copper areas
-	QList<Area,Area> area;	// array of copper areas
+	QList<Area> area;	// array of copper areas
 	int def_w;			// default trace width
 	int def_via_w;		// default via width
 	int def_via_hole_w;	// default via hole width

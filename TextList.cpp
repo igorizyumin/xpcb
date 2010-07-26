@@ -565,7 +565,7 @@ BOOL CTextList::GetTextBoundaries( CRect * r )
 	{
 		for( int is=0; is<t->m_stroke.GetSize(); is++ )
 		{
-			stroke * s = &t->m_stroke[is];
+			Stroke * s = &t->m_stroke[is];
 			br.bottom = min( br.bottom, s->yi - s->w );
 			br.bottom = min( br.bottom, s->yf - s->w );
 			br.top = max( br.top, s->yi + s->w );

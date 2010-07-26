@@ -2,21 +2,16 @@
 //
 #pragma once
 
-#include <afxcoll.h>
-#include <afxtempl.h>
-#include "shape.h"
-#include "DisplayList.h"
-#include "PcbFont.h"
 #include "smfontutil.h"
 #include "UndoList.h"
 
 class CTextList;
-struct stroke;
+struct Stroke;
 
 struct undo_text {
 	GUID m_guid;
 	int m_x, m_y;
-	int m_layer;
+	int m_Stroke
 	int m_angle;
 	BOOL m_mirror;
 	BOOL m_bNegative;
@@ -49,13 +44,13 @@ public:
 	CPcbFont * m_font;
 	int m_nchars;
 	CString m_str;
-	CArray<stroke> m_stroke;
+	CArray<Stroke> m_stroke;
 	CDisplayList * m_dlist;
 	dl_element * dl_sel;
 	SMFontUtil * m_smfontutil;
 };
 
-class CTextList
+class CStrokest
 {
 public:
 	enum {

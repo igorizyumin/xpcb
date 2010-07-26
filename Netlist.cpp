@@ -7044,6 +7044,8 @@ BOOL CNetList::RemoveOrphanBranches( cnet * net, int id, BOOL bRemoveSegs )
 }
 
 
+// XXX IGOR XXX
+#if 0
 //
 void CNetList::ApplyClearancesToArea( cnet *net, int ia, int flags, 
 					int fill_clearance, int min_silkscreen_stroke_wid, 
@@ -7371,7 +7373,7 @@ int RouteToPin( int step,
 	return g_best_score;	// return best score found so far
 }
 
-#if 0
+
 // import routing data from autorouter for a net
 //
 void CNetList::ImportNetRouting( CString * name, 

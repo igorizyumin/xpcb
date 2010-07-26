@@ -65,7 +65,7 @@ public:
 	Part(SMFontUtil * fontutil);
 	~Part();
 
-	int SetPartData( CShape * shape, QString ref_des, QString package,
+	int SetPartData( Footprint * shape, QString ref_des, QString package,
 					int x, int y, int side, int angle, int visible, int glued );
 	int Highlight( );
 	int MoveRefText(int x, int y, int angle, int size, int w );
@@ -81,7 +81,7 @@ public:
 	int SelectPad( int i );
 	bool TestHitOnPad( QString pin_name, int x, int y, int layer );
 	int Move(  int x, int y, int angle, int side );
-	void PartFootprintChanged( CShape * shape );
+	void PartFootprintChanged( Footprint * shape );
 	int GetPartBoundingRect(QRect & part_r );
 	int GetSide();
 	int GetAngle();
@@ -141,10 +141,10 @@ private:
 	QString ref_des;			// ref designator such as "U3"
 	QString value;				// "value" string
 	QString package;			// package (from original imported netlist, may be "")
-	CShape * shape;				// pointer to the footprint of the part, may be NULL
-	QList<stroke> ref_text_stroke;		// strokes for ref. text
-	QList<stroke> value_stroke;		// strokes for ref. text
-	QList<stroke> m_outline_stroke;	// array of outline strokes
+	Footprint * shape;				// pointer to the footprint of the part, may be NULL
+	QList<Stroke> ref_text_stroke;		// strokes for ref. text
+	QList<Stroke> value_stroke;		// strokes for ref. text
+	QList<Stroke> m_outline_stroke;	// array of outline strokes
 	QList<PartPin> pin;				// array of all pins in part
 	int utility;		// used for various temporary purposes
 	// drc info

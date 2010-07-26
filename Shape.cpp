@@ -1080,31 +1080,29 @@ int Footprint::MakeFromString( QString name, QString str )
 // returns 3 if unable to parse file
 // returns 4 if name doesn't match (if name is known)
 //
-int Footprint::MakeFromFile( CStdioFile * in_file, CString name,
-						 CString file_path, int pos )
+
+int Footprint::MakeFromFile(QString path, QString name, int pos)
 {
-	CString key_str;
+	QFile in_file(path);
+	int ret;
+	if (!in_file.open(QIODevice::ReadOnly)) return 1;
+	ret = MakeFromFile(in_file, name, pos);
+	in_file.close();
+	return ret;
+}
+
+int Footprint::MakeFromFile( QFile & in_file, QString name, int pos = -1 )
+{
+	QString key_str;
 	int err;
-	CArray<CString> p;
+	QList<QString> p;
 	int ipin, file_pos;
 	int num_pins;
 	bool bValue = false;
 	bool bRef = false;
 	int n_glue = 0;
 
-	p.SetSize( 10 );
-
-	// if in_file exists, use it, otherwise open file
-	CStdioFile * file;
-	if( !in_file )
-	{
-		file = new CStdioFile;
-		err = file->Open( file_path, CFile::modeRead );
-		if( !err )
-			return 1;
-	}
-	else
-		file = in_file;
+	p.resize( 10 );
 
 	// delete any original shape info and set defaults
 	Clear();
@@ -1113,388 +1111,347 @@ int Footprint::MakeFromFile( CStdioFile * in_file, CString name,
 	bool bCentroidFound = false;
 
 	// now read lines from file and make footprint
-	try
+	if( pos >= 0 )
+		in_file.seek(pos);
+	int line_num = 0;
+	QByteArray name_str;
+	name_str = in_file.readLine();	// get first line from file
+	if( !name_str.size() )
+		return 2;		// empty line signifies error
+	int np = ParseKeyString( name_str, key_str, p );	// parse it
+	if( np < 2 || key_str != "name" )
+		return 4;	// first line should be "name: xxx"
+	if( name != "" && p.at(0) != name )
+		return 4;	// if name defined, it should match
+	if( p.at(0).size() > MAX_NAME_SIZE )
 	{
-		if( !in_file )
-			file->Seek( pos, CFile::begin );	// set starting position
-		int line_num = 0;
-		CString name_str;
-		int ok = file->ReadString( name_str );	// get first line from file
-		if( !ok )
-		{
-			if( !in_file )
-				delete file;
-			return 2;
-		}
-		int np = ParseKeyString( &name_str, &key_str, &p );	// parse it
-		if( np < 2 || key_str != "name" )
-		{
-			if( !in_file )
-				delete file;
-			return 4;	// first line should be "name: xxx"
-		}
-		if( name != "" && p[0] != name )
-		{
-			if( !in_file )
-				delete file;
-			return 4;	// if name defined, it should match
-		}
-		if( p[0].GetLength() > MAX_NAME_SIZE )
-		{
-			CString mess;
-			mess.Format( "Footprint name \"%s\" too long\nTruncated to \"%s\"",
-				p[0], p[0].Left(MAX_NAME_SIZE) );
-			AfxMessageBox( mess );
-		}
-		m_name = p[0].Left(MAX_NAME_SIZE);
+		//	CString mess;
+		//	mess.Format( "Footprint name \"%s\" too long\nTruncated to \"%s\"",
+		//		p[0], p[0].Left(MAX_NAME_SIZE) );
+		//	AfxMessageBox( mess );
+	}
+	m_name = p.at(0).left(MAX_NAME_SIZE);
 
-		// now get the rest of the lines from file
-		while( 1 )
+	// now get the rest of the lines from file
+	while( 1 )
+	{
+		QByteArray instr;
+		file_pos = in_file.pos();		// remember position
+		instr = in_file.readLine();
+		if( !instr.size() && in_file.atEnd() )
 		{
-			CString instr;
-			file_pos = file->GetPosition();		// remember position
-			int err = file->ReadString( instr );
-			if( !err )
-			{
-				// EOF, this is not an error
-				if( !in_file )
-					delete file;
-				goto normal_return;
-			}
-			np = ParseKeyString( &instr, &key_str, &p );	// parse line
-			if( np == 0 )
-				continue;	// blank line or comment, skip it
-			if( key_str == "end" )
-			{
-				// end of shape definition
-				if( !in_file )
-					delete file;
-				break;	
-			}
-			else if( key_str == "name" || key_str[0] == '[' )
-			{
-				// beginning of next shape or end of shapes section
-				file->Seek( file_pos, CFile::begin );	// back up
-				if( !in_file )
-					delete file;
-				break;	
-			}
-			else if( key_str == "str" && np >= 2 )
-			{
-				// keyword = "str", make footprint from string
-				int err = MakeFromString( name, p[0] );
-				if( !in_file )
-					delete file;
-				if( err )
-					return 3;
-				else
-					goto normal_return;
-			}
-			else if( key_str == "author" && np >= 2 )
-			{
-				m_author = p[0];
-			}
-			else if( key_str == "source" && np >= 2 )
-			{
-				m_source = p[0];
-			}
-			else if( key_str == "description" && np >= 2 )
-			{
-				m_desc = p[0];
-			}
-			else if( key_str == "units" && np >= 2 )
-			{
-				if( p[0] == "MIL" )
-				{
-					m_units = MIL;
-					mult = 25400;
-				}
-				else if( p[0] == "MM" )
-				{
-					m_units = MM;
-					mult = 1000000;
-				}
-				else if( p[0] == "NM" )
-				{
-					m_units = NM;
-					mult = 1;
-				}
-			}
-			else if( key_str == "sel_rect" && np >= 5 )
-			{
-				m_sel_xi = GetDimensionFromString( &p[0], m_units );
-				m_sel_yi = GetDimensionFromString( &p[1], m_units);
-				m_sel_xf = GetDimensionFromString( &p[2], m_units);
-				m_sel_yf = GetDimensionFromString( &p[3], m_units);
-			}
-			else if( key_str == "ref_text" && np >= 6 )
-			{
-				m_ref_size = GetDimensionFromString( &p[0], m_units);
-				m_ref_xi = GetDimensionFromString( &p[1], m_units);
-				m_ref_yi = GetDimensionFromString( &p[2], m_units);
-				m_ref_angle = my_atoi( &p[3] ); 
-				m_ref_w = GetDimensionFromString( &p[4], m_units);
-				bRef = true;
-			}
-			else if( key_str == "value_text" && np >= 6 )
-			{
-				m_value_size = GetDimensionFromString( &p[0], m_units);
-				m_value_xi = GetDimensionFromString( &p[1], m_units);
-				m_value_yi = GetDimensionFromString( &p[2], m_units);
-				m_value_angle = my_atoi( &p[3] ); 
-				m_value_w = GetDimensionFromString( &p[4], m_units);
-				bValue = true;
-			}
-			else if( key_str == "centroid" && np >= 4 )
-			{
-				m_centroid_type = (CENTROID_TYPE)my_atoi( &p[0] );
-				m_centroid_x = GetDimensionFromString( &p[1], m_units);
-				m_centroid_y = GetDimensionFromString( &p[2], m_units);
-				m_centroid_angle = 0;
-				if( np >= 5 )
-					m_centroid_angle = my_atoi( &p[3] );
-				bCentroidFound = true;
-			}
-			else if( key_str == "adhesive" && np >= 5 )
-			{
-				m_glue.SetSize(n_glue+1);
-				m_glue[n_glue].type = (GLUE_POS_TYPE)my_atoi( &p[0] );
-				m_glue[n_glue].w = GetDimensionFromString( &p[1], m_units);
-				m_glue[n_glue].x_rel = GetDimensionFromString( &p[2], m_units);
-				m_glue[n_glue].y_rel = GetDimensionFromString( &p[3], m_units);
-				n_glue++;
-			}
-			else if( key_str == "text" && np >= 7 )
-			{
-				int font_size = GetDimensionFromString( &p[1], m_units);
-				int x = GetDimensionFromString( &p[2], m_units);
-				int y = GetDimensionFromString( &p[3], m_units);
-				int angle = my_atoi( &p[4] ); 
-				int stroke_w = GetDimensionFromString( &p[5], m_units);
-				int mirror = 0;
-				int layer = LAY_FP_SILK_TOP;
-				bool bNegative = false;
-				if( np >= 9 )
-				{
-					mirror = my_atoi( &p[6] );
-					layer = my_atoi( &p[7] );
-				}
-				if( np >= 10 )
-					bNegative = my_atoi( &p[8] );
-				m_tl->AddText( x, y, angle, mirror, bNegative, layer, font_size, stroke_w, &p[0] );
-			}
-			else if( (key_str == "outline_polygon" || key_str == "outline_polyline")
-				&& np >= 4 )
-			{
-				int w = GetDimensionFromString( &p[0], m_units);
-				int x = GetDimensionFromString( &p[1], m_units);
-				int y = GetDimensionFromString( &p[2], m_units);
-				int npolys = m_outline_poly.GetSize();
-				m_outline_poly.SetSize(npolys+1);
-				m_outline_poly[npolys].Start( 0, w, 0, x, y, 0, NULL, NULL );
-			}
-			else if( key_str == "next_corner" && np >= 3 )
-			{
-				int x = GetDimensionFromString( &p[0], m_units);
-				int y = GetDimensionFromString( &p[1], m_units);
-				int style = CPolyLine::STRAIGHT;
-				if( np >= 4 )
-					style = my_atoi( &p[2] );
-				int npolys = m_outline_poly.GetSize();
-				m_outline_poly[npolys-1].AppendCorner( x, y, style );
-			}
-			else if( key_str == "close_polyline" && np >= 2 )
-			{
-				int style = CPolyLine::STRAIGHT;
-				if( np >= 2 )
-					style = my_atoi( &p[0] );
-				int npolys = m_outline_poly.GetSize();
-				m_outline_poly[npolys-1].Close( style );
-			}
-			else if( key_str == "n_pins" && np >= 2 )
-			{
-				num_pins = my_atoi( &p[0] );
-				m_padstack.SetSize( 0 );
-			}
-			else if( key_str == "pin" && np >= 6 )
-			{
-				CString pin_name = p[0];
-				if( pin_name.GetLength() > MAX_PIN_NAME_SIZE )
-				{
-					CString mess;
-					mess.Format( "Footprint \"%s\": pin name \"%s\" too long\nTruncated to \"%s\"",
-						m_name, pin_name, pin_name.Left(MAX_PIN_NAME_SIZE) );
-					AfxMessageBox( mess );
-					pin_name = pin_name.Left(MAX_PIN_NAME_SIZE);
-				}
-				ipin = m_padstack.GetSize();
-				m_padstack.SetSize( ipin+1 );
-				if( ipin >= num_pins )
-				{
-					if( !in_file )
-						delete file;
-					return 3;
-				}
-				m_padstack[ipin].name = pin_name; 
-				m_padstack[ipin].hole_size = GetDimensionFromString( &p[1], m_units); 
-				m_padstack[ipin].x_rel = GetDimensionFromString( &p[2], m_units); 
-				m_padstack[ipin].y_rel = GetDimensionFromString( &p[3], m_units); 
-				m_padstack[ipin].angle = my_atoi( &p[4] );	
-			}
-			else if( key_str == "top_pad" && np >= 5 )
-			{
-				// testing
-				Pad * test_pad = &m_padstack[ipin].top;
-				if( test_pad->connect_flag != 0 )
-					ASSERT(0);
-				m_padstack[ipin].top.shape = my_atoi( &p[0] ); 
-				m_padstack[ipin].top.size_h = GetDimensionFromString( &p[1], m_units); 
-				m_padstack[ipin].top.size_l = GetDimensionFromString( &p[2], m_units); 
-				m_padstack[ipin].top.size_r = GetDimensionFromString( &p[3], m_units);
-				if( np >= 6 )
-					m_padstack[ipin].top.radius = GetDimensionFromString( &p[4], m_units);
-				if( np >= 7 )
-					m_padstack[ipin].top.connect_flag = my_atoi( &p[5] );
-			}
-			else if( key_str == "top_mask" && np >= 6 )
-			{
-				m_padstack[ipin].top_mask.shape = my_atoi( &p[0] ); 
-				if( m_padstack[ipin].top_mask.shape > (PAD_DEFAULT - 50) )
-					m_padstack[ipin].top_mask.shape = PAD_DEFAULT; 
-				m_padstack[ipin].top_mask.size_h = GetDimensionFromString( &p[1], m_units); 
-				m_padstack[ipin].top_mask.size_l = GetDimensionFromString( &p[2], m_units); 
-				m_padstack[ipin].top_mask.size_r = GetDimensionFromString( &p[3], m_units);
-				m_padstack[ipin].top_mask.radius = GetDimensionFromString( &p[4], m_units);
-			}
-			else if( key_str == "top_paste" && np >= 6 )
-			{
-				m_padstack[ipin].top_paste.shape = my_atoi( &p[0] ); 
-				if( m_padstack[ipin].top_paste.shape > (PAD_DEFAULT - 50) )
-					m_padstack[ipin].top_paste.shape = PAD_DEFAULT; 
-				m_padstack[ipin].top_paste.size_h = GetDimensionFromString( &p[1], m_units); 
-				m_padstack[ipin].top_paste.size_l = GetDimensionFromString( &p[2], m_units); 
-				m_padstack[ipin].top_paste.size_r = GetDimensionFromString( &p[3], m_units);
-				m_padstack[ipin].top_paste.radius = GetDimensionFromString( &p[4], m_units);
-			}
-			//			else if( key_str == "inner_pad" && np >= 5 )
-			else if( key_str == "inner_pad" && np >= 7 )
-			{
-				m_padstack[ipin].inner.shape = my_atoi( &p[0] ); 
-				m_padstack[ipin].inner.size_h = GetDimensionFromString( &p[1], m_units); 
-				m_padstack[ipin].inner.size_l = GetDimensionFromString( &p[2], m_units); 
-				m_padstack[ipin].inner.size_r = GetDimensionFromString( &p[3], m_units);
-				if( np >= 6 )
-					m_padstack[ipin].inner.radius = GetDimensionFromString( &p[4], m_units);
-				if( np >= 7 )
-					m_padstack[ipin].inner.connect_flag = my_atoi( &p[5] );
-			}
-			else if( key_str == "bottom_pad" && np >= 5 )
-			{
-				m_padstack[ipin].bottom.shape = my_atoi( &p[0] ); 
-				m_padstack[ipin].bottom.size_h = GetDimensionFromString( &p[1], m_units); 
-				m_padstack[ipin].bottom.size_l = GetDimensionFromString( &p[2], m_units); 
-				m_padstack[ipin].bottom.size_r = GetDimensionFromString( &p[3], m_units);
-				if( np >= 6 )
-					m_padstack[ipin].bottom.radius = GetDimensionFromString( &p[4], m_units);
-				if( np >= 7 )
-					m_padstack[ipin].bottom.connect_flag = my_atoi( &p[5] );
-			}
-			else if( key_str == "bottom_mask" && np >= 6 )
-			{
-				m_padstack[ipin].bottom_mask.shape = my_atoi( &p[0] ); 
-				if( m_padstack[ipin].bottom_mask.shape > (PAD_DEFAULT - 50) )
-					m_padstack[ipin].bottom_mask.shape = PAD_DEFAULT; 
-				m_padstack[ipin].bottom_mask.size_h = GetDimensionFromString( &p[1], m_units); 
-				m_padstack[ipin].bottom_mask.size_l = GetDimensionFromString( &p[2], m_units); 
-				m_padstack[ipin].bottom_mask.size_r = GetDimensionFromString( &p[3], m_units);
-				m_padstack[ipin].bottom_mask.radius = GetDimensionFromString( &p[4], m_units);
-			}
-			else if( key_str == "bottom_paste" && np >= 6 )
-			{
-				m_padstack[ipin].bottom_paste.shape = my_atoi( &p[0] ); 
-				if( m_padstack[ipin].bottom_paste.shape > (PAD_DEFAULT - 50) )
-					m_padstack[ipin].bottom_paste.shape = PAD_DEFAULT; 
-				m_padstack[ipin].bottom_paste.size_h = GetDimensionFromString( &p[1], m_units); 
-				m_padstack[ipin].bottom_paste.size_l = GetDimensionFromString( &p[2], m_units); 
-				m_padstack[ipin].bottom_paste.size_r = GetDimensionFromString( &p[3], m_units);
-				m_padstack[ipin].bottom_paste.radius = GetDimensionFromString( &p[4], m_units);
-			}
+			// EOF, this is not an error
+			break;
+		}
+		np = ParseKeyString( instr, key_str, p );	// parse line
+		if( np == 0 )
+			continue;	// blank line or comment, skip it
+		if( key_str == "end" )
+		{
+			// end of shape definition
+			break;
+		}
+		else if( key_str == "name" || instr.trimmed().at(0) == '[' )
+		{
+			// beginning of next shape or end of shapes section
+			in_file.seek(0);	// back up
+			break;
+		}
+		else if( key_str == "str" && np >= 2 )
+		{
+			// keyword = "str", make footprint from string
+			int err = MakeFromString( name, p.at(0) );
+			if( err )
+				return 3;
 			else
+				break;
+		}
+		else if( key_str == "author" && np >= 2 )
+		{
+			m_author = p.at(0);
+		}
+		else if( key_str == "source" && np >= 2 )
+		{
+			m_source = p.at(0);
+		}
+		else if( key_str == "description" && np >= 2 )
+		{
+			m_desc = p.at(0);
+		}
+		else if( key_str == "units" && np >= 2 )
+		{
+			if( p.at(0) == "MIL" )
 			{
-				// for testing
-				// AfxMessageBox( "unidentified keyword in footprint definition" );
+				m_units = MIL;
+				mult = 25400;
 			}
-			line_num++;
+			else if( p.at(0) == "MM" )
+			{
+				m_units = MM;
+				mult = 1000000;
+			}
+			else if( p.at(0) == "NM" )
+			{
+				m_units = NM;
+				mult = 1;
+			}
 		}
-
-normal_return:
-		// eliminate any polylines with only one corner
-		np = m_outline_poly.GetSize();
-		for( int ip=np-1; ip>=0; ip-- )
+		else if( key_str == "sel_rect" && np >= 5 )
 		{
-			CPolyLine * p = &m_outline_poly[ip];
-			if( p->GetNumCorners() == 1 )
-				m_outline_poly.RemoveAt(ip);
+			m_sel_xi = StrToDimension( p.at(0), m_units );
+			m_sel_yi = StrToDimension( p.at(1), m_units);
+			m_sel_xf = StrToDimension( p.at(2), m_units);
+			m_sel_yf = StrToDimension( p.at(3), m_units);
 		}
-		// NM deprecated
-		if( m_units == NM )
-			m_units = MM;
-		// generate centroid if not found
-		if( !bCentroidFound )
+		else if( key_str == "ref_text" && np >= 6 )
 		{
-			CPoint c = GetDefaultCentroid();
-			m_centroid_type = CENTROID_DEFAULT;
-			m_centroid_x = c.x;
-			m_centroid_y = c.y;
+			m_ref_size = StrToDimension( p.at(0), m_units);
+			m_ref_xi = StrToDimension( p.at(1), m_units);
+			m_ref_yi = StrToDimension( p.at(2), m_units);
+			m_ref_angle = p.at(3).toInt();
+			m_ref_w = StrToDimension( p.at(4), m_units);
+			bRef = true;
+		}
+		else if( key_str == "value_text" && np >= 6 )
+		{
+			m_value_size = StrToDimension( p.at(0), m_units);
+			m_value_xi = StrToDimension( p.at(1), m_units);
+			m_value_yi = StrToDimension( p.at(2), m_units);
+			m_value_angle = p.at(3).toInt();
+			m_value_w = StrToDimension( p.at(4), m_units);
+			bValue = true;
+		}
+		else if( key_str == "centroid" && np >= 4 )
+		{
+			m_centroid_type = (CENTROID_TYPE)p.at(0).toInt();
+			m_centroid_x = StrToDimension( p.at(1), m_units);
+			m_centroid_y = StrToDimension( p.at(2), m_units);
 			m_centroid_angle = 0;
+			if( np >= 5 )
+				m_centroid_angle = p.at(3).toInt(); ;
+			bCentroidFound = true;
 		}
-		// generate value params if not defined
-		if( !bValue )
+		else if( key_str == "adhesive" && np >= 5 )
 		{
-			// no value parameters, make them from ref text params
-			m_value_size = m_ref_size;
-			m_value_w = m_ref_w;
-			m_value_angle = m_ref_angle;
-			if( m_ref_angle == 0 )
-			{
-				m_value_xi = m_ref_xi;
-				m_value_yi = m_ref_yi - m_value_size*2;
-			}
-			else if( m_ref_angle == 90 )
-			{
-				m_value_xi = m_ref_xi - m_value_size*2;
-				m_value_yi = m_ref_yi;
-			}
-			else if( m_ref_angle == 180 )
-			{
-				m_value_xi = m_ref_xi;
-				m_value_yi = m_ref_yi + m_value_size*2;
-			}
-			else
-			{
-				m_value_xi = m_ref_xi + m_value_size*2;
-				m_value_yi = m_ref_yi;
-			}
+			m_glue.SetSize(n_glue+1);
+			m_glue[n_glue].type = (GLUE_POS_TYPE)p.at(0).toInt();
+			m_glue[n_glue].w = StrToDimension( p.at(1), m_units);
+			m_glue[n_glue].x_rel = StrToDimension( p.at(2), m_units);
+			m_glue[n_glue].y_rel = StrToDimension( p.at(3), m_units);
+			n_glue++;
 		}
-		return 0;
+		else if( key_str == "text" && np >= 7 )
+		{
+			int font_size = StrToDimension( p.at(1), m_units);
+			int x = StrToDimension( p.at(2), m_units);
+			int y = StrToDimension( p.at(3), m_units);
+			int angle = p.at(4).toInt(); ;
+			int stroke_w = StrToDimension( p.at(5), m_units);
+			int mirror = 0;
+			int layer = LAY_FP_SILK_TOP;
+			bool bNegative = false;
+			if( np >= 9 )
+			{
+				mirror = p.at(6).toInt();
+				layer = p.at(7).toInt();
+			}
+			if( np >= 10 )
+				bNegative = p.at(8).toInt();
+			m_tl->AddText( x, y, angle, mirror, bNegative, layer, font_size, stroke_w, &p[0] );
+		}
+		else if( (key_str == "outline_polygon" || key_str == "outline_polyline")
+			&& np >= 4 )
+			{
+			int w = StrToDimension( p.at(0), m_units);
+			int x = StrToDimension( p.at(1), m_units);
+			int y = StrToDimension( p.at(2), m_units);
+			int npolys = m_outline_poly.GetSize();
+			m_outline_poly.SetSize(npolys+1);
+			m_outline_poly[npolys].Start( 0, w, 0, x, y, 0, NULL, NULL );
+		}
+		else if( key_str == "next_corner" && np >= 3 )
+		{
+			int x = StrToDimension( p.at(0), m_units);
+			int y = StrToDimension( p.at(1), m_units);
+			int style = CPolyLine::STRAIGHT;
+			if( np >= 4 )
+				style = p.at(2).toInt(); ;
+			int npolys = m_outline_poly.GetSize();
+			m_outline_poly[npolys-1].AppendCorner( x, y, style );
+		}
+		else if( key_str == "close_polyline" && np >= 2 )
+		{
+			int style = CPolyLine::STRAIGHT;
+			if( np >= 2 )
+				style = p.at(0).toInt(); ;
+			int npolys = m_outline_poly.GetSize();
+			m_outline_poly[npolys-1].Close( style );
+		}
+		else if( key_str == "n_pins" && np >= 2 )
+		{
+			num_pins = p.at(0).toInt(); ;
+			m_padstack.clear();
+		}
+		else if( key_str == "pin" && np >= 6 )
+		{
+			QString pin_name = p.at(0);
+			if( pin_name.size() > MAX_PIN_NAME_SIZE )
+			{
+				//CString mess;
+				//mess.Format( "Footprint \"%s\": pin name \"%s\" too long\nTruncated to \"%s\"",
+				//	m_name, pin_name, pin_name.Left(MAX_PIN_NAME_SIZE) );
+				//AfxMessageBox( mess );
+				pin_name = pin_name.left(MAX_PIN_NAME_SIZE);
+			}
+			ipin = m_padstack.size();
+			m_padstack.resize( ipin+1 );
+			if( ipin >= num_pins )
+			{
+				if( !in_file )
+					delete file;
+				return 3;
+			}
+			m_padstack[ipin].name = pin_name;
+			m_padstack[ipin].hole_size = StrToDimension( p.at(1), m_units);
+			m_padstack[ipin].x_rel = StrToDimension( p.at(2), m_units);
+			m_padstack[ipin].y_rel = StrToDimension( p.at(3), m_units);
+			m_padstack[ipin].angle = p.at(4).toInt(); ;
+		}
+		else if( key_str == "top_pad" && np >= 5 )
+		{
+			// testing
+			Pad * test_pad = &m_padstack[ipin].top;
+			if( test_pad->connect_flag != 0 )
+				ASSERT(0);
+			m_padstack[ipin].top.shape = p.at(0).toInt();
+			m_padstack[ipin].top.size_h = StrToDimension( p.at(1), m_units);
+			m_padstack[ipin].top.size_l = StrToDimension( p.at(2), m_units);
+			m_padstack[ipin].top.size_r = StrToDimension( p.at(3), m_units);
+			if( np >= 6 )
+				m_padstack[ipin].top.radius = StrToDimension( p.at(4), m_units);
+			if( np >= 7 )
+				m_padstack[ipin].top.connect_flag = p.at(5).toInt(); ;
+		}
+		else if( key_str == "top_mask" && np >= 6 )
+		{
+			m_padstack[ipin].top_mask.shape = p.at(0).toInt(); ;
+			if( m_padstack[ipin].top_mask.shape > (PAD_DEFAULT - 50) )
+				m_padstack[ipin].top_mask.shape = PAD_DEFAULT;
+			m_padstack[ipin].top_mask.size_h = StrToDimension( p.at(1), m_units);
+			m_padstack[ipin].top_mask.size_l = StrToDimension( p.at(2), m_units);
+			m_padstack[ipin].top_mask.size_r = StrToDimension( p.at(3), m_units);
+			m_padstack[ipin].top_mask.radius = StrToDimension( p.at(4), m_units);
+		}
+		else if( key_str == "top_paste" && np >= 6 )
+		{
+			m_padstack[ipin].top_paste.shape = p.at(0).toInt(); ;
+			if( m_padstack[ipin].top_paste.shape > (PAD_DEFAULT - 50) )
+				m_padstack[ipin].top_paste.shape = PAD_DEFAULT;
+			m_padstack[ipin].top_paste.size_h = StrToDimension( p.at(1), m_units);
+			m_padstack[ipin].top_paste.size_l = StrToDimension( p.at(2), m_units);
+			m_padstack[ipin].top_paste.size_r = StrToDimension( p.at(3), m_units);
+			m_padstack[ipin].top_paste.radius = StrToDimension( p.at(4), m_units);
+		}
+		//			else if( key_str == "inner_pad" && np >= 5 )
+		else if( key_str == "inner_pad" && np >= 7 )
+		{
+			m_padstack[ipin].inner.shape = p.at(0).toInt();
+			m_padstack[ipin].inner.size_h = StrToDimension( p.at(1), m_units);
+			m_padstack[ipin].inner.size_l = StrToDimension( p.at(2), m_units);
+			m_padstack[ipin].inner.size_r = StrToDimension( p.at(3), m_units);
+			if( np >= 6 )
+				m_padstack[ipin].inner.radius = StrToDimension( p.at(4), m_units);
+			if( np >= 7 )
+				m_padstack[ipin].inner.connect_flag =  p.at(5).toInt();
+		}
+		else if( key_str == "bottom_pad" && np >= 5 )
+		{
+			m_padstack[ipin].bottom.shape =  p.at(0).toInt();
+			m_padstack[ipin].bottom.size_h = StrToDimension( p.at(1), m_units);
+			m_padstack[ipin].bottom.size_l = StrToDimension( p.at(2), m_units);
+			m_padstack[ipin].bottom.size_r = StrToDimension( p.at(3), m_units);
+			if( np >= 6 )
+				m_padstack[ipin].bottom.radius = StrToDimension( p.at(4), m_units);
+			if( np >= 7 )
+				m_padstack[ipin].bottom.connect_flag =  p.at(5).toInt();
+		}
+		else if( key_str == "bottom_mask" && np >= 6 )
+		{
+			m_padstack[ipin].bottom_mask.shape =  p.at(0).toInt();
+			if( m_padstack[ipin].bottom_mask.shape > (PAD_DEFAULT - 50) )
+				m_padstack[ipin].bottom_mask.shape = PAD_DEFAULT;
+			m_padstack[ipin].bottom_mask.size_h = StrToDimension( p.at(1), m_units);
+			m_padstack[ipin].bottom_mask.size_l = StrToDimension( p.at(2), m_units);
+			m_padstack[ipin].bottom_mask.size_r = StrToDimension( p.at(3), m_units);
+			m_padstack[ipin].bottom_mask.radius = StrToDimension( p.at(4), m_units);
+		}
+		else if( key_str == "bottom_paste" && np >= 6 )
+		{
+			m_padstack[ipin].bottom_paste.shape =  p.at(0).toInt();
+			if( m_padstack[ipin].bottom_paste.shape > (PAD_DEFAULT - 50) )
+				m_padstack[ipin].bottom_paste.shape = PAD_DEFAULT;
+			m_padstack[ipin].bottom_paste.size_h = StrToDimension( p.at(1), m_units);
+			m_padstack[ipin].bottom_paste.size_l = StrToDimension( p.at(2), m_units);
+			m_padstack[ipin].bottom_paste.size_r = StrToDimension( p.at(3), m_units);
+			m_padstack[ipin].bottom_paste.radius = StrToDimension( p.at(4), m_units);
+		}
+		else
+		{
+			// for testing
+			// AfxMessageBox( "unidentified keyword in footprint definition" );
+		}
+		line_num++;
 	}
 
-	catch( CFileException * e)
+	// eliminate any polylines with only one corner
+	np = m_outline_poly.size();
+	for( int ip=np-1; ip>=0; ip-- )
 	{
-		// file error
-		if( !in_file )
-			delete file;
-		return 2;
+		CPolyLine * p = &m_outline_poly[ip];
+		if( p->GetNumCorners() == 1 )
+			m_outline_poly.remove(ip);
 	}
-
-	catch( CString * err_str )
+	// NM deprecated
+	if( m_units == NM )
+		m_units = MM;
+	// generate centroid if not found
+	if( !bCentroidFound )
 	{
-		// parsing error
-		delete err_str;
-		if( !in_file )
-			delete file;
-		return 3;
+		QPoint c = GetDefaultCentroid();
+		m_centroid_type = CENTROID_DEFAULT;
+		m_centroid_x = c.x();
+		m_centroid_y = c.y();
+		m_centroid_angle = 0;
 	}
+	// generate value params if not defined
+	if( !bValue )
+	{
+		// no value parameters, make them from ref text params
+		m_value_size = m_ref_size;
+		m_value_w = m_ref_w;
+		m_value_angle = m_ref_angle;
+		if( m_ref_angle == 0 )
+		{
+			m_value_xi = m_ref_xi;
+			m_value_yi = m_ref_yi - m_value_size*2;
+		}
+		else if( m_ref_angle == 90 )
+		{
+			m_value_xi = m_ref_xi - m_value_size*2;
+			m_value_yi = m_ref_yi;
+		}
+		else if( m_ref_angle == 180 )
+		{
+			m_value_xi = m_ref_xi;
+			m_value_yi = m_ref_yi + m_value_size*2;
+		}
+		else
+		{
+			m_value_xi = m_ref_xi + m_value_size*2;
+			m_value_yi = m_ref_yi;
+		}
+	}
+	return 0;
 }
 
 // copy another shape into this shape

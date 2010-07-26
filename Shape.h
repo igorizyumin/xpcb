@@ -130,27 +130,27 @@ public:
 	CENTROID_TYPE m_centroid_type;		// type of centroid
 	int m_centroid_x, m_centroid_y;		// position of centroid
 	int m_centroid_angle;				// angle of centroid (CCW)
-	QList<Padstack> m_padstack;		// array of padstacks for shape
-	QList<CPolyLine> m_outline_poly;	// array of polylines for part outline
+	QVector<Padstack> m_padstack;		// array of padstacks for shape
+	QVector<CPolyLine> m_outline_poly;	// array of polylines for part outline
 	CTextList * m_tl;					// list of text strings
-	QList<Glue> m_glue;		// array of adhesive dots
+	QVector<Glue> m_glue;		// array of adhesive dots
 
 public:
 	Footprint();
 	~Footprint();
 	void Clear();
-	int MakeFromString( CString name, CString str );
-	int MakeFromFile( CStdioFile * in_file, CString name, CString file_path, int pos );
-	int WriteFootprint( CStdioFile * file );
+	int MakeFromString( QString name, QString str );
+	int MakeFromFile( QFile & in_file, QString name, QString file_path, int pos );
+	int WriteFootprint( QFile & file );
 	int GetNumPins();
-	int GetPinIndexByName( LPCTSTR name );
-	CString GetPinNameByIndex( int index );
-	CRect GetBounds( bool bIncludeLineWidths=true );
-	CRect GetCornerBounds();
-	CRect GetPadBounds( int i );
-	CRect GetPadRowBounds( int i, int num );
-	CPoint GetDefaultCentroid();
-	CRect GetAllPadBounds();
+	int GetPinIndexByName( QString name );
+	QString GetPinNameByIndex( int index );
+	QRect GetBounds( bool bIncludeLineWidths=true );
+	QRect GetCornerBounds();
+	QRect GetPadBounds( int i );
+	QRect GetPadRowBounds( int i, int num );
+	QPoint GetDefaultCentroid();
+	QRect GetAllPadBounds();
 	int Copy( Footprint * shape );	// copy all data from shape
 	bool Compare( Footprint * shape );	// compare shapes, return true if same
 };
