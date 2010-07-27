@@ -2,6 +2,90 @@
 #include "utility.h"
 #include "Netlist.h"
 
+
+PCBLAYER PartPin::getLayer()
+{
+	Padstack ps = part->getFootprint()->getPadstack(this->name);
+	if( ps.hole_size )
+		return LAY_PAD_THRU;
+	else if( part->GetSide() == SIDE_TOP && ps.top.shape != PAD_NONE
+		|| part->GetSide() == SIDE_BOTTOM && ps.bottom.shape != PAD_NONE )
+		return LAY_TOP_COPPER;
+	else
+		return LAY_BOTTOM_COPPER;
+}
+
+// Get max pin width, for drawing thermal symbol
+int PartPin::getWidth( )
+{
+	Padstack ps = part->getFootprint()->getPadstack(this->name);
+	return max(ps.top.size_h, max(ps.bottom.size_h, ps.hole_size));
+}
+
+// Test for hit on pad
+//
+bool PartPin::TestHit( QPoint pt, PCBLAYER layer )
+{
+	Padstack ps = part->getFootprint()->getPadstack(this->name);
+	Pad p;
+	if( ps.hole_size == 0 )
+	{
+		// SMT pad
+		if( layer == LAY_TOP_COPPER && part->GetSide() == SIDE_TOP ||
+			layer == LAY_BOTTOM_COPPER && part->GetSide() == SIDE_BOTTOM)
+			p = ps.top;
+		else
+			return false;
+	}
+	else
+	{
+		// TH pad
+		if( layer == LAY_TOP_COPPER && part->GetSide() == SIDE_TOP ||
+			layer == LAY_BOTTOM_COPPER && part->GetSide() == SIDE_BOTTOM )
+			p = ps.top;
+		else if( layer == LAY_TOP_COPPER && part->GetSide() == SIDE_BOTTOM ||
+				 layer == LAY_BOTTOM_COPPER && part->GetSide() == SIDE_TOP )
+			p = ps.bottom;
+		else
+			p = ps.inner;
+	}
+	QPoint delta( pt - this->getPos() );
+	double dist = sqrt( delta.x()*delta.x() + delta.y()*delta.y() );
+	if( dist < ps.hole_size/2 )
+		return true;
+	switch( p.shape )
+	{
+	case PAD_NONE:
+		break;
+	case PAD_ROUND:
+		if( dist < (p.size_h/2) )
+			return true;
+		break;
+	case PAD_SQUARE:
+		if( delta.x() < (p.size_h/2) && delta.y() < (p.size_h/2) )
+			return true;
+		break;
+	case PAD_RECT:
+	case PAD_RRECT:
+	case PAD_OVAL:
+		int pad_angle = this->angle + ps.angle;
+		if( pad_angle > 270 )
+			pad_angle -= 360;
+		if( pad_angle == 0 || pad_angle == 180 )
+		{
+			if( delta.x() < (p.size_l) && delta.y() < (p.size_h/2) )
+				return true;
+		}
+		else
+		{
+			if( delta.x() < (p.size_h/2) && delta.y() < (p.size_l) )
+				return true;
+		}
+		break;
+	}
+	return false;
+}
+
 Part::Part(SMFontUtil * fontutil)
 {
 	// zero out pointers
@@ -148,81 +232,6 @@ int Part::SelectPad( Part * part, int i )
 	return 0;
 }
 
-// Test for hit on pad
-//
-bool Part::TestHitOnPad( QString pin_name, int x, int y, int layer )
-{
-	if( !this->shape )
-		return false;
-	int pin_index = this->shape->GetPinIndexByName( pin_name );
-	if( pin_index == -1 )
-		return false;
-
-	int xx = this->pin[pin_index].x;
-	int yy = this->pin[pin_index].y;
-	Padstack * ps = &this->shape->m_padstack[pin_index];
-	Pad * p;
-	if( ps->hole_size == 0 )
-	{
-		// SMT pad
-		if( layer == LAY_TOP_COPPER && part->side == 0 )
-			p = &ps->top;
-		else if( layer == LAY_BOTTOM_COPPER && part->side == 1 )
-			p = &ps->top;
-		else
-			return false;
-	}
-	else
-	{
-		// TH pad
-		if( layer == LAY_TOP_COPPER && this->side == 0 )
-			p = &ps->top;
-		else if( layer == LAY_TOP_COPPER && this->side == 1 )
-			p = &ps->bottom;
-		else if( layer == LAY_BOTTOM_COPPER && this->side == 1 )
-			p = &ps->top;
-		else if( layer == LAY_BOTTOM_COPPER && this->side == 0 )
-			p = &ps->bottom;
-		else
-			p = &ps->inner;
-	}
-	double dx = abs( xx-x );
-	double dy = abs( yy-y );
-	double dist = sqrt( dx*dx + dy*dy );
-	if( dist < ps->hole_size/2 )
-		return true;
-	switch( p->shape )
-	{
-	case PAD_NONE:
-		break;
-	case PAD_ROUND:
-		if( dist < (p->size_h/2) )
-			return true;
-		break;
-	case PAD_SQUARE:
-		if( dx < (p->size_h/2) && dy < (p->size_h/2) )
-			return true;
-		break;
-	case PAD_RECT:
-	case PAD_RRECT:
-	case PAD_OVAL:
-		int pad_angle = this->angle + ps->angle;
-		if( pad_angle > 270 )
-			pad_angle -= 360;
-		if( pad_angle == 0 || pad_angle == 180 )
-		{
-			if( dx < (p->size_l) && dy < (p->size_h/2) )
-				return true;
-		}
-		else
-		{
-			if( dx < (p->size_h/2) && dy < (p->size_l) )
-				return true;
-		}
-		break;
-	}
-	return false;
-}
 
 
 // Move part to new position, angle and side
@@ -1680,19 +1689,7 @@ Net * Part::GetPinNet( int pin_index )
 	return this->pin[pin_index].net;
 }
 
-// Get max pin width, for drawing thermal symbol
-// enter with pin_num = pin # (1-based)
-//
-int Part::GetPinWidth(QString pin_name )
-{
-	if( !this->shape )
-		ASSERT(0);
-	int pin_index = this->shape->GetPinIndexByName(pin_name );
-	int w = this->shape->m_padstack[pin_index].top.size_h;
-	w = max( w, this->shape->m_padstack[pin_index].bottom.size_h );
-	w = max( w, this->shape->m_padstack[pin_index].hole_size );
-	return w;
-}
+
 
 // returns description of part
 //

@@ -28,14 +28,18 @@ enum
 
 #define PCB_BOUND	32000*PCBU_PER_MIL	// boundary
 
-
+typedef enum
+{
+	SIDE_TOP = 0,
+	SIDE_BOTTOM
+} PCBSIDE;
 
 // define standard drawing layers
 //
 
 #define MAX_LAYERS 32
 
-enum
+typedef enum
 {
 	// layout layers
 	LAY_SELECTION = 0,
@@ -57,9 +61,9 @@ enum
 	LAY_MASK_BOTTOM = -101,
 	LAY_PASTE_TOP = -102,
 	LAY_PASTE_BOTTOM = -103
-};
+} PCBLAYER;
 
-enum
+typedef enum
 {
 	// footprint layers
 	LAY_FP_SELECTION = 0,
@@ -78,7 +82,7 @@ enum
 	LAY_FP_INNER_COPPER,
 	LAY_FP_BOTTOM_COPPER,
 	NUM_FP_LAYERS
-};
+} FPLAYER;
 
 static char layer_str[32][64] = 
 { 

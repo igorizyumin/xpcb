@@ -113,7 +113,7 @@ public:
 class Footprint
 {
 	// if variables are added, remember to modify Copy!
-public:
+private:
 	enum { MAX_NAME_SIZE = 59 };	// max. characters
 	enum { MAX_PIN_NAME_SIZE = 39 };
 	enum { MAX_VALUE_SIZE = 39 };
@@ -143,8 +143,8 @@ public:
 	int MakeFromFile( QFile & in_file, QString name, QString file_path, int pos );
 	int WriteFootprint( QFile & file );
 	int GetNumPins();
-	int GetPinIndexByName( QString name );
-	QString GetPinNameByIndex( int index );
+	int GetPinIndex( QString name );
+	QString GetPinName( int index );
 	QRect GetBounds( bool bIncludeLineWidths=true );
 	QRect GetCornerBounds();
 	QRect GetPadBounds( int i );
@@ -153,6 +153,9 @@ public:
 	QRect GetAllPadBounds();
 	int Copy( Footprint * shape );	// copy all data from shape
 	bool Compare( Footprint * shape );	// compare shapes, return true if same
+
+	Padstack getPadstack(int i) { return m_padstack[i]; }
+	Padstack getPadstack(QString name) { return getPadstack(GetPinIndex(name)); }
 };
 
 #if 0

@@ -26,7 +26,8 @@ SOURCES += main.cpp\
     smfontutil.cpp \
     Part.cpp \
     DesignRules.cpp \
-    TextList.cpp
+    TextList.cpp \
+    Net.cpp
 
 HEADERS  += MainWindow.h \
     PCBView.h \
@@ -44,7 +45,8 @@ HEADERS  += MainWindow.h \
     smfontutil.h \
     Part.h \
     DesignRules.h \
-    TextList.h
+    TextList.h \
+    Net.h
 
 FORMS    += MainWindow.ui \
     GridToolbarWidget.ui \

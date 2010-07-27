@@ -24,9 +24,18 @@ struct drc_pin {
 // so index to pin array is (pin_num-1)
 class PartPin
 {
-public:
-	int x, y;				// position on PCB
+	void setNet(Net* newnet);
+	QPoint getPos() { return pos; }
+	PCBLAYER getLayer();
+	Net* getNet() {return net; }
+	int getWidth();
+	bool TestHit( QPoint pt, PCBLAYER layer );
+
+private:
+	QString name;			// pin name (e.g. A23)
+	QPoint pos;				// position on PCB
 	Net * net;				// pointer to net, or NULL if not assigned
+	Part * part;			// pointer to parent part
 	drc_pin drc;			// drc info
 };
 
@@ -75,6 +84,8 @@ public:
 	void SetValue( QString value, int x, int y, int angle, int size, int w, bool vis=true );
 
 	void setVisible(bool bVisible );
+	Footprint* getFootprint() {return shape;}
+
 	int SelectPart( );
 	int SelectRefText( );
 	int SelectValueText( );
@@ -83,22 +94,17 @@ public:
 	int Move(  int x, int y, int angle, int side );
 	void PartFootprintChanged( Footprint * shape );
 	int GetPartBoundingRect(QRect & part_r );
-	int GetSide();
+	PCBSIDE GetSide();
 	int GetAngle();
 	int GetRefAngle();
 	int GetValueAngle();
 	CPoint GetRefPoint();
 	CPoint GetValuePoint();
 	CRect GetValueRect();
-	CPoint GetPinPoint( QString pin_name );
-	CPoint GetPinPoint( int pin_index );
 	CPoint GetCentroidPoint();
 	CPoint GetGluePoint( int iglue );
-	int GetPinLayer( QString pin_name );
-	int GetPinLayer( int pin_index );
-	Net * GetPinNet( QString pin_name );
-	Net * GetPinNet( int pin_index );
-	int GetPinWidth( QString pin_name );
+	PartPin& GetPin(QString pin_name);	// returns reference to pin
+	PartPin& GetPin(int pin_index);
 #if 0
 	int Draw(  );
 	int StartDraggingPart( CDC * pDC, bool bRatlines,
@@ -123,7 +129,7 @@ private:
 	bool drawn;			// true if part has been drawn to display list
 	bool visible;		// 0 to hide part
 	int x,y;			// position of part origin on board
-	int side;			// 0=top, 1=bottom
+	PCBSIDE side;			// 0=top, 1=bottom
 	int angle;			// orientation
 	bool glued;			// 1=glued in place
 	bool m_ref_vis;		// true = ref shown

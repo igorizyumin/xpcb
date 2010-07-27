@@ -1,25 +1,24 @@
 // NetList.cpp: implementation of the CNetList class.
 //
 
-#include "stdafx.h"
+#include "Netlist.h"
 #include <math.h>
 #include <stdlib.h>
-#include "DlgMyMessageBox.h"
-#include "gerber.h"
+//#include "gerber.h"
 #include "utility.h"
 
 
-BOOL bDontShowSelfIntersectionWarning = FALSE;
-BOOL bDontShowSelfIntersectionArcsWarning = FALSE;
-BOOL bDontShowIntersectionWarning = FALSE;
-BOOL bDontShowIntersectionArcsWarning = FALSE;
+bool bDontShowSelfIntersectionWarning = false;
+bool bDontShowSelfIntersectionArcsWarning = false;
+bool bDontShowIntersectionWarning = false;
+bool bDontShowIntersectionArcsWarning = false;
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
 // carea constructor
-carea::carea()
+Area::Area()
 {
 	m_dlist = 0;
 	npins = 0;
@@ -28,47 +27,38 @@ carea::carea()
 	utility = 0;
 }
 
-void carea::Initialize( CDisplayList * dlist )
+void Area::Initialize( )
 {
-	m_dlist = dlist;
-	poly = new CPolyLine( m_dlist );
+	poly = new CPolyLine( );
 }
 
 // carea destructor
-carea::~carea()
+Area::~Area()
 {
-	if( m_dlist )
-	{
-		for( int ip=0; ip<npins; ip++ )
-			m_dlist->Remove( dl_thermal[ip] );
-		for( int is=0; is<nvias; is++ )
-			m_dlist->Remove( dl_via_thermal[is] );
-	}
 	delete poly;
 }
 
 // carea copy constructor 
 // doesn't actually copy anything but required for CArray<carea,carea>.InsertAt()
-carea::carea( const carea& s )
+Area::Area( const Area& s )
 {
 	npins = 0;
 	nvias = 0;
-	poly = new CPolyLine( m_dlist );
+	poly = new CPolyLine( );
 }
 
 // carea assignment operator
 // doesn't actually assign but required for CArray<carea,carea>.InsertAt to work
-carea &carea::operator=( carea &a )
+Area &Area::operator=( Area &a )
 {
 	return *this;
 }
 
-CNetList::CNetList( CDisplayList * dlist, CPartList * plist )
+CNetList::CNetList( CPartList * plist )
 {
-	m_dlist = dlist;			// attach display list
 	m_plist = plist;			// attach part list
 	m_pos_i = -1;				// intialize index to iterators
-	m_bSMT_connect = FALSE;
+	m_bSMT_connect = false;
 }
 
 CNetList::~CNetList()
@@ -78,68 +68,18 @@ CNetList::~CNetList()
 
 // Add new net to netlist
 //
-cnet * CNetList::AddNet( CString name, int max_pins, int def_w, int def_via_w, int def_via_hole_w )
+void CNetList::AddNet( Net* new_net )
 {
-	// create new net
-	cnet * new_net = new cnet( m_dlist );
-
-	// set array sizes
-	new_net->pin.SetSize( 0 );
-	new_net->connect.SetSize( 0 );
-	new_net->nconnects = 0;
-	new_net->npins = 0;
-
-	// zero areas
-	new_net->nareas = 0;
-
-	// set default trace width
-	new_net->def_w = def_w;
-	new_net->def_via_w = def_via_w;
-	new_net->def_via_hole_w = def_via_hole_w;
-
-	// create id and set name
-	id id( ID_NET, 0 );
-	new_net->id = id;
-	new_net->name = name;
-
-	// visible by default
-	new_net->visible = 1;
-
 	// add name and pointer to map
-	m_map.SetAt( name, (void*)new_net );
-
-	return new_net;
+	this->m_map.insert(name, new_net);
 } 
-
 
 // Remove net from list
 //
-void CNetList::RemoveNet( cnet * net )
+void CNetList::RemoveNet( Net * net )
 {
-	if( m_plist )
-	{
-		// remove pointers to net from pins on part
-		for( int ip=0; ip<net->npins; ip++ )
-		{
-			cpart * pin_part = net->pin[ip].part;
-			if( pin_part )
-			{
-				CShape * s = pin_part->shape; 
-				if( s )
-				{
-					int pin_index = s->GetPinIndexByName( net->pin[ip].pin_name );
-					if( pin_index >= 0 )
-						pin_part->pin[pin_index].net = NULL;
-				}
-			}
-		}
-	}
-	// destroy arrays
-	net->connect.RemoveAll();
-	net->pin.RemoveAll();
-	net->area.RemoveAll();
-	m_map.RemoveKey( net->name );
-	delete( net );
+	m_map.remove( net->getName() );
+	delete net;
 }
 
 // remove all nets from netlist
@@ -147,18 +87,16 @@ void CNetList::RemoveNet( cnet * net )
 void CNetList::RemoveAllNets()
 {
 	// remove all nets
-   POSITION pos;
-   CString name;
-   void * ptr;
-   for( pos = m_map.GetStartPosition(); pos != NULL; )
-   {
-		m_map.GetNextAssoc( pos, name, ptr );
-		cnet * net = (cnet*)ptr;
-		RemoveNet( net );
-   }
-   m_map.RemoveAll();
+	QHash::iterator iter;
+	for( iter = m_map.begin(); iter != m_map.end(); iter++ )
+	{
+		delete iter.value();
+	}
+	m_map.clear();
 }
 
+// XXX TODO replace ghetto iterators with proper ones
+#if 0
 // Get first net in list, or NULL if no nets
 //
 cnet * CNetList::GetFirstNet()
@@ -213,7 +151,10 @@ void CNetList::CancelNextNet()
 {
 		m_pos_i--;
 }
+#endif
 
+// not needed, move to net
+#if 0
 // set utility parameter of all nets
 //
 void CNetList::MarkAllNets( int utility )
@@ -249,67 +190,21 @@ void CNetList::MarkAllNets( int utility )
 		net = GetNextNet();
 	}
 }
+#endif
+
 
 // move origin of coordinate system
 //
-void CNetList::MoveOrigin( int x_off, int y_off )
+void CNetList::MoveOrigin( QPoint delta )
 {
-	// remove all nets
-	POSITION pos;
-	CString name;
-	void * ptr;
-	for( pos = m_map.GetStartPosition(); pos != NULL; )
+	QHash::iterator iter;
+	for( iter = m_map.begin(); iter != m_map.end(); iter++ )
 	{
-		m_map.GetNextAssoc( pos, name, ptr );
-		cnet * net = (cnet*)ptr;
-		for( int ic=0; ic<net->nconnects; ic++ )
-		{
-			cconnect * c =  &net->connect[ic];
-			UndrawConnection( net, ic );
-			for( int iv=0; iv<=c->nsegs; iv++ )
-			{
-				cvertex * v = &c->vtx[iv];
-				v->x += x_off;
-				v->y += y_off;
-			}
-			DrawConnection( net, ic );
-		}
-		for( int ia=0; ia<net->area.GetSize(); ia++ )
-		{
-			carea * a = &net->area[ia];
-			a->poly->MoveOrigin( x_off, y_off );
-			SetAreaConnections( net, ia );
-		}
+		iter.value()->moveOrigin(delta);
 	}
 }
 
-// Undraw all of the grelements of a connection
-// If m_dlist == 0, do nothing
-//
-void CNetList::UndrawConnection( cnet * net, int ic )
-{
-	if( m_dlist )
-	{
-		cconnect * c = &net->connect[ic];
-		int nsegs = c->nsegs;
-		int nvtx = nsegs + 1;
-		for( int is=0; is<nsegs; is++ )
-		{
-			cseg * s = &c->seg[is];
-			if( s->dl_el )
-				m_dlist->Remove( s->dl_el );
-			if( s->dl_sel )
-				m_dlist->Remove( s->dl_sel );
-			s->dl_el = NULL;
-			s->dl_sel = NULL;
-		}
-		for( int iv=0; iv<nvtx; iv++ )
-		{
-			UndrawVia( net, ic, iv );
-		}
-	}
-}
-
+#if 0
 // Draw all of the grelements of a connection
 // If m_dlist == 0, do nothing
 //
@@ -355,656 +250,16 @@ void CNetList::DrawConnection( cnet * net, int ic )
 			{
 				int tee_ic;
 				int tee_iv;
-				BOOL bFound = FindTeeVertexInNet( net, id, &tee_ic, &tee_iv );
+				bool bFound = FindTeeVertexInNet( net, id, &tee_ic, &tee_iv );
 				if( bFound )
 					ReconcileVia( net, tee_ic, tee_iv );
 			}
 		}
 	}
 }
+#endif
 
 
-// Add new pin to net
-//
-void CNetList::AddNetPin( cnet * net, CString * ref_des, CString * pin_name, BOOL set_areas )
-{
-	// set size of pin array
-	net->pin.SetSize( net->npins + 1 );
-
-	// add pin to array
-	net->pin[net->npins].ref_des = *ref_des;
-	net->pin[net->npins].pin_name = *pin_name;
-	net->pin[net->npins].part = NULL;
-
-	// now lookup part and hook to net if successful
-	cpart * part = m_plist->GetPart( *ref_des );
-	if( part )
-	{
-		// hook part to net
-		net->pin[net->npins].part = part;
-		if( part->shape )
-		{
-			int pin_index = part->shape->GetPinIndexByName( *pin_name );
-			if( pin_index >= 0 )
-			{
-				// hook net to part
-				part->pin[pin_index].net = net;
-			}
-		}
-	}
-
-	net->npins++;
-	// adjust connections to areas
-	if( net->nareas && set_areas )
-		SetAreaConnections( net );
-}
-
-// Remove pin from net (by reference designator and pin number)
-// Use this if the part may not actually exist in the partlist,
-// or the pin may not exist in the part 
-//
-void CNetList::RemoveNetPin( cnet * net, CString * ref_des, CString * pin_name, BOOL bSetAreas )
-{
-	// find pin in pin list for net
-	int net_pin = -1;
-	for( int ip=0; ip<net->npins; ip++ )
-	{
-		if( net->pin[ip].ref_des == *ref_des && net->pin[ip].pin_name == *pin_name )
-		{
-			net_pin = ip;
-			break;
-		}
-	}
-	if( net_pin == -1 )
-	{
-		// pin not found
-		ASSERT(0);
-	}
-	RemoveNetPin( net, net_pin, bSetAreas );
-}
-
-// Remove pin from net (by pin index)
-// Use this if the part may not actually exist in the partlist,
-// or the pin may not exist in the part 
-//
-void CNetList::RemoveNetPin( cnet * net, int net_pin_index, BOOL bSetAreas )
-{
-	// now remove all connections to/from this pin
-	int ic = 0;
-	while( ic<net->nconnects )
-	{
-		cconnect * c = &net->connect[ic];
-		if( c->start_pin == net_pin_index || c->end_pin == net_pin_index )
-			RemoveNetConnect( net, ic, FALSE );
-		else
-			ic++;
-	}
-	// now remove link to net from part pin (if it exists)
-	cpart * part = net->pin[net_pin_index].part;
-	if( part )
-	{
-		if( part->shape )
-		{
-			int part_pin_index = part->shape->GetPinIndexByName( net->pin[net_pin_index].pin_name );
-			if( part_pin_index != -1 )
-				part->pin[part_pin_index].net = 0;
-		}
-	}
-	// now remove pin from net
-	net->pin.RemoveAt(net_pin_index);
-	net->npins--;
-	// now adjust pin numbers in remaining connections
-	for( ic=0; ic<net->nconnects; ic++ )
-	{
-		cconnect * c = &net->connect[ic];
-		if( c->start_pin > net_pin_index )
-			c->start_pin--;
-		if( c->end_pin > net_pin_index )
-			c->end_pin--;
-	}
-	// adjust connections to areas
-	if( net->nareas && bSetAreas )
-		SetAreaConnections( net );
-}
-
-// Remove pin from net (by part and pin_name), including all connections to pin
-//
-void CNetList::RemoveNetPin( cpart * part, CString * pin_name, BOOL bSetAreas )
-{
-	if( !part )
-		ASSERT(0);
-	if( !part->shape )
-		ASSERT(0);
-	int pin_index = part->shape->GetPinIndexByName( *pin_name );
-	if( pin_index == -1 )
-		ASSERT(0);
-	cnet * net = (cnet*)part->pin[pin_index].net;
-	if( net == 0 )
-	{
-		// no net attached to pin
-		ASSERT(0);
-	}
-	// find pin in pin list for net
-	int net_pin = -1;
-	for( int ip=0; ip<net->npins; ip++ )
-	{
-		if( net->pin[ip].part == part )
-		{
-			if( net->pin[ip].pin_name == *pin_name )
-			{
-				net_pin = ip;
-				break;
-			}
-		}
-	}
-	if( net_pin == -1 )
-	{
-		// pin not found
-		ASSERT(0);
-	}
-	RemoveNetPin( net, net_pin, bSetAreas );
-}
-
-// Remove connections to part->pin from part->pin->net
-// set part->pin->net pointer and net->pin->part pointer to NULL
-//
-void CNetList::DisconnectNetPin( cpart * part, CString * pin_name, BOOL bSetAreas )
-{
-	if( !part )
-		ASSERT(0);
-	if( !part->shape )
-		ASSERT(0);
-	int pin_index = part->shape->GetPinIndexByName( *pin_name );
-	if( pin_index == -1 )
-		ASSERT(0);
-	cnet * net = (cnet*)part->pin[pin_index].net;
-	if( net == 0 )
-	{
-		return;
-	}
-	// find pin in pin list for net
-	int net_pin = -1;
-	for( int ip=0; ip<net->npins; ip++ )
-	{
-		if( net->pin[ip].part == part )
-		{
-			if( net->pin[ip].pin_name == *pin_name )
-			{
-				net_pin = ip;
-				break;
-			}
-		}
-	}
-	if( net_pin == -1 )
-	{
-		// pin not found
-		ASSERT(0);
-	}
-	// now remove all connections to/from this pin
-	int ic = 0;
-	while( ic<net->nconnects )
-	{
-		cconnect * c = &net->connect[ic];
-		if( c->start_pin == net_pin || c->end_pin == net_pin )
-			RemoveNetConnect( net, ic, FALSE );
-		else
-			ic++;
-	}
-	// now remove link to net from part
-	part->pin[pin_index].net = NULL;
-	// now remove link to part from net
-	net->pin[net_pin].part = NULL;
-	// adjust connections to areas
-	if( net->nareas && bSetAreas )
-		SetAreaConnections( net );
-}
-
-
-// Disconnect pin from net (by reference designator and pin number)
-// Use this if the part may not actually exist in the partlist,
-// or the pin may not exist in the part 
-//
-void CNetList::DisconnectNetPin( cnet * net, CString * ref_des, CString * pin_name, BOOL bSetAreas )
-{
-	// find pin in pin list for net
-	int net_pin = -1;
-	for( int ip=0; ip<net->npins; ip++ )
-	{
-		if( net->pin[ip].ref_des == *ref_des && net->pin[ip].pin_name == *pin_name )
-		{
-			net_pin = ip;
-			break;
-		}
-	}
-	if( net_pin == -1 )
-	{
-		// pin not found
-		ASSERT(0);
-	}
-	// now remove all connections to/from this pin
-	int ic = 0;
-	while( ic<net->nconnects )
-	{
-		cconnect * c = &net->connect[ic];
-		if( c->start_pin == net_pin || c->end_pin == net_pin )
-			RemoveNetConnect( net, ic, FALSE );
-		else
-			ic++;
-	}
-	// now remove link to net from part pin (if it exists)
-	cpart * part = net->pin[net_pin].part;
-	if( part )
-	{
-		if( part->shape )
-		{
-			int pin_index = part->shape->GetPinIndexByName( *pin_name );
-			if( pin_index != -1 )
-				part->pin[pin_index].net = NULL;
-		}
-	}
-	net->pin[net_pin].part = NULL;
-	// adjust connections to areas
-	if( net->nareas && bSetAreas )
-		SetAreaConnections( net );
-}
-
-// return pin index or -1 if not found
-//
-int CNetList::GetNetPinIndex( cnet * net, CString * ref_des, CString * pin_name )
-{
-	// find pin in pin list for net
-	int net_pin = -1;
-	for( int ip=0; ip<net->npins; ip++ )
-	{
-		if( net->pin[ip].ref_des == *ref_des && net->pin[ip].pin_name == *pin_name )
-		{
-			net_pin = ip;
-			break;
-		}
-	}
-	return net_pin;
-}
-
-// Add new connection to net, consisting of one unrouted segment
-// p1 and p2 are indexes into pin array for this net
-// returns index to connection, or -1 if fails
-//
-int CNetList::AddNetConnect( cnet * net, int p1, int p2 )
-{
-	if( net->nconnects != net->connect.GetSize() )
-		ASSERT(0);
-
-	net->connect.SetSize( net->nconnects + 1 );
-	net->connect[net->nconnects].seg.SetSize( 1 );
-	net->connect[net->nconnects].seg[0].Initialize( m_dlist );
-	net->connect[net->nconnects].vtx.SetSize( 2 );
-	net->connect[net->nconnects].vtx[0].Initialize( m_dlist );
-	net->connect[net->nconnects].vtx[1].Initialize( m_dlist );
-	net->connect[net->nconnects].nsegs = 1;
-	net->connect[net->nconnects].locked = 0;
-	net->connect[net->nconnects].start_pin = p1;
-	net->connect[net->nconnects].end_pin = p2;
-
-	// check for valid pins
-	cpart * part1 = net->pin[p1].part;
-	cpart * part2 = net->pin[p2].part;
-	if( part1 == 0 || part2 == 0 )
-		return -1;
-	CShape * shape1 = part1->shape;
-	CShape * shape2 = part2->shape;
-	if( shape1 == 0 || shape2 == 0 )
-		return -1;
-	int pin_index1 = shape1->GetPinIndexByName( net->pin[p1].pin_name );
-	int pin_index2 = shape2->GetPinIndexByName( net->pin[p2].pin_name );
-	if( pin_index1 == -1 || pin_index2 == -1 )
-		return -1;
-
-	// add a single unrouted segment
-	CPoint pi, pf;
-	pi = m_plist->GetPinPoint( net->pin[p1].part, net->pin[p1].pin_name );
-	pf = m_plist->GetPinPoint( net->pin[p2].part, net->pin[p2].pin_name );
-	int xi = pi.x;
-	int yi = pi.y;
-	int xf = pf.x;
-	int yf = pf.y;
-	net->connect[net->nconnects].seg[0].layer = LAY_RAT_LINE;
-	net->connect[net->nconnects].seg[0].width = 0;
-	net->connect[net->nconnects].seg[0].selected = 0;
-
-	net->connect[net->nconnects].vtx[0].x = xi;
-	net->connect[net->nconnects].vtx[0].y = yi;
-	net->connect[net->nconnects].vtx[0].pad_layer = m_plist->GetPinLayer( net->pin[p1].part, &net->pin[p1].pin_name );
-	net->connect[net->nconnects].vtx[0].force_via_flag = 0;
-	net->connect[net->nconnects].vtx[0].tee_ID = 0;
-	net->connect[net->nconnects].vtx[0].via_w = 0;
-	net->connect[net->nconnects].vtx[0].via_hole_w = 0;
-
-	net->connect[net->nconnects].vtx[1].x = xf;
-	net->connect[net->nconnects].vtx[1].y = yf;
-	net->connect[net->nconnects].vtx[1].pad_layer = m_plist->GetPinLayer( net->pin[p2].part, &net->pin[p2].pin_name );
-	net->connect[net->nconnects].vtx[1].force_via_flag = 0;
-	net->connect[net->nconnects].vtx[1].tee_ID = 0;
-	net->connect[net->nconnects].vtx[1].via_w = 0;
-	net->connect[net->nconnects].vtx[1].via_hole_w = 0;
-
-	// create id for this segment
-	id id( ID_NET, ID_CONNECT, net->nconnects );
-
-	net->connect[net->nconnects].seg[0].dl_el = NULL;
-	net->connect[net->nconnects].seg[0].dl_sel = NULL;
-	net->connect[net->nconnects].vtx[0].dl_sel = NULL;
-	net->connect[net->nconnects].vtx[1].dl_sel = NULL;
-
-	if( m_dlist )
-	{
-		// draw graphic elements for segment
-		id.sst = ID_SEG;
-		net->connect[net->nconnects].seg[0].dl_el = m_dlist->Add( id, net, LAY_RAT_LINE, DL_LINE, 
-			net->visible, 0, 0, xi, yi, xf, yf, 0, 0 ); 
-		id.sst = ID_SEL_SEG;
-		net->connect[net->nconnects].seg[0].dl_sel = m_dlist->AddSelector( id, net, LAY_RAT_LINE, DL_LINE,
-			net->visible, 0, 0, xi, yi, xf, yf, 0, 0 ); 
-	}
-	net->nconnects++;
-
-	return net->nconnects-1;
-}
-
-// add connection to net consisting of starting vertex only
-// i.e. this will be a stub trace with no end pin
-// returns index to connection or -1 if fails
-//
-int CNetList::AddNetStub( cnet * net, int p1 )
-{
-	if( net->nconnects != net->connect.GetSize() )
-		ASSERT(0);
-
-	if( net->pin[p1].part == 0 )
-		return -1;
-
-	net->connect.SetSize( net->nconnects + 1 );
-	net->connect[net->nconnects].seg.SetSize( 0 );
-	net->connect[net->nconnects].vtx.SetSize( 1 );
-	net->connect[net->nconnects].vtx[0].Initialize( m_dlist );
-	net->connect[net->nconnects].nsegs = 0;
-	net->connect[net->nconnects].locked = 0;
-	net->connect[net->nconnects].start_pin = p1;
-	net->connect[net->nconnects].end_pin = cconnect::NO_END;
-
-	// add a single vertex
-	CPoint pi;
-	pi = m_plist->GetPinPoint( net->pin[p1].part, net->pin[p1].pin_name );
-	net->connect[net->nconnects].vtx[0].x = pi.x;
-	net->connect[net->nconnects].vtx[0].y = pi.y;
-	net->connect[net->nconnects].vtx[0].pad_layer = m_plist->GetPinLayer( net->pin[p1].part, &net->pin[p1].pin_name );
-	net->connect[net->nconnects].vtx[0].force_via_flag = 0;
-	net->connect[net->nconnects].vtx[0].tee_ID = 0;
-	net->connect[net->nconnects].vtx[0].via_w = 0;
-	net->connect[net->nconnects].vtx[0].via_hole_w = 0;
-	net->connect[net->nconnects].vtx[0].dl_sel = 0;
-
-	net->nconnects++;
-	return net->nconnects-1;
-}
-
-// test for hit on end-pad of connection
-// if dir == 0, check end pad
-// if dir == 1, check start pad
-//
-BOOL CNetList::TestHitOnConnectionEndPad( int x, int y, cnet * net, int ic, 
-										 int layer, int dir )
-{
-	int ip;
-	cconnect * c =&net->connect[ic];
-	if( dir == 1 )
-	{
-		// get first pad in connection
-		ip = c->start_pin;
-	}
-	else
-	{
-		// get last pad in connection
-		ip = c->end_pin;
-	}
-	if( ip != cconnect::NO_END )
-	{
-		cpart * part = net->pin[ip].part;
-		CString pin_name = net->pin[ip].pin_name;
-		if( !part )
-			ASSERT(0);
-		if( !part->shape )
-			ASSERT(0);
-		return( m_plist->TestHitOnPad( part, &pin_name, x, y, layer ) );
-	}
-	else
-		return FALSE;
-}
-
-// test for hit on any pad on this net
-// returns -1 if not found, otherwise index into net->pin[]
-//
-int CNetList::TestHitOnAnyPadInNet( int x, int y, int layer, cnet * net )
-{
-	int ix = -1;
-	for( int ip=0; ip<net->pin.GetSize(); ip++ )
-	{
-		cpart * part = net->pin[ip].part;
-		if( part )
-		{
-			CString pin_name = net->pin[ip].pin_name;
-//			if( !part )
-//				ASSERT(0);
-//			if( !part->shape )
-//				ASSERT(0);
-			if( m_plist->TestHitOnPad( part, &pin_name, x, y, layer ) )
-			{
-				ix = ip;
-				break;
-			}
-		}
-	}
-	return ix;
-}
-
-// Clean up connections by removing connections with no segments,
-// removing zero-length segments and combining segments
-//
-void CNetList::CleanUpConnections( cnet * net, CString * logstr )
-{
-	for( int ic=net->nconnects-1; ic>=0; ic-- )   
-	{
-		BOOL bConnectionRemoved = FALSE;
-		UndrawConnection( net, ic );
-		cconnect * c = &net->connect[ic];
-		for( int is=c->nsegs-1; is>=0; is-- )
-		{
-			// check for zero-length segment
-			if( c->vtx[is].x == c->vtx[is+1].x && c->vtx[is].y == c->vtx[is+1].y )
-			{
-				// yes, analyze segment
-				enum { UNDEF=0, THRU_PIN, SMT_PIN, VIA, TEE, SEGMENT, END_STUB };
-				int pre_type = UNDEF;	// type of preceding item
-				int pre_layer = UNDEF;	// layer if SEGMENT or SMT_PIN
-				int post_type = UNDEF;	// type of following item
-				int post_layer = UNDEF;	// layer if SEGMENT or SMT_PIN
-				int layer = c->seg[is].layer;
-				// analyze start of segment
-				if( is == 0 )
-				{
-					// first segment
-					pre_layer = c->vtx[0].pad_layer;
-					if( pre_layer == LAY_PAD_THRU )
-						pre_type = THRU_PIN;	// starts on a thru pin			
-					else
-						pre_type = SMT_PIN;		// starts on a SMT pin
-				}
-				else
-				{
-					// not first segment
-					pre_layer = c->seg[is-1].layer;	// preceding layer
-					if( c->vtx[is].tee_ID )
-						pre_type = TEE;				// starts on a tee-vertex
-					else if( c->vtx[is].via_w )
-						pre_type = VIA;				// starts on a via
-					else
-						pre_type = SEGMENT;			// starts on a segment
-				}
-				// analyze end of segment
-				if( is == c->nsegs-1 && c->end_pin == cconnect::NO_END )
-				{
-					// last segment of stub trace
-					if( c->vtx[is+1].tee_ID )
-						post_type = TEE;			// ends on a tee-vertex
-					else if( c->vtx[is+1].via_w )
-						post_type = VIA;			// ends on a via
-					else
-						post_type = END_STUB;		// ends a stub (no via or tee)
-				}
-				else if( is == c->nsegs-1 )
-				{
-					// last segment of regular trace
-					post_layer = c->vtx[is+1].pad_layer;
-					if( post_layer == LAY_PAD_THRU )
-						post_type = THRU_PIN;		// ends on a thru pin
-					else
-						post_type = SMT_PIN;		// ends on a SMT pin
-				}
-				else
-				{
-					// not last segment
-					post_layer = c->seg[is+1].layer;	
-					if( c->vtx[is+1].tee_ID )
-						post_type = TEE;				// ends on a tee-vertex
-					else if( c->vtx[is+1].via_w )
-						post_type = VIA;				// ends on a via
-					else
-						post_type = SEGMENT;			// ends on a segment
-				}
-				// OK, now see if we can remove the zero-length segment by removing
-				// the starting vertex
-				BOOL bRemove = FALSE;
-				if( pre_type == SEGMENT && pre_layer == layer
-					|| pre_type == SEGMENT && layer == LAY_RAT_LINE
-					|| pre_type == VIA && post_type == VIA 
-					|| pre_type == VIA && post_type == THRU_PIN
-					|| post_type == END_STUB ) 
-				{
-					// remove starting vertex
-					c->vtx.RemoveAt(is);
-					bRemove = TRUE;
-				}
-				else if( post_type == SEGMENT && post_layer == layer
-					|| post_type == SEGMENT && layer == LAY_RAT_LINE
-					|| post_type == VIA && pre_type == THRU_PIN )
-				{
-					// remove following vertex
-					c->vtx.RemoveAt(is+1);
-					bRemove = TRUE;
-				}
-				if( bRemove )
-				{
-					c->seg.RemoveAt(is);
-					c->nsegs--;
-					if( logstr )
-					{
-						CString str;
-						if( c->end_pin == cconnect::NO_END )
-						{
-							str.Format( "net %s: stub trace from %s.%s: removing zero-length segment\r\n",
-								net->name, 
-								net->pin[c->start_pin].ref_des, net->pin[c->start_pin].pin_name ); 
-						}
-						else
-						{
-							str.Format( "net %s: trace %s.%s to %s.%s: removing zero-length segment\r\n",
-								net->name, 
-								net->pin[c->start_pin].ref_des, net->pin[c->start_pin].pin_name, 
-								net->pin[c->end_pin].ref_des, net->pin[c->end_pin].pin_name ); 
-						}
-						*logstr += str;
-					}
-				}
-			}
-		}
-		// see if there are any segments left
-		if( c->nsegs == 0 )
-		{
-			// no, remove connection
-			bConnectionRemoved = TRUE;
-			net->connect.RemoveAt(ic);
-			net->nconnects--;
-		}
-		else
-		{
-			// look for segments on same layer, with same width, 
-			// not separated by a tee or via
-			for( int is=c->nsegs-2; is>=0; is-- ) 
-			{
-				if( c->seg[is].layer == c->seg[is+1].layer 
-					&& c->seg[is].width == c->seg[is+1].width
-					&& c->vtx[is+1].via_w == 0
-					&& c->vtx[is+1].tee_ID == 0 )
-				{ 
-					// see if colinear
-					double dx1 = c->vtx[is+1].x - c->vtx[is].x;
-					double dy1 = c->vtx[is+1].y - c->vtx[is].y;
-					double dx2 = c->vtx[is+2].x - c->vtx[is+1].x;
-					double dy2 = c->vtx[is+2].y - c->vtx[is+1].y;
-					if( dy1*dx2 == dy2*dx1 && (dx1*dx2>0.0 || dy1*dy2>0.0) )
-					{
-						// yes, combine these segments
-						if( logstr )
-						{
-							CString str;
-							if( c->end_pin == cconnect::NO_END )
-							{
-								str.Format( "net %s: stub trace from %s.%s: combining colinear segments\r\n",
-									net->name, 
-									net->pin[c->start_pin].ref_des, net->pin[c->start_pin].pin_name ); 
-							}
-							else
-							{
-								str.Format( "net %s: trace %s.%s to %s.%s: combining colinear segments\r\n",
-									net->name, 
-									net->pin[c->start_pin].ref_des, net->pin[c->start_pin].pin_name, 
-									net->pin[c->end_pin].ref_des, net->pin[c->end_pin].pin_name ); 
-							}
-							*logstr += str;
-						}
-						c->vtx.RemoveAt(is+1);
-						c->seg.RemoveAt(is+1);
-						c->nsegs--;
-					}
-				}
-			}
-			// now check for non-branch stubs with a single unrouted segment and no end-via
-			if( c->end_pin == cconnect::NO_END && c->nsegs == 1 )
-			{
-				cvertex * end_v = &c->vtx[c->nsegs];
-				cseg * end_s = &c->seg[c->nsegs-1];
-				if( end_v->tee_ID == 0 && end_v->via_w == 0 && end_s->layer == LAY_RAT_LINE )
-				{
-					if( logstr )
-					{
-						CString str;
-						str.Format( "net %s: stub trace from %s.%s: single unrouted segment and no end via, removed\r\n",
-							net->name, 
-							net->pin[c->start_pin].ref_des, net->pin[c->start_pin].pin_name ); 
-						*logstr += str;
-					}
-					bConnectionRemoved = TRUE;
-					net->connect.RemoveAt(ic);
-					net->nconnects--;
-				}
-			}
-			if( !bConnectionRemoved && m_dlist )
-				DrawConnection( net, ic );
-		}
-	}
-
-	// 
-	RenumberConnections( net );
-}
 
 
 void CNetList::CleanUpAllConnections( CString * logstr )
@@ -1031,7 +286,7 @@ void CNetList::CleanUpAllConnections( CString * logstr )
 		cnet * net = NULL;
 		int ic;
 		int iv;
-		BOOL bFound = FindTeeVertex( tee_id, &net, &ic, &iv );
+		bool bFound = FindTeeVertex( tee_id, &net, &ic, &iv );
 		if( !bFound )
 		{
 			if( logstr )
@@ -1060,18 +315,18 @@ void CNetList::CleanUpAllConnections( CString * logstr )
 					int end_id = c->vtx[c->nsegs].tee_ID;
 					if( end_id )
 					{
-						BOOL bError = FALSE;
+						bool bError = false;
 						CString no_tee_str = "";
 						CString no_ID_str = "";
 						if( !FindTeeVertexInNet( net, end_id, 0, 0 ) )
 						{
 							no_tee_str = ", not in trace";
-							bError = TRUE;
+							bError = true;
 						}
 						if( FindTeeID( end_id ) == -1 )
 						{
 							no_ID_str = ", not in ID array";
-							bError = TRUE;
+							bError = true;
 						}
 						if( bError && logstr )
 						{
@@ -1081,7 +336,7 @@ void CNetList::CleanUpAllConnections( CString * logstr )
 						}
 						if( bError )
 						{
-							RemoveNetConnect( net, ic, FALSE );
+							RemoveNetConnect( net, ic, false );
 							n_removed++;
 						}
 					}
@@ -1108,40 +363,6 @@ void CNetList::CleanUpAllConnections( CString * logstr )
 }
 
 
-// Remove connection from net
-// Does not remove any orphaned branches that result
-// Leave pins in pin list for net
-//
-int CNetList::RemoveNetConnect( cnet * net, int ic, BOOL set_areas )
-{
-	cconnect * c = &net->connect[ic];
-	if( c->end_pin == cconnect::NO_END )
-	{
-		// stub
-		if( c->vtx[c->nsegs].tee_ID )
-		{
-			// stub trace ending on tee, remove tee
-			DisconnectBranch( net, ic );
-		}
-	}
-
-	// see if contains tee-vertices
-	for( int iv=1; iv<c->nsegs; iv++ )
-	{
-		int id = c->vtx[iv].tee_ID;
-		if( id )
-			RemoveTee( net, id );	// yes, remove it
-	}
-
-	// remove connection
-	net->connect.RemoveAt( ic );
-	net->nconnects = net->connect.GetSize();
-	RenumberConnections( net );
-	// adjust connections to areas
-	if( net->nareas && set_areas )
-		SetAreaConnections( net );
-	return 0;
-}
 
 // Unroute all segments of a connection and merge if possible
 // Preserves tees
@@ -1298,9 +519,9 @@ void CNetList::UnrouteSegmentWithoutMerge( cnet * net, int ic, int is )
 // or segment of normal pin-pin trace without tees
 // If adjacent segments are unrouted, removes them too
 // NB: May change connect[] array
-// If stub trace and bHandleTee == FALSE, will only alter connections >= ic
+// If stub trace and bHandleTee == false, will only alter connections >= ic
 //
-void CNetList::RemoveSegment( cnet * net, int ic, int is, BOOL bHandleTee, BOOL bSetAreaConnections )
+void CNetList::RemoveSegment( cnet * net, int ic, int is, bool bHandleTee, bool bSetAreaConnections )
 {
 	int id = 0;
 	cconnect * c = &net->connect[ic];
@@ -1378,78 +599,6 @@ void CNetList::RemoveSegment( cnet * net, int ic, int is, BOOL bHandleTee, BOOL 
 		SetAreaConnections( net );
 }
 
-// renumber all ids and dl_elements for net connections
-// should be used after deleting a connection
-//
-void CNetList::RenumberConnections( cnet * net )
-{
-	for( int ic=0; ic<net->nconnects; ic++ )
-	{
-		RenumberConnection( net, ic );
-	}
-}
-
-// renumber all ids and dl_elements for net connection
-//
-void CNetList::RenumberConnection( cnet * net, int ic )
-{
-	cconnect * c = &net->connect[ic];
-	for( int is=0; is<c->nsegs; is++ )
-	{
-		if( c->seg[is].dl_el )
-		{
-			c->seg[is].dl_el->id.i = ic;
-			c->seg[is].dl_el->id.ii = is;
-		}
-		if( c->seg[is].dl_sel )
-		{
-			c->seg[is].dl_sel->id.i = ic;
-			c->seg[is].dl_sel->id.ii = is;
-		}
-	}
-	for( int iv=0; iv<=c->nsegs; iv++ )
-	{
-		for( int il=0; il<c->vtx[iv].dl_el.GetSize(); il++ )
-		{
-			if( c->vtx[iv].dl_el[il] )
-			{
-				c->vtx[iv].dl_el[il]->id.i = ic;
-				c->vtx[iv].dl_el[il]->id.ii = iv;
-			}
-		}
-		if( c->vtx[iv].dl_sel )
-		{
-			c->vtx[iv].dl_sel->id.i = ic;
-			c->vtx[iv].dl_sel->id.ii = iv;
-		}
-		if( c->vtx[iv].dl_hole )
-		{
-			c->vtx[iv].dl_hole->id.i = ic;
-			c->vtx[iv].dl_hole->id.ii = iv;
-		}
-	}
-}
-
-// renumber the ids for graphical elements in areas
-// should be called after deleting an area
-//
-void CNetList::RenumberAreas( cnet * net )
-{
-	id a_id;
-	for( int ia=0; ia<net->nareas; ia++ )
-	{
-		a_id = net->area[ia].poly->GetId();
-		a_id.i = ia;
-		net->area[ia].poly->SetId( &a_id );
-		for( int ip=0; ip<net->area[ia].npins; ip++ )
-		{
-			id a_id = m_dlist->Get_id( net->area[ia].dl_thermal[ip] );
-			a_id.i = ia;
-			m_dlist->Set_id( net->area[ia].dl_thermal[ip], &a_id );
-		}
-	}
-}
-
 // Set segment layer (must be a copper layer, not the ratline layer)
 // returns 1 if unable to comply due to SMT pad
 //
@@ -1507,7 +656,7 @@ int CNetList::ChangeSegmentLayer( cnet * net, int ic, int iseg, int layer )
 		// changed last segment of a stub that connects to a tee
 		// reconcile tee via
 		int icc, ivv;
-		BOOL bTest = FindTeeVertexInNet( net, post_v->tee_ID, &icc, &ivv );
+		bool bTest = FindTeeVertexInNet( net, post_v->tee_ID, &icc, &ivv );
 		if( bTest )
 			ReconcileVia( net, icc, ivv );
 		else
@@ -1725,7 +874,7 @@ int CNetList::InsertSegment( cnet * net, int ic, int iseg, int x, int y, int lay
 				c->seg[i].dl_sel->id.ii = i;
 			c->vtx[i+1] = c->vtx[i];
 			c->vtx[i].tee_ID = 0;
-			c->vtx[i].force_via_flag = FALSE;
+			c->vtx[i].force_via_flag = false;
 			if( c->vtx[i+1].dl_sel )
 				c->vtx[i+1].dl_sel->id.ii = i+1;
 			if( c->vtx[i+1].dl_hole )
@@ -2116,7 +1265,7 @@ void CNetList::SwapPins( cpart * part1, CString * pin_name1,
 				if( p1 == net1_pin_index && p2 == cconnect::NO_END )
 				{
 					// stub trace with 1 segment, remove it
-					RemoveNetConnect( net1, ic, FALSE );
+					RemoveNetConnect( net1, ic, false );
 					ic--;
 					continue;	// next connection
 				}
@@ -2201,7 +1350,7 @@ void CNetList::SwapPins( cpart * part1, CString * pin_name1,
 				if( p1 == net2_pin_index && p2 == cconnect::NO_END )
 				{
 					// stub trace with 1 segment, remove it
-					RemoveNetConnect( net2, ic, FALSE );
+					RemoveNetConnect( net2, ic, false );
 					ic--;
 					continue;
 				}
@@ -2443,7 +1592,7 @@ int CNetList::PartFootprintChanged( cpart * part )
 					if( pin_index1 == -1 )
 					{
 						// no, remove connection
-						RemoveNetConnect( net, ic, FALSE );
+						RemoveNetConnect( net, ic, false );
 						continue;
 					}
 					// yes, rehook pin to net
@@ -2459,7 +1608,7 @@ int CNetList::PartFootprintChanged( cpart * part )
 						new_layer = LAY_TOP_COPPER;
 					else
 						new_layer = LAY_BOTTOM_COPPER;
-					BOOL layer_ok = new_layer == old_layer || part->shape->m_padstack[pin_index1].hole_size > 0;
+					bool layer_ok = new_layer == old_layer || part->shape->m_padstack[pin_index1].hole_size > 0;
 					// see if pin position has changed
 					if( old_x != new_x || old_y != new_y || !layer_ok )
 					{
@@ -2490,7 +1639,7 @@ int CNetList::PartFootprintChanged( cpart * part )
 					if( pin_index2 == -1 )
 					{
 						// no, remove connection
-						RemoveNetConnect( net, ic, FALSE );
+						RemoveNetConnect( net, ic, false );
 						continue;
 					}
 					// rehook pin to net
@@ -2506,7 +1655,7 @@ int CNetList::PartFootprintChanged( cpart * part )
 						new_layer = LAY_TOP_COPPER;
 					else
 						new_layer = LAY_BOTTOM_COPPER;
-					BOOL layer_ok = (new_layer == old_layer) || (part->shape->m_padstack[pin_index2].hole_size > 0);
+					bool layer_ok = (new_layer == old_layer) || (part->shape->m_padstack[pin_index2].hole_size > 0);
 					if( old_x != new_x || old_y != new_y || !layer_ok )
 					{
 						// yes, unroute if necessary and update connection
@@ -2550,7 +1699,7 @@ int CNetList::PartFootprintChanged( cpart * part )
 				}
 			}
 		}
-		RemoveOrphanBranches( net, 0, TRUE );
+		RemoveOrphanBranches( net, 0, true );
 		net = GetNextNet();
 	}
 	return 0;
@@ -2559,7 +1708,7 @@ int CNetList::PartFootprintChanged( cpart * part )
 // Part deleted, so unroute and remove all connections to this part
 // and remove all references from netlist
 // 
-int CNetList::PartDeleted( cpart * part, BOOL bSetAreas )
+int CNetList::PartDeleted( cpart * part, bool bSetAreas )
 {
 	// find nets which connect to this part, remove pins and adjust areas
 	POSITION pos;
@@ -2579,13 +1728,13 @@ int CNetList::PartDeleted( cpart * part, BOOL bSetAreas )
 		{
 			if( net->pin[ip].ref_des == part->ref_des )
 			{
-				RemoveNetPin( net, &net->pin[ip].ref_des, &net->pin[ip].pin_name, FALSE );
+				RemoveNetPin( net, &net->pin[ip].ref_des, &net->pin[ip].pin_name, false );
 				net->utility = 1;	// mark for SetAreaConnections
 			}
 			else
 				ip++;
 		}
-		RemoveOrphanBranches( net, 0, TRUE );
+		RemoveOrphanBranches( net, 0, true );
 	}
 	if( bSetAreas )
 	{
@@ -2624,7 +1773,7 @@ void CNetList::PartRefChanged( CString * old_ref_des, CString * new_ref_des )
 // and part pointer from net->pins
 // Do not remove pins from netlist, however
 // 
-int CNetList::PartDisconnected( cpart * part, BOOL bSetAreas )
+int CNetList::PartDisconnected( cpart * part, bool bSetAreas )
 {
 	// find nets which connect to this part, remove pins and adjust areas
 	POSITION pos;
@@ -2642,11 +1791,11 @@ int CNetList::PartDisconnected( cpart * part, BOOL bSetAreas )
 		{
 			if( net->pin[ip].ref_des == part->ref_des )
 			{
-				DisconnectNetPin( net, &net->pin[ip].ref_des, &net->pin[ip].pin_name, FALSE );
+				DisconnectNetPin( net, &net->pin[ip].ref_des, &net->pin[ip].pin_name, false );
 				net->utility = 1;
 			}
 		}
-		RemoveOrphanBranches( net, 0, TRUE );
+		RemoveOrphanBranches( net, 0, true );
 	}
 	if( bSetAreas )
 	{
@@ -2676,7 +1825,7 @@ void AddPinsToGrid( char * grid, int p1, int p2, int npins )
 
 // optimize all unrouted connections
 //
-void CNetList::OptimizeConnections( BOOL bBelowPinCount, int pin_count, BOOL bVisibleNetsOnly )
+void CNetList::OptimizeConnections( bool bBelowPinCount, int pin_count, bool bVisibleNetsOnly )
 {
 	// traverse map
 	POSITION pos;
@@ -2693,7 +1842,7 @@ void CNetList::OptimizeConnections( BOOL bBelowPinCount, int pin_count, BOOL bVi
 
 // optimize all unrouted connections for a part
 //
-void CNetList::OptimizeConnections( cpart * part, BOOL bBelowPinCount, int pin_count, BOOL bVisibleNetsOnly )
+void CNetList::OptimizeConnections( cpart * part, bool bBelowPinCount, int pin_count, bool bVisibleNetsOnly )
 {
 	// find nets which connect to this part
 	cnet * net;
@@ -2725,8 +1874,8 @@ void CNetList::OptimizeConnections( cpart * part, BOOL bBelowPinCount, int pin_c
 // optimize the unrouted connections for a net
 // if ic_track >= 0, returns new ic corresponding to old ic or -1 if unable
 //
-int CNetList::OptimizeConnections( cnet * net, int ic_track, BOOL bBelowPinCount, 
-								  int pin_count, BOOL bVisibleNetsOnly )
+int CNetList::OptimizeConnections( cnet * net, int ic_track, bool bBelowPinCount,
+								  int pin_count, bool bVisibleNetsOnly )
 {
 #ifdef PROFILE
 	StartTimer();	//****
@@ -2783,7 +1932,7 @@ int CNetList::OptimizeConnections( cnet * net, int ic_track, BOOL bBelowPinCount
 				{
 					int ic;
 					int iv;
-					BOOL bFound = FindTeeVertexInNet( net, id, &ic, &iv );
+					bool bFound = FindTeeVertexInNet( net, id, &ic, &iv );
 					if( !bFound )
 						ASSERT(0);
 					// get start of tee trace
@@ -2799,7 +1948,7 @@ int CNetList::OptimizeConnections( cnet * net, int ic_track, BOOL bBelowPinCount
 		{
 			// unrouted and unlocked, so delete connection
 			// don't advance ic or n_routed
-			RemoveNetConnect( net, ic, FALSE );
+			RemoveNetConnect( net, ic, false );
 		}
 	}
 
@@ -2878,7 +2027,7 @@ int CNetList::OptimizeConnections( cnet * net, int ic_track, BOOL bBelowPinCount
 	double min_dist;
 
 	// create arrays of pin params for efficiency
-	CArray<BOOL>legal;
+	CArray<bool>legal;
 	CArray<double>x, y;
 	CArray<double>d;
 	x.SetSize(npins);
@@ -2888,7 +2037,7 @@ int CNetList::OptimizeConnections( cnet * net, int ic_track, BOOL bBelowPinCount
 	CPoint p;
 	for( int ip=0; ip<npins; ip++ )
 	{
-		legal[ip] = FALSE;
+		legal[ip] = false;
 		cpart * part = net->pin[ip].part;
 		if( part )
 			if( part->shape )
@@ -2901,7 +2050,7 @@ int CNetList::OptimizeConnections( cnet * net, int ic_track, BOOL bBelowPinCount
 						p = m_plist->GetPinPoint( net->pin[ip].part, pin_name );
 						x[ip] = p.x;
 						y[ip] = p.y;
-						legal[ip] = TRUE;
+						legal[ip] = true;
 					}
 				}
 			}
@@ -3027,7 +2176,7 @@ int CNetList::RehookPartsToNet( cnet * net )
 	return 0;
 }
 
-void CNetList::SetViaVisible( cnet * net, int ic, int iv, BOOL visible )
+void CNetList::SetViaVisible( cnet * net, int ic, int iv, bool visible )
 {
 	cconnect * c = &net->connect[ic];
 	cvertex * v = &c->vtx[iv];
@@ -3045,7 +2194,7 @@ void CNetList::StartDraggingEndVertex( CDC * pDC, cnet * net, int ic, int ivtx, 
 	cconnect * c = &net->connect[ic];
 	m_dlist->CancelHighLight();
 	c->seg[ivtx-1].dl_el->visible = 0;
-	SetViaVisible( net, ic, ivtx, FALSE );
+	SetViaVisible( net, ic, ivtx, false );
 	for( int ia=0; ia<net->nareas; ia++ )
 		for( int iv=0; iv<net->area[ia].nvias; iv++ )
 			if( net->area[ia].vcon[iv] == ic )
@@ -3070,7 +2219,7 @@ void CNetList::CancelDraggingEndVertex( cnet * net, int ic, int ivtx )
 	cconnect * c = &net->connect[ic];
 	m_dlist->StopDragging();
 	c->seg[ivtx-1].dl_el->visible = 1;
-	SetViaVisible( net, ic, ivtx, TRUE );
+	SetViaVisible( net, ic, ivtx, true );
 	for( int ia=0; ia<net->nareas; ia++ )
 		for( int iv=0; iv<net->area[ia].nvias; iv++ )
 			if( net->area[ia].vcon[iv] == ic )
@@ -3174,7 +2323,7 @@ int CNetList::StartDraggingVertex( CDC * pDC, cnet * net, int ic, int ivtx,
 	m_dlist->CancelHighLight();
 	m_dlist->Set_visible(c->seg[ivtx-1].dl_el, 0);
 	m_dlist->Set_visible(c->seg[ivtx].dl_el, 0);
-	SetViaVisible( net, ic, ivtx, FALSE );
+	SetViaVisible( net, ic, ivtx, false );
 	for( int ia=0; ia<net->nareas; ia++ )
 	{
 		carea * a = &net->area[ia];
@@ -3253,8 +2402,8 @@ int CNetList::StartMovingSegment( CDC * pDC, cnet * net, int ic, int ivtx,
 	m_dlist->CancelHighLight();
 	m_dlist->Set_visible(c->seg[ivtx-1].dl_el, 0);
 	m_dlist->Set_visible(c->seg[ivtx].dl_el, 0);
-	SetViaVisible( net, ic, ivtx,   FALSE );
-	SetViaVisible( net, ic, ivtx+1, FALSE );
+	SetViaVisible( net, ic, ivtx,   false );
+	SetViaVisible( net, ic, ivtx+1, false );
 	if(use_third_segment)
 	{
 		m_dlist->Set_visible(c->seg[ivtx+1].dl_el, 0);
@@ -3358,7 +2507,7 @@ void CNetList::StartDraggingStub( CDC * pDC, cnet * net, int ic, int iseg,
 {
 	cconnect * c = &net->connect[ic];
 	m_dlist->CancelHighLight();
-	SetViaVisible( net, ic, iseg, FALSE );
+	SetViaVisible( net, ic, iseg, false );
 	for( int ia=0; ia<net->nareas; ia++ )
 		for( int iv=0; iv<net->area[ia].nvias; iv++ )
 			if( net->area[ia].vcon[iv] == ic )
@@ -3377,7 +2526,7 @@ void CNetList::StartDraggingStub( CDC * pDC, cnet * net, int ic, int iseg,
 void CNetList::CancelDraggingStub( cnet * net, int ic, int iseg )
 {
 	cconnect * c = &net->connect[ic];
-	SetViaVisible( net, ic, iseg, TRUE );
+	SetViaVisible( net, ic, iseg, true );
 	for( int ia=0; ia<net->nareas; ia++ )
 		for( int iv=0; iv<net->area[ia].nvias; iv++ )
 			if( net->area[ia].vcon[iv] == ic )
@@ -3439,7 +2588,7 @@ int CNetList::CancelDraggingVertex( cnet * net, int ic, int ivtx )
 	cvertex * v = &c->vtx[ivtx];
 	m_dlist->Set_visible(c->seg[ivtx-1].dl_el, 1);
 	m_dlist->Set_visible(c->seg[ivtx].dl_el, 1);
-	SetViaVisible( net, ic, ivtx, TRUE );
+	SetViaVisible( net, ic, ivtx, true );
 	for( int ia=0; ia<net->nareas; ia++ )
 		for( int iv=0; iv<net->area[ia].nvias; iv++ )
 			if( net->area[ia].vcon[iv] == ic )
@@ -3479,8 +2628,8 @@ int CNetList::CancelMovingSegment( cnet * net, int ic, int ivtx )
 	m_dlist->Set_visible(c->seg[ivtx].dl_el, 1);
 	if( m_dlist->Dragging_third_segment() )
 		m_dlist->Set_visible(c->seg[ivtx+1].dl_el, 1);
-	SetViaVisible( net, ic, ivtx,   TRUE );
-	SetViaVisible( net, ic, ivtx+1, TRUE );
+	SetViaVisible( net, ic, ivtx,   true );
+	SetViaVisible( net, ic, ivtx+1, true );
 	for( int ia=0; ia<net->nareas; ia++ )
 	{
 		carea * a = &net->area[ia];
@@ -3610,7 +2759,7 @@ void CNetList::GetViaPadInfo( cnet * net, int ic, int iv, int layer,
 // Test for a hit on a vertex in a routed or partially-routed trace
 // If layer == 0, ignore layer
 //
-BOOL CNetList::TestForHitOnVertex( cnet * net, int layer, int x, int y, 
+bool CNetList::TestForHitOnVertex( cnet * net, int layer, int x, int y,
 		cnet ** hit_net, int * hit_ic, int * hit_iv )
 {
 	// loop through all connections
@@ -3636,12 +2785,12 @@ BOOL CNetList::TestForHitOnVertex( cnet * net, int layer, int x, int y,
 					*hit_net = net;
 					*hit_ic = ic;
 					*hit_iv = iv;
-					return TRUE;
+					return true;
 				}
 			}
 		}
 	}
-	return FALSE;
+	return false;
 }
 
 // add empty copper area to net
@@ -3675,7 +2824,7 @@ void CNetList::InsertArea( cnet * net, int iarea, int layer, int x, int y, int h
 
 // add corner to copper area, apply style to preceding side
 //
-int CNetList::AppendAreaCorner( cnet * net, int iarea, int x, int y, int style, BOOL bDraw )
+int CNetList::AppendAreaCorner( cnet * net, int iarea, int x, int y, int style, bool bDraw )
 {
 	net->area[iarea].poly->AppendCorner( x, y, style, bDraw );
 	return 0;
@@ -3914,7 +3063,7 @@ void CNetList::SetAreaConnections( cnet * net, int iarea )
 // if layer == LAY_PAD_THRU, matches any layer
 // if so, return iarea
 //
-BOOL CNetList::TestPointInArea( cnet * net, int x, int y, int layer, int * iarea )
+bool CNetList::TestPointInArea( cnet * net, int x, int y, int layer, int * iarea )
 {
 	for( int ia=0; ia<net->nareas; ia++ )
 	{
@@ -3923,10 +3072,10 @@ BOOL CNetList::TestPointInArea( cnet * net, int x, int y, int layer, int * iarea
 		{
 			if( iarea )
 				*iarea = ia;
-			return TRUE;
+			return true;
 		}
 	}
-	return FALSE;
+	return false;
 }
 
 // remove copper area from net
@@ -4061,7 +3210,7 @@ void CNetList::HighlightNet( cnet * net)
 
 // force a via on a vertex
 //
-int CNetList::ForceVia( cnet * net, int ic, int ivtx, BOOL set_areas )
+int CNetList::ForceVia( cnet * net, int ic, int ivtx, bool set_areas )
 {
 	cconnect * c = &net->connect[ic];
 	c->vtx[ivtx].force_via_flag = 1;
@@ -4074,7 +3223,7 @@ int CNetList::ForceVia( cnet * net, int ic, int ivtx, BOOL set_areas )
 // remove forced via on a vertex
 // doesn't modify adjacent segments
 //
-int CNetList::UnforceVia( cnet * net, int ic, int ivtx, BOOL set_areas )
+int CNetList::UnforceVia( cnet * net, int ic, int ivtx, bool set_areas )
 {
 	cconnect * c = &net->connect[ic];
 	c->vtx[ivtx].force_via_flag = 0;
@@ -4091,7 +3240,7 @@ int CNetList::ReconcileVia( cnet * net, int ic, int ivtx )
 {
 	cconnect * c = &net->connect[ic];
 	cvertex * v = &c->vtx[ivtx];
-	BOOL via_needed = FALSE;
+	bool via_needed = false;
 	// see if via needed
 	if( v->force_via_flag ) 
 	{
@@ -4107,7 +3256,7 @@ int CNetList::ReconcileVia( cnet * net, int ic, int ivtx )
 				// this is a branch, reconcile the main tee
 				int tee_ic;
 				int tee_iv;
-				BOOL bFound = FindTeeVertexInNet( net, v->tee_ID, &tee_ic, &tee_iv );
+				bool bFound = FindTeeVertexInNet( net, v->tee_ID, &tee_ic, &tee_iv );
 				if( bFound )
 					ReconcileVia( net, tee_ic, tee_iv );
 			}
@@ -4120,7 +3269,7 @@ int CNetList::ReconcileVia( cnet * net, int ic, int ivtx )
 		else if( v->tee_ID )
 		{
 			if( TeeViaNeeded( net, v->tee_ID ) )
-				via_needed = TRUE;
+				via_needed = true;
 		}
 		else
 		{
@@ -4129,7 +3278,7 @@ int CNetList::ReconcileVia( cnet * net, int ic, int ivtx )
 			cseg * s2 = &c->seg[ivtx];
 			if( s1->layer != s2->layer && s1->layer != LAY_RAT_LINE && s2->layer != LAY_RAT_LINE )
 			{
-				via_needed = TRUE;
+				via_needed = true;
 			}
 		}
 	}
@@ -4565,7 +3714,7 @@ void CNetList::ReadNets( CStdioFile * pcb_file, double read_version, int * layer
 					if( icor == 0 )
 						AddArea( net, layer, x, y, hatch );
 					else
-						AppendAreaCorner( net, ia, x, y, last_side_style, FALSE );
+						AppendAreaCorner( net, ia, x, y, last_side_style, false );
 					if( np >= 5 )
 						last_side_style = my_atoi( &p[3] );
 					else
@@ -4672,7 +3821,7 @@ int CNetList::DrawVia( cnet * net, int ic, int iv )
 	return 0;
 }
 
-void CNetList::SetNetVisibility( cnet * net, BOOL visible )
+void CNetList::SetNetVisibility( cnet * net, bool visible )
 {
 	if( net->visible == visible )
 		return;
@@ -4684,8 +3833,8 @@ void CNetList::SetNetVisibility( cnet * net, BOOL visible )
 			cconnect * c = &net->connect[ic];
 			for( int is=0; is<c->nsegs; is++ )
 			{
-				c->seg[is].dl_el->visible = TRUE;
-				c->seg[is].dl_sel->visible = TRUE;
+				c->seg[is].dl_el->visible = true;
+				c->seg[is].dl_sel->visible = true;
 			}
 		}
 		// make thermals visible
@@ -4693,7 +3842,7 @@ void CNetList::SetNetVisibility( cnet * net, BOOL visible )
 		{
 			for( int ip=0; ip<net->area[ia].npins; ip++ )
 			{
-				net->area[ia].dl_thermal[ip]->visible = TRUE;
+				net->area[ia].dl_thermal[ip]->visible = true;
 			}
 		}
 	}
@@ -4707,8 +3856,8 @@ void CNetList::SetNetVisibility( cnet * net, BOOL visible )
 			{
 				if( c->seg[is].layer == LAY_RAT_LINE )
 				{
-					c->seg[is].dl_el->visible = FALSE;
-					c->seg[is].dl_sel->visible = FALSE;
+					c->seg[is].dl_el->visible = false;
+					c->seg[is].dl_sel->visible = false;
 				}
 			}
 		}
@@ -4717,14 +3866,14 @@ void CNetList::SetNetVisibility( cnet * net, BOOL visible )
 		{
 			for( int ip=0; ip<net->area[ia].npins; ip++ )
 			{
-				net->area[ia].dl_thermal[ip]->visible = FALSE;
+				net->area[ia].dl_thermal[ip]->visible = false;
 			}
 		}
 	}
 	net->visible = visible;
 }
 
-BOOL CNetList::GetNetVisibility( cnet * net )
+bool CNetList::GetNetVisibility( cnet * net )
 {
 	return net->visible;
 }
@@ -4751,10 +3900,10 @@ void CNetList::ExportNetListInfo( netlist_info * nl )
 		(*nl)[i].w = net->def_w;
 		(*nl)[i].v_w = net->def_via_w;
 		(*nl)[i].v_h_w = net->def_via_hole_w;
-		(*nl)[i].apply_trace_width = FALSE;
-		(*nl)[i].apply_via_width = FALSE;
-		(*nl)[i].modified = FALSE;
-		(*nl)[i].deleted = FALSE;
+		(*nl)[i].apply_trace_width = false;
+		(*nl)[i].apply_via_width = false;
+		(*nl)[i].modified = false;
+		(*nl)[i].deleted = false;
 		(*nl)[i].ref_des.SetSize(0);
 		(*nl)[i].pin_name.SetSize(0);
 		// now make copy of pin arrays
@@ -4818,12 +3967,12 @@ void CNetList::ImportNetListInfo( netlist_info * nl, int flags, CDlgLog * log,
 	while( net )
 	{
 		// check if in netlist_info
-		BOOL bFound = FALSE;
+		bool bFound = false;
 		for( int i=0; i<nl->GetSize(); i++ )
 		{
 			if( net->name == (*nl)[i].name )
 			{
-				bFound = TRUE;
+				bFound = true;
 				break;
 			}
 		}
@@ -4884,7 +4033,7 @@ void CNetList::ImportNetListInfo( netlist_info * nl, int flags, CDlgLog * log,
 		{
 			// no net from netlist_info but existing net with same name
 			// use existing net and modify it
-			(*nl)[i].modified = TRUE;
+			(*nl)[i].modified = true;
 			net = old_net;
 			(*nl)[i].net = net;
 			if( (*nl)[i].w != -1 )
@@ -4915,14 +4064,14 @@ void CNetList::ImportNetListInfo( netlist_info * nl, int flags, CDlgLog * log,
 		{
 			CString ref_des = net->pin[ipn].ref_des;
 			CString pin_name = net->pin[ipn].pin_name;
-			BOOL pin_present = FALSE;
+			bool pin_present = false;
 			for( int ip=0; ip<(*nl)[i].ref_des.GetSize(); ip++ )
 			{
 				if( ref_des == (*nl)[i].ref_des[ip]
 				&& pin_name == (*nl)[i].pin_name[ip] )
 				{
 					// pin in net found in netlist_info
-					pin_present = TRUE;
+					pin_present = true;
 					break;
 				}
 			}
@@ -5001,14 +4150,14 @@ void CNetList::ImportNetListInfo( netlist_info * nl, int flags, CDlgLog * log,
 					test_net = GetNextNet();
 				}
 				// now test for pin already present in net
-				BOOL pin_present = FALSE;
+				bool pin_present = false;
 				for( int ipp=0; ipp<net->npins; ipp++ )
 				{
 					if( net->pin[ipp].ref_des == (*nl)[i].ref_des[ipl]
 					&& net->pin[ipp].pin_name == (*nl)[i].pin_name[ipl] )
 					{
 						// pin in local array found in net
-						pin_present = TRUE;
+						pin_present = true;
 						break;
 					}
 				}
@@ -5196,7 +4345,7 @@ void CNetList::ReassignCopperLayers( int n_new_layers, int * layer )
 				poly->Draw();
 			}
 		}
-		CombineAllAreasInNet( net, TRUE, FALSE );
+		CombineAllAreasInNet( net, true, false );
 		net = GetNextNet();
 	}
 	m_layers = n_new_layers;
@@ -5213,10 +4362,10 @@ void CNetList::RestoreConnectionsAndAreas( CNetList * old_nl, int flags, CDlgLog
 	{
 		if( flags & (KEEP_TRACES | KEEP_STUBS) )
 		{
-			BOOL bRestored = TRUE;	// flag to indicate at least one connection restored
+			bool bRestored = true;	// flag to indicate at least one connection restored
 			while( bRestored )
 			{
-				bRestored = FALSE;	
+				bRestored = false;
 				// loop through old connections
 				for( int old_ic=0; old_ic<old_net->nconnects; old_ic++ )
 				{
@@ -5342,7 +4491,7 @@ void CNetList::RestoreConnectionsAndAreas( CNetList * old_nl, int flags, CDlgLog
 					if( ic > -1 )
 					{
 						old_c->utility = 1;		// flag as already drawn
-						bRestored = TRUE;		// and a trace was restored
+						bRestored = true;		// and a trace was restored
 						UndrawConnection( net, ic );
 						cconnect * c = &net->connect[ic];
 						c->seg.SetSize( old_c->nsegs );
@@ -5383,7 +4532,7 @@ void CNetList::RestoreConnectionsAndAreas( CNetList * old_nl, int flags, CDlgLog
 			// see if copper areas can be moved because all pins are on the same new net
 			for( int ia=0; ia<old_net->nareas; ia++ )
 			{
-				BOOL bMoveIt = TRUE;
+				bool bMoveIt = true;
 				cnet * new_area_net = NULL;
 				carea * old_a = &old_net->area[ia];
 				for( int ip=0; ip<old_a->npins; ip++ )
@@ -5399,7 +4548,7 @@ void CNetList::RestoreConnectionsAndAreas( CNetList * old_nl, int flags, CDlgLog
 					else if( new_pin_net != new_area_net )
 					{
 						// can't move area because pins are now on multiple nets
-						bMoveIt = FALSE;
+						bMoveIt = false;
 						break;
 					}
 				}
@@ -5420,7 +4569,7 @@ void CNetList::RestoreConnectionsAndAreas( CNetList * old_nl, int flags, CDlgLog
 						else if( new_pin_net != new_area_net )
 						{
 							// can't move area because pins and stubs are now on multiple nets
-							bMoveIt = FALSE;
+							bMoveIt = false;
 							break;
 						}
 					}
@@ -5461,7 +4610,7 @@ void CNetList::RestoreConnectionsAndAreas( CNetList * old_nl, int flags, CDlgLog
 	}
 }
 
-undo_con * CNetList::CreateConnectUndoRecord( cnet * net, int icon, BOOL set_areas )
+undo_con * CNetList::CreateConnectUndoRecord( cnet * net, int icon, bool set_areas )
 {
 	// calculate size needed, get memory
 	cconnect * c = &net->connect[icon];
@@ -5503,7 +4652,7 @@ undo_con * CNetList::CreateConnectUndoRecord( cnet * net, int icon, BOOL set_are
 // callback function for undoing connections
 // note that this is declared static, since it is a callback
 //
-void CNetList::ConnectUndoCallback( int type, void * ptr, BOOL undo )
+void CNetList::ConnectUndoCallback( int type, void * ptr, bool undo )
 {
 	if( undo )
 	{
@@ -5546,7 +4695,7 @@ void CNetList::ConnectUndoCallback( int type, void * ptr, BOOL undo )
 					c->vtx[is+1].via_w = vtx[is+1].via_w;
 					c->vtx[is+1].via_hole_w = vtx[is+1].via_hole_w;
 					if( vtx[is+1].force_via_flag )
-						nl->ForceVia( net, nc, is+1, FALSE );
+						nl->ForceVia( net, nc, is+1, false );
 					c->vtx[is+1].tee_ID = vtx[is+1].tee_ID;
 					if( vtx[is+1].tee_ID )
 						nl->AddTeeID( vtx[is+1].tee_ID );
@@ -5590,7 +4739,7 @@ undo_net * CNetList::CreateNetUndoRecord( cnet * net )
 // assumes that subsequent callbacks will regenerate connections
 // and copper areas
 //
-void CNetList::NetUndoCallback( int type, void * ptr, BOOL undo )
+void CNetList::NetUndoCallback( int type, void * ptr, bool undo )
 {
 	if( undo )
 	{
@@ -5605,7 +4754,7 @@ void CNetList::NetUndoCallback( int type, void * ptr, BOOL undo )
 		if( type == UNDO_NET_OPTIMIZE )
 		{
 			// re-optimize the net
-			nl->OptimizeConnections( net, -1, FALSE, -1, FALSE );
+			nl->OptimizeConnections( net, -1, false, -1, false );
 		}
 		else if( type == UNDO_NET_ADD )
 		{
@@ -5618,7 +4767,7 @@ void CNetList::NetUndoCallback( int type, void * ptr, BOOL undo )
 			if( !net )
 				ASSERT(0);
 			for( int ic=(net->nconnects-1); ic>=0; ic-- )
-				nl->RemoveNetConnect( net, ic, FALSE );
+				nl->RemoveNetConnect( net, ic, false );
 
 			// replace pin data
 			net->pin.SetSize(0);
@@ -5627,7 +4776,7 @@ void CNetList::NetUndoCallback( int type, void * ptr, BOOL undo )
 			{
 				CString ref_str( un_pin[ip].ref_des );
 				CString pin_name( un_pin[ip].pin_name );
-				nl->AddNetPin( net, &ref_str, &pin_name, FALSE );
+				nl->AddNetPin( net, &ref_str, &pin_name, false );
 			}
 			nl->RehookPartsToNet( net );
 		}
@@ -5689,7 +4838,7 @@ undo_area * CNetList::CreateAreaUndoRecord( cnet * net, int iarea, int type )
 // callback function for undoing areas
 // note that this is declared static, since it is a callback
 //
-void CNetList::AreaUndoCallback( int type, void * ptr, BOOL undo )
+void CNetList::AreaUndoCallback( int type, void * ptr, bool undo )
 {
 	if( undo )
 	{
@@ -5724,7 +4873,7 @@ void CNetList::AreaUndoCallback( int type, void * ptr, BOOL undo )
 			for( int ic=1; ic<a->ncorners; ic++ )
 			{
 				nl->AppendAreaCorner( net, a->iarea, 
-					c[ic].x, c[ic].y, c[ic-1].style, FALSE ); 
+					c[ic].x, c[ic].y, c[ic-1].style, false );
 				if( c[ic].end_contour )
 					nl->CompleteArea( net, a->iarea, c[ic].style );
 			}
@@ -5788,7 +4937,7 @@ int CNetList::CheckNetlist( CString * logstr )
 			CString * pin_name = &net->pin[ip].pin_name;
 			CString pin_id = *ref_des + "." + *pin_name;
 			void * ptr;
-			BOOL test = pin_map.Lookup( pin_id, ptr );
+			bool test = pin_map.Lookup( pin_id, ptr );
 			cnet * dup_net = (cnet*)ptr;
 			if( test )
 			{
@@ -5977,7 +5126,7 @@ int CNetList::CheckNetlist( CString * logstr )
 				str.Format( "ERROR: Net \"%s\": connection with no segments\r\n",
 					net->name );
 				*logstr += str;
-				RemoveNetConnect( net, ic, FALSE );
+				RemoveNetConnect( net, ic, false );
 				str.Format( "              Fixed: Connection removed\r\n",
 					net->name );
 				*logstr += str;
@@ -5989,7 +5138,7 @@ int CNetList::CheckNetlist( CString * logstr )
 				str.Format( "ERROR: Net \"%s\": connection from pin to itself\r\n",
 					net->name );
 				*logstr += str;
-				RemoveNetConnect( net, ic, FALSE );
+				RemoveNetConnect( net, ic, false );
 				str.Format( "              Fixed: Connection removed\r\n",
 					net->name );
 				*logstr += str;
@@ -6034,7 +5183,7 @@ int CNetList::CheckConnectivity( CString * logstr )
 				str.Format( "ERROR: Net \"%s\": connection with no segments\r\n",
 					net->name );
 				*logstr += str;
-				RemoveNetConnect( net, ic, FALSE );
+				RemoveNetConnect( net, ic, false );
 				str.Format( "              Fixed: Connection removed\r\n",
 					net->name );
 				*logstr += str;
@@ -6046,7 +5195,7 @@ int CNetList::CheckConnectivity( CString * logstr )
 				str.Format( "ERROR: Net \"%s\": connection from pin to itself\r\n",
 					net->name );
 				*logstr += str;
-				RemoveNetConnect( net, ic, FALSE );
+				RemoveNetConnect( net, ic, false );
 				str.Format( "              Fixed: Connection removed\r\n",
 					net->name );
 				*logstr += str;
@@ -6056,12 +5205,12 @@ int CNetList::CheckConnectivity( CString * logstr )
 			else
 			{
 				// check for unrouted or partially routed connection
-				BOOL bUnrouted = FALSE;
+				bool bUnrouted = false;
 				for( int is=0; is<c->nsegs; is++ )
 				{
 					if( c->seg[is].layer == LAY_RAT_LINE )
 					{
-						bUnrouted = TRUE;
+						bUnrouted = true;
 						break;
 					}
 				}
@@ -6114,8 +5263,8 @@ int CNetList::TestAreaPolygon( cnet * net, int iarea )
 {	
 	CPolyLine * p = net->area[iarea].poly;
 	// first, check for sides intersecting other sides, especially arcs 
-	BOOL bInt = FALSE;
-	BOOL bArcInt = FALSE;
+	bool bInt = false;
+	bool bArcInt = false;
 	int n_cont = p->GetNumContours();
 	// make bounding rect for each contour
 	CArray<CRect> cr;
@@ -6172,10 +5321,10 @@ int CNetList::TestAreaPolygon( cnet * net, int iarea )
 							if( ret )
 							{
 								// intersection between non-adjacent sides
-								bInt = TRUE;
+								bInt = true;
 								if( style != CPolyLine::STRAIGHT || style2 != CPolyLine::STRAIGHT )
 								{
-									bArcInt = TRUE;
+									bArcInt = true;
 									break;
 								}
 							}
@@ -6202,8 +5351,8 @@ int CNetList::TestAreaPolygon( cnet * net, int iarea )
 
 // Process an area that has been modified, by clipping its polygon against itself.
 // This may change the number and order of copper areas in the net.
-// If bMessageBoxInt == TRUE, shows message when clipping occurs.
-// If bMessageBoxArc == TRUE, shows message when clipping can't be done due to arcs.
+// If bMessageBoxInt == true, shows message when clipping occurs.
+// If bMessageBoxArc == true, shows message when clipping can't be done due to arcs.
 // Returns:
 //	-1 if arcs intersect other sides, so polygon can't be clipped
 //	 0 if no intersecting sides
@@ -6211,7 +5360,7 @@ int CNetList::TestAreaPolygon( cnet * net, int iarea )
 // Also sets net->area->utility1 flags if areas are modified
 //
 int CNetList::ClipAreaPolygon( cnet * net, int iarea, 
-							  BOOL bMessageBoxArc, BOOL bMessageBoxInt, BOOL bRetainArcs )
+							  bool bMessageBoxArc, bool bMessageBoxInt, bool bRetainArcs )
 {	
 	CPolyLine * p = net->area[iarea].poly;
 	int test = TestAreaPolygon( net, iarea );	// this sets utility2 flag
@@ -6219,8 +5368,8 @@ int CNetList::ClipAreaPolygon( cnet * net, int iarea,
 		test = 1;
 	if( test == -1 )
 	{
-		// arc intersections, don't clip unless bRetainArcs == FALSE
-		if( bMessageBoxArc && bDontShowSelfIntersectionArcsWarning == FALSE )
+		// arc intersections, don't clip unless bRetainArcs == false
+		if( bMessageBoxArc && bDontShowSelfIntersectionArcsWarning == false )
 		{
 			CString str;
 			str.Format( "Area %d of net \"%s\" has arcs intersecting other sides.\n",
@@ -6244,7 +5393,7 @@ int CNetList::ClipAreaPolygon( cnet * net, int iarea,
 	if( test == 1 )
 	{
 		// non-arc intersections, clip the polygon
-		if( bMessageBoxInt && bDontShowSelfIntersectionWarning == FALSE)
+		if( bMessageBoxInt && bDontShowSelfIntersectionWarning == false)
 		{
 			CString str;
 			str.Format( "Area %d of net \"%s\" is self-intersecting and will be clipped.\n",
@@ -6292,36 +5441,36 @@ int CNetList::ClipAreaPolygon( cnet * net, int iarea,
 // Process an area that has been modified, by clipping its polygon against
 // itself and the polygons for any other areas on the same net.
 // This may change the number and order of copper areas in the net.
-// If bMessageBox == TRUE, shows message boxes when clipping occurs.
+// If bMessageBox == true, shows message boxes when clipping occurs.
 // Returns:
 //	-1 if arcs intersect other sides, so polygon can't be clipped
 //	 0 if no intersecting sides
 //	 1 if intersecting sides, polygon clipped
 //
-int CNetList::AreaPolygonModified( cnet * net, int iarea, BOOL bMessageBoxArc, BOOL bMessageBoxInt )
+int CNetList::AreaPolygonModified( cnet * net, int iarea, bool bMessageBoxArc, bool bMessageBoxInt )
 {	
 	// clip polygon against itself
 	int test = ClipAreaPolygon( net, iarea, bMessageBoxArc, bMessageBoxInt );
 	if( test == -1 )
 		return test;
 	// now see if we need to clip against other areas
-	BOOL bCheckAllAreas = FALSE;
+	bool bCheckAllAreas = false;
 	if( test == 1 )
-		bCheckAllAreas = TRUE;
+		bCheckAllAreas = true;
 	else
 		bCheckAllAreas = TestAreaIntersections( net, iarea );
 	if( bCheckAllAreas )
-		CombineAllAreasInNet( net, bMessageBoxInt, TRUE );
+		CombineAllAreasInNet( net, bMessageBoxInt, true );
 	SetAreaConnections( net );
 	return test;
 }
 
 // Checks all copper areas in net for intersections, combining them if found
-// If bUseUtility == TRUE, don't check areas if both utility flags are 0
+// If bUseUtility == true, don't check areas if both utility flags are 0
 // Sets utility flag = 1 for any areas modified
 // If an area has self-intersecting arcs, doesn't try to combine it
 //
-int CNetList::CombineAllAreasInNet( cnet * net, BOOL bMessageBox, BOOL bUseUtility )
+int CNetList::CombineAllAreasInNet( cnet * net, bool bMessageBox, bool bUseUtility )
 {
 	if( net->nareas > 1 )
 	{
@@ -6329,12 +5478,12 @@ int CNetList::CombineAllAreasInNet( cnet * net, BOOL bMessageBox, BOOL bUseUtili
 		for( int ia=0; ia<net->nareas; ia++ )
 			TestAreaPolygon( net, ia );
 		// now loop through all combinations
-		BOOL message_shown = FALSE;
+		bool message_shown = false;
 		for( int ia1=0; ia1<net->nareas-1; ia1++ ) 
 		{
 			// legal polygon
 			CRect b1 = net->area[ia1].poly->GetCornerBounds();
-			BOOL mod_ia1 = FALSE;
+			bool mod_ia1 = false;
 			for( int ia2=net->nareas-1; ia2 > ia1; ia2-- )
 			{
 				if( net->area[ia1].poly->GetLayer() == net->area[ia2].poly->GetLayer() 
@@ -6345,14 +5494,14 @@ int CNetList::CombineAllAreasInNet( cnet * net, BOOL bMessageBox, BOOL bUseUtili
 						|| b1.bottom > b2.top || b1.top < b2.bottom ) )
 					{
 						// check ia2 against 1a1 
-						if( net->area[ia1].utility || net->area[ia2].utility || bUseUtility == FALSE )
+						if( net->area[ia1].utility || net->area[ia2].utility || bUseUtility == false )
 						{
 							int ret = TestAreaIntersection( net, ia1, ia2 );
 							if( ret == 1 )
 								ret = CombineAreas( net, ia1, ia2 );
 							if( ret == 1 )
 							{
-								if( bMessageBox && bDontShowIntersectionWarning == FALSE )
+								if( bMessageBox && bDontShowIntersectionWarning == false )
 								{
 									CString str;
 									str.Format( "Areas %d and %d of net \"%s\" intersect and will be combined.\n",
@@ -6363,11 +5512,11 @@ int CNetList::CombineAllAreasInNet( cnet * net, BOOL bMessageBox, BOOL bUseUtili
 									dlg.DoModal();
 									bDontShowIntersectionWarning = dlg.bDontShowBoxState;
 								}
-								mod_ia1 = TRUE;
+								mod_ia1 = true;
 							}
 							else if( ret == 2 )
 							{
-								if( bMessageBox && bDontShowIntersectionArcsWarning == FALSE )
+								if( bMessageBox && bDontShowIntersectionArcsWarning == false )
 								{
 									CString str;
 									str.Format( "Areas %d and %d of net \"%s\" intersect, but some of the intersecting sides are arcs.\n",
@@ -6392,7 +5541,7 @@ int CNetList::CombineAllAreasInNet( cnet * net, BOOL bMessageBox, BOOL bUseUtili
 
 // Check for intersection of copper area with other areas in same net
 //
-BOOL CNetList::TestAreaIntersections( cnet * net, int ia )
+bool CNetList::TestAreaIntersections( cnet * net, int ia )
 {
 	CPolyLine * poly1 = net->area[ia].poly;
 	for( int ia2=0; ia2<net->nareas; ia2++ )
@@ -6414,8 +5563,8 @@ BOOL CNetList::TestAreaIntersections( cnet * net, int ia )
 				continue;
 
 			// test for intersecting segments
-			BOOL bInt = FALSE;
-			BOOL bArcInt = FALSE;
+			bool bInt = false;
+			bool bArcInt = false;
 			for( int icont1=0; icont1<poly1->GetNumContours(); icont1++ )
 			{
 				int is1 = poly1->GetContourStart( icont1 );
@@ -6459,14 +5608,14 @@ BOOL CNetList::TestAreaIntersections( cnet * net, int ia )
 							int n_int = FindSegmentIntersections( xi1, yi1, xf1, yf1, style1,
 								xi2, yi2, xf2, yf2, style2 );
 							if( n_int )
-								return TRUE;
+								return true;
 						}
 					}
 				}
 			}
 		}
 	}
-	return FALSE;
+	return false;
 }
 
 // Test for intersection of 2 copper areas
@@ -6493,8 +5642,8 @@ int CNetList::TestAreaIntersection( cnet * net, int ia1, int ia2 )
 		return 0;
 
 	// now test for intersecting segments
-	BOOL bInt = FALSE;
-	BOOL bArcInt = FALSE;
+	bool bInt = false;
+	bool bArcInt = false;
 	for( int icont1=0; icont1<poly1->GetNumContours(); icont1++ )
 	{
 		int is1 = poly1->GetContourStart( icont1 );
@@ -6539,9 +5688,9 @@ int CNetList::TestAreaIntersection( cnet * net, int ia1, int ia2 )
 									xi2, yi2, xf2, yf2, style2 );
 					if( n_int )
 					{
-						bInt = TRUE;
+						bInt = true;
 						if( style1 != CPolyLine::STRAIGHT || style2 != CPolyLine::STRAIGHT )
-							bArcInt = TRUE;
+							bArcInt = true;
 						break;
 					}
 				}
@@ -6634,7 +5783,7 @@ int CNetList::CombineAreas( cnet * net, int ia1, int ia2 )
 					InsertArea( net, ia1, layer, x, y, hatch );
 				}
 				else
-					AppendAreaCorner( net, ia1, x, y, CPolyLine::STRAIGHT, FALSE );
+					AppendAreaCorner( net, ia1, x, y, CPolyLine::STRAIGHT, false );
 			}
 			CompleteArea( net, ia1, CPolyLine::STRAIGHT );
 			RenumberAreas( net );
@@ -6650,7 +5799,7 @@ int CNetList::CombineAreas( cnet * net, int ia1, int ia2 )
 			{
 				int x = ((union_gpc->contour)[ic].vertex)[i].x;
 				int y = ((union_gpc->contour)[ic].vertex)[i].y;
-				AppendAreaCorner( net, ia1, x, y, CPolyLine::STRAIGHT, FALSE );
+				AppendAreaCorner( net, ia1, x, y, CPolyLine::STRAIGHT, false );
 			}
 			CompleteArea( net, ia1, CPolyLine::STRAIGHT );
 		}
@@ -6692,9 +5841,9 @@ void CNetList::GetWidths( cnet * net, int * w, int * via_w, int * via_hole_w )
 
 // get bounding rectangle for all net elements
 //
-BOOL CNetList::GetNetBoundaries( CRect * r )
+bool CNetList::GetNetBoundaries( CRect * r )
 {
-	BOOL bValid = FALSE;
+	bool bValid = false;
 	cnet * net = GetFirstNet();
 	CRect br;
 	br.bottom = INT_MAX;
@@ -6712,7 +5861,7 @@ BOOL CNetList::GetNetBoundaries( CRect * r )
 				br.top = max( br.top, v->y + v->via_w );
 				br.left = min( br.left, v->x - v->via_w );
 				br.right = max( br.right, v->x + v->via_w );
-				bValid = TRUE;
+				bValid = true;
 			}
 		}
 		for( int ia=0; ia<net->nareas; ia++ )
@@ -6722,7 +5871,7 @@ BOOL CNetList::GetNetBoundaries( CRect * r )
 			br.top = max( br.top, r.top );
 			br.left = min( br.left, r.left );
 			br.right = max( br.right, r.right );
-			bValid = TRUE;
+			bValid = true;
 		}
 		net = GetNextNet();
 	}
@@ -6781,10 +5930,10 @@ void CNetList::AddTeeID( int id )
 }
 
 // Find the main tee vertex for a tee_ID 
-//	return FALSE if not found
-//	return TRUE if found, set ic and iv
+//	return false if not found
+//	return true if found, set ic and iv
 //
-BOOL CNetList::FindTeeVertexInNet( cnet * net, int id, int * ic, int * iv )
+bool CNetList::FindTeeVertexInNet( cnet * net, int id, int * ic, int * iv )
 {
 	for( int icc=0; icc<net->nconnects; icc++ )
 	{
@@ -6797,38 +5946,38 @@ BOOL CNetList::FindTeeVertexInNet( cnet * net, int id, int * ic, int * iv )
 					*ic = icc;
 				if( iv )
 					*iv = ivv;
-				return TRUE;
+				return true;
 			}
 		}
 	}
-	return FALSE;
+	return false;
 }
 
 
 // find tee vertex in any net
 //
-BOOL CNetList::FindTeeVertex( int id, cnet ** net, int * ic, int * iv )
+bool CNetList::FindTeeVertex( int id, cnet ** net, int * ic, int * iv )
 {
 	cnet * tnet = GetFirstNet();
 	while( tnet )
 	{
-		BOOL bFound = FindTeeVertexInNet( tnet, id, ic, iv );
+		bool bFound = FindTeeVertexInNet( tnet, id, ic, iv );
 		if( bFound )
 		{
 			CancelNextNet();
 			*net = tnet;
-			return TRUE;
+			return true;
 		}
 		tnet = GetNextNet();
 	}
-	return FALSE;
+	return false;
 }
 
 
 // Check if stubs are still connected to tee, if not remove it
-// Returns TRUE if tee still exists, FALSE if destroyed
+// Returns true if tee still exists, false if destroyed
 //
-BOOL CNetList::RemoveTeeIfNoBranches( cnet * net, int id )
+bool CNetList::RemoveTeeIfNoBranches( cnet * net, int id )
 {
 	int n_stubs = 0;
 	for( int ic=0; ic<net->nconnects; ic++ )
@@ -6843,22 +5992,22 @@ BOOL CNetList::RemoveTeeIfNoBranches( cnet * net, int id )
 		int tee_ic = RemoveTee( net, id );
 		if( tee_ic >= 0 )
 			MergeUnroutedSegments( net, tee_ic );
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
 // Disconnect branch from tee, remove tee if no more branches
-// Returns TRUE if tee still exists, FALSE if destroyed
+// Returns true if tee still exists, false if destroyed
 //
-BOOL CNetList::DisconnectBranch( cnet * net, int ic )
+bool CNetList::DisconnectBranch( cnet * net, int ic )
 {
 	cconnect * c = &net->connect[ic];
 	int id = c->vtx[c->nsegs].tee_ID;
 	if( !id )
 	{
 		ASSERT(0);
-		return FALSE;
+		return false;
 	}
 	else
 	{
@@ -6903,7 +6052,7 @@ int CNetList::RemoveTee( cnet * net, int id )
 
 // see if a tee vertex needs a via
 //
-BOOL CNetList::TeeViaNeeded( cnet * net, int id )
+bool CNetList::TeeViaNeeded( cnet * net, int id )
 {
 	int layer = 0;
 	for( int ic=0; ic<net->nconnects; ic++ )
@@ -6920,7 +6069,7 @@ BOOL CNetList::TeeViaNeeded( cnet * net, int id )
 					if( layer == 0 )
 						layer = seg_layer;
 					else if( layer != seg_layer )
-						return TRUE;
+						return true;
 				}
 				if( iv < c->nsegs )
 				{
@@ -6930,30 +6079,30 @@ BOOL CNetList::TeeViaNeeded( cnet * net, int id )
 						if( layer == 0 )
 							layer = seg_layer;
 						else if( layer != seg_layer )
-							return TRUE;
+							return true;
 					}
 				}
 			}
 		}
 	}
-	return FALSE;
+	return false;
 }
 
 // Finds branches without tees
 // If possible, combines branches into a new trace
 // If id == 0, check all ids for this net
 // If bRemoveSegs, removes branches entirely instead of disconnecting them
-// returns TRUE if corrections required, FALSE if not
+// returns true if corrections required, false if not
 // Note that the connect[] array may be changed by this function
 //
-BOOL CNetList::RemoveOrphanBranches( cnet * net, int id, BOOL bRemoveSegs )
+bool CNetList::RemoveOrphanBranches( cnet * net, int id, bool bRemoveSegs )
 {
-	BOOL bFound = FALSE;
-	BOOL bRemoved = TRUE;
+	bool bFound = false;
+	bool bRemoved = true;
 	int test_id = id;
 
 	if( test_id && FindTeeVertexInNet( net, test_id ) )
-		return FALSE;	// not an orphan
+		return false;	// not an orphan
 
 	// check all connections
 	while( bRemoved )
@@ -6962,7 +6111,7 @@ BOOL CNetList::RemoveOrphanBranches( cnet * net, int id, BOOL bRemoveSegs )
 		{
 			cconnect * c = &net->connect[ic];
 			c->utility = 0;		
-			BOOL bFixed = FALSE;
+			bool bFixed = false;
 			int id = c->vtx[c->nsegs].tee_ID;
 			if( c->end_pin == cconnect::NO_END && id != 0 )
 			{
@@ -6973,7 +6122,7 @@ BOOL CNetList::RemoveOrphanBranches( cnet * net, int id, BOOL bRemoveSegs )
 					if( !FindTeeVertexInNet( net, id ) )
 					{	
 						// no, this is an orphan
-						bFound = TRUE;
+						bFound = true;
 						c->utility = 1;
 
 						// now try to fix it by finding another branch
@@ -7010,7 +6159,7 @@ BOOL CNetList::RemoveOrphanBranches( cnet * net, int id, BOOL bRemoveSegs )
 								AddTeeID( id );
 								// now delete the branch
 								RemoveNetConnect( net, tic );
-								bFixed = TRUE;
+								bFixed = true;
 								break;
 							}
 						}
@@ -7021,7 +6170,7 @@ BOOL CNetList::RemoveOrphanBranches( cnet * net, int id, BOOL bRemoveSegs )
 				c->utility = 0;
 		}
 		// now remove unfixed branches
-		bRemoved = FALSE;
+		bRemoved = false;
 		for( int ic=net->nconnects-1; ic>=0; ic-- )
 		{
 			cconnect * c = &net->connect[ic];
@@ -7030,8 +6179,8 @@ BOOL CNetList::RemoveOrphanBranches( cnet * net, int id, BOOL bRemoveSegs )
 				c->vtx[c->nsegs].tee_ID = 0;
 				if( bRemoveSegs )
 				{
-					RemoveNetConnect( net, ic, FALSE );
-					bRemoved = TRUE;
+					RemoveNetConnect( net, ic, false );
+					bRemoved = true;
 					test_id = 0;
 				}
 				else
@@ -7095,7 +6244,7 @@ void CNetList::ApplyClearancesToArea( cnet *net, int ia, int flags,
 				int pad_connect;
 				int pad_angle;
 				cnet * pad_net;
-				BOOL bPad = m_plist->GetPadDrawInfo( part, ip, layer, 0, 0, 0, 0,
+				bool bPad = m_plist->GetPadDrawInfo( part, ip, layer, 0, 0, 0, 0,
 					&pad_type, &pad_x, &pad_y, &pad_w, &pad_l, &pad_r, &pad_hole, &pad_angle,
 					&pad_net, &pad_connect );
 
@@ -7117,7 +6266,7 @@ void CNetList::ApplyClearancesToArea( cnet *net, int ia, int flags,
 								// make thermal for pad
 								net->area[ia].poly->AddContourForPadClearance( pad_type, pad_x, pad_y, 
 									pad_w, pad_l, pad_r, pad_angle, fill_clearance, pad_hole, hole_clearance, 
-									TRUE, thermal_wid );
+									true, thermal_wid );
 							}
 						}
 						else
@@ -7185,7 +6334,7 @@ void CNetList::ApplyClearancesToArea( cnet *net, int ia, int flags,
 							int w = post_vtx->via_hole_w + 2*m_annular_ring;
 							net->area[ia].poly->AddContourForPadClearance( PAD_ROUND, post_vtx->x, post_vtx->y, 
 								w, w, 0, 0, fill_clearance, post_vtx->via_hole_w, hole_clearance,
-								TRUE, thermal_wid );
+								true, thermal_wid );
 						}
 					}
 					else if( test & CNetList::VIA_AREA )
@@ -7200,7 +6349,7 @@ void CNetList::ApplyClearancesToArea( cnet *net, int ia, int flags,
 							// thermal
 							net->area[ia].poly->AddContourForPadClearance( PAD_ROUND, post_vtx->x, post_vtx->y, 
 								post_vtx->via_w, post_vtx->via_w, 0, 0, fill_clearance, post_vtx->via_hole_w, hole_clearance,
-								TRUE, thermal_wid );
+								true, thermal_wid );
 						}
 					}
 				}
@@ -7266,7 +6415,7 @@ void CNetList::ApplyClearancesToArea( cnet *net, int ia, int flags,
 			}
 #endif
 	// clip polygon, creating new areas if necessary
-	ClipAreaPolygon( net, ia, FALSE, FALSE, FALSE );  
+	ClipAreaPolygon( net, ia, false, false, false );
 }
 
 // recursive function for routing
@@ -7381,7 +6530,7 @@ void CNetList::ImportNetRouting( CString * name,
 								CArray<cpath> * paths,
 								int tolerance,
 								CDlgLog * log,
-								BOOL bVerbose )
+								bool bVerbose )
 {
 	CString mess;
 	cnet * net = GetNetPtrByName( name );
@@ -7393,7 +6542,7 @@ void CNetList::ImportNetRouting( CString * name,
 
 	// unroute all traces
 	for( int ic=net->nconnects-1; ic>=0; ic-- )
-		RemoveNetConnect( net, ic, FALSE );
+		RemoveNetConnect( net, ic, false );
 	SetAreaConnections( net );
 
 	// add all pins in net to list of nodes
@@ -7405,7 +6554,7 @@ void CNetList::ImportNetRouting( CString * name,
 		int inode = nodes->GetSize();
 		nodes->SetSize( inode+1 );
 		cnode * node = &(*nodes)[inode];
-		node->bUsed = FALSE;
+		node->bUsed = false;
 		node->layer = layer;
 		node->type = NPIN;
 		node->x = p.x;
@@ -7422,7 +6571,7 @@ void CNetList::ImportNetRouting( CString * name,
 			if( iend == 1 )
 				pt = &path->pt[path->pt.GetSize()-1];	// last point
 			// search all nodes for match
-			BOOL bMatch = FALSE;
+			bool bMatch = false;
 			int inode;
 			for( inode=0; inode<nodes->GetSize(); inode++ )
 			{
@@ -7439,7 +6588,7 @@ void CNetList::ImportNetRouting( CString * name,
 					pt->inode = inode;
 					pt->x = node->x;
 					pt->y = node->y;
-					bMatch = TRUE;
+					bMatch = true;
 					break;
 				}
 			}
@@ -7449,7 +6598,7 @@ void CNetList::ImportNetRouting( CString * name,
 				inode = nodes->GetSize();
 				nodes->SetSize(inode+1);
 				cnode * node = &(*nodes)[inode];
-				node->bUsed = FALSE;
+				node->bUsed = false;
 				node->layer = path->layer;
 				node->type = NJUNCTION;
 				node->x = pt->x;
@@ -7510,13 +6659,13 @@ void CNetList::ImportNetRouting( CString * name,
 					if( !path->n_used )
 						num_unused_paths++;
 				}
-				BOOL bFailed = (num_unused_paths == 0);		// fails if no paths
+				bool bFailed = (num_unused_paths == 0);		// fails if no paths
 				while( !bFailed )
 				{
 					// route trace
 					int score = RouteToPin( 0, node, nodes, paths, NULL );
 					if( score == -1 )
-						bFailed = TRUE;
+						bFailed = true;
 					if( !bFailed )
 					{
 						// add routed trace to project
@@ -7587,7 +6736,7 @@ void CNetList::ImportNetRouting( CString * name,
 								GetWidths( net, &w, &via_w, &via_hole_w );
 								c->vtx[is].via_w = next_node->via_w;
 								c->vtx[is].via_hole_w = via_hole_w;
-								ForceVia( net, ic, is, FALSE );
+								ForceVia( net, ic, is, false );
 							}
 							str.Format( "-n%d", next_inode );
 							mess += str;
@@ -7612,7 +6761,7 @@ void CNetList::ImportNetRouting( CString * name,
 							cseg * pre_seg = &c->seg[iv-1];
 							cseg * post_seg = &c->seg[iv];
 							if( pre_seg->layer != post_seg->layer && !TestPointInArea( net, v->x, v->y, LAY_PAD_THRU, NULL ) )
-								UnforceVia( net, ic, iv, FALSE );
+								UnforceVia( net, ic, iv, false );
 						}
 
 					}
@@ -7648,7 +6797,7 @@ void CNetList::ImportNetRouting( CString * name,
 								tee_id = trace_v->tee_ID;
 							trace_v->tee_ID = tee_id;
 							end_v->tee_ID = tee_id;
-							end_v->force_via_flag = FALSE;
+							end_v->force_via_flag = false;
 							end_v->via_w = 0;
 							end_v->via_hole_w = 0;
 							ReconcileVia( net, icc, iv );
@@ -7659,7 +6808,7 @@ void CNetList::ImportNetRouting( CString * name,
 		}
 	}
 	// test for unrouted paths
-	BOOL bFailed = FALSE;
+	bool bFailed = false;
 	for( int ipath=0; ipath<paths->GetSize(); ipath++ )
 	{
 		cpath * path = &(*paths)[ipath];
@@ -7691,7 +6840,7 @@ void CNetList::ImportNetRouting( CString * name,
 				mess += str;
 				log->AddLine( mess );
 			}
-			bFailed = TRUE;
+			bFailed = true;
 		}
 	}
 	if( !bFailed && log ) 
