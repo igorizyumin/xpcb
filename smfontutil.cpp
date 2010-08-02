@@ -33,6 +33,16 @@ QString xtbfile = "Hershey.xtb";
 #define HADJUST 1.0
 
 
+static SMFontUtil & SMFontUtil::instance()
+{
+	if (!this->myInstance)
+	{
+		myInstance = new SMFontUtil(smffile);
+	}
+	else
+		return *myInstance;
+}
+
 
 //------------------------------------------------------------------
 //+CRi+M Start of CRi method block
@@ -491,4 +501,51 @@ int SMFontUtil::GetCharStrokes( char ch, FONT_TYPE pFont, double * min_x, double
 	}
 	else
 		return -1;		// illegal charid i.e. unable to find character
+}
+
+// returns list of QPainterPaths for character
+// appends things to the paths list, does not clear bbox
+int SMFontUtil::GetCharPath( char ch, FONT_TYPE pFont, QPoint offset, double scale,
+							 QRect &bbox, QList<QPainterPath*> &paths )
+{
+	double x, y;
+	QPainterPath* path = NULL;
+
+	int charid = GetCharID( ch, pFont );
+
+	if( charid<0 )
+		return -1; // illegal charid i.e. unable to find character
+
+	CharVertex chrvertex;
+	SMCharacter::CHARVERTEX_TYPE result;
+	SMCharacter * chr = GetCharacter( charid );
+	int iter;
+	result = chr->GetFirstVertex( chrvertex, iter );
+
+	while( result != SMCharacter::TERMINATE )
+	{
+		x = chrvertex.X * scale;
+		y = -chrvertex.Y * scale;
+
+		if( result == SMCharacter::MOVE_TO )
+		{
+			if (path)
+			{
+				path->translate(offset);
+				paths.append(path);
+				bbox |= path->boundingRect();
+			}
+			path = new QPainterPath(x, y);
+		}
+		else if( result == SMCharacter::DRAW_TO )
+			path->lineTo(x, y);
+		result = chr->GetNextVertex( chrvertex, iter );
+	}
+	ASSERT(path);
+	path->translate(offset);
+	paths.append(path);
+	bbox |= path->boundingRect();
+
+	return paths.size();
+
 }

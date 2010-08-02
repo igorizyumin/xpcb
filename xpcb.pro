@@ -26,8 +26,12 @@ SOURCES += main.cpp\
     smfontutil.cpp \
     Part.cpp \
     DesignRules.cpp \
-    TextList.cpp \
-    Net.cpp
+    Net.cpp \
+    Trace.cpp \
+    PCBObject.cpp \
+    Text.cpp \
+    Area.cpp \
+    Polygon.cpp
 
 HEADERS  += MainWindow.h \
     PCBView.h \
@@ -45,8 +49,12 @@ HEADERS  += MainWindow.h \
     smfontutil.h \
     Part.h \
     DesignRules.h \
-    TextList.h \
-    Net.h
+    Net.h \
+    Trace.h \
+    PCBObject.h \
+    Text.h \
+    Area.h \
+    Polygon.h
 
 FORMS    += MainWindow.ui \
     GridToolbarWidget.ui \

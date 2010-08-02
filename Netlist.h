@@ -9,7 +9,7 @@
 // Forward declarations
 class Net;
 class Pin;
-class Connection;
+class Trace;
 class Segment;
 class Vertex;
 class Part;
@@ -179,39 +179,28 @@ public:
 	// functions for copper areas
 	int AddArea( cnet * net, int layer, int x, int y, int hatch );
 	void InsertArea( cnet * net, int iarea, int layer, int x, int y, int hatch );
-	int AppendAreaCorner( cnet * net, int iarea, int x, int y, int style, bool bDraw=true );
-	int InsertAreaCorner( cnet * net, int iarea, int icorner,
-		int x, int y, int style );
-	void MoveAreaCorner( cnet * net, int iarea, int icorner, int x, int y );
-	void HighlightAreaCorner( cnet * net, int iarea, int icorner );
-	void HighlightAreaSides( cnet * net, int ia );
-	CPoint GetAreaCorner( cnet * net, int iarea, int icorner );
-	int CompleteArea( cnet * net, int iarea, int style );
+	int RemoveArea( cnet * net, int iarea );
+
+	// MOVE THIS TO AREA
 	void SetAreaConnections();
 	void SetAreaConnections( cnet * net, int iarea );
 	void SetAreaConnections( cnet * net );
 	void SetAreaConnections( cpart * part );
-	bool TestPointInArea( cnet * net, int x, int y, int layer, int * iarea );
-	int RemoveArea( cnet * net, int iarea );
-	void SelectAreaSide( cnet * net, int iarea, int iside );
-	void SelectAreaCorner( cnet * net, int iarea, int icorner );
-	void SetAreaSideStyle( cnet * net, int iarea, int iside, int style );
-	int StartDraggingAreaCorner( QPainter *painter, cnet * net, int iarea, int icorner, int x, int y, int crosshair = 1 );
-	int CancelDraggingAreaCorner( cnet * net, int iarea, int icorner );
-	int StartDraggingInsertedAreaCorner( QPainter *painter, cnet * net, int iarea, int icorner, int x, int y, int crosshair = 1 );
-	int CancelDraggingInsertedAreaCorner( cnet * net, int iarea, int icorner );
-	void RenumberAreas( cnet * net );
-	int TestAreaPolygon( cnet * net, int iarea );
-	int ClipAreaPolygon( cnet * net, int iarea,
-		bool bMessageBoxArc, bool bMessageBoxInt, bool bRetainArcs=true );
-	int AreaPolygonModified( cnet * net, int iarea, bool bMessageBoxArc, bool bMessageBoxInt );
+
+//	bool TestPointInArea( cnet * net, int x, int y, int layer, int * iarea );
+
+//	void SelectAreaSide( cnet * net, int iarea, int iside );
+//	void SelectAreaCorner( cnet * net, int iarea, int icorner );
+//	void SetAreaSideStyle( cnet * net, int iarea, int iside, int style );
+//	int StartDraggingAreaCorner( QPainter *painter, cnet * net, int iarea, int icorner, int x, int y, int crosshair = 1 );
+//	int CancelDraggingAreaCorner( cnet * net, int iarea, int icorner );
+//	int StartDraggingInsertedAreaCorner( QPainter *painter, cnet * net, int iarea, int icorner, int x, int y, int crosshair = 1 );
+//	int CancelDraggingInsertedAreaCorner( cnet * net, int iarea, int icorner );
+//	void RenumberAreas( cnet * net );
+
+
 	int CombineAllAreasInNet( cnet * net, bool bMessageBox, bool bUseUtility );
 	int TestAreaIntersections( cnet * net, int ia );
-	int TestAreaIntersection( cnet * net, int ia1, int ia2 );
-	int CombineAreas( cnet * net, int ia1, int ia2 );
-	void ApplyClearancesToArea( cnet * net, int ia, int flags,
-			int fill_clearance, int min_silkscreen_stroke_wid,
-			int thermal_wid, int hole_clearance );
 
 	// I/O  functions
 	int WriteNets( CStdioFile * file );

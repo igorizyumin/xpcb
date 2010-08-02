@@ -1953,7 +1953,7 @@ int Part::GetPinConnectionStatus( QString pin_name, int layer )
 			// first segment connects to pin on this layer
 			status |= TRACE_CONNECT;
 		}
-		else if( p2 == Connection::NO_END )
+		else if( p2 == Trace::NO_END )
 		{
 			// stub trace, ignore end pin
 		}

@@ -3,13 +3,14 @@
 #include "math.h"
 #include "PolyLine.h"
 #include "utility.h"
+#include "gpc.h"
+
 
 #define pi  3.14159265359
 
 CPolyLine::CPolyLine()
 { 
 	m_ncorners = 0;
-	m_ptr = 0;
 	m_hatch = 0;
 	m_sel_box = 0;
 	m_gpc_poly = new gpc_polygon;
@@ -527,16 +528,11 @@ int CPolyLine::RestoreArcs( QList<CArc> * arc_array, QList<CPolyLine*> * pa )
 //	ptr = pointer to net
 //
 void CPolyLine::Start( int layer, int w, int sel_box, int x, int y, 
-					  int hatch, id * id, void * ptr )
+					  int hatch )
 {
 	m_layer = layer;
 	m_w = w;
 	m_sel_box = sel_box;
-	if( id )
-		m_id = *id;
-	else
-		m_id.Clear();
-	m_ptr = ptr;
 	m_hatch = hatch;
 
 	corner.append(CPolyPt(x,y));
@@ -544,7 +540,7 @@ void CPolyLine::Start( int layer, int w, int sel_box, int x, int y,
 
 // add a corner to unclosed polyline
 //
-void CPolyLine::AppendCorner( int x, int y, int style, bool bDraw )
+void CPolyLine::AppendCorner( int x, int y, int style)
 {
 	// add entries for new corner and side
 	if( !corner.last().end_contour )
@@ -939,7 +935,7 @@ void CPolyLine::HighlightCorner( int ic )
 		m_dlist->Get_w( dl_corner_sel[ic]) );
 }
 
-void CPolyLine::MakeVisible( bool visible )
+void CPolyLine::SetVisible( bool visible )
 {	
 	if( m_dlist )
 	{
@@ -1122,24 +1118,10 @@ int CPolyLine::GetSideStyle( int is )
 	return side_style[is];	
 }
 
-// renumber ids
-//
-void CPolyLine::SetId( id * id )
-{
-	m_id = *id;
-}
-
-// get root id
-//
-id CPolyLine::GetId()
-{
-	return m_id;
-}
-
-int CPolyLine::GetClosed() 
+bool CPolyLine::GetClosed()
 {	
 	if( m_ncorners == 0 )
-		return 0;
+		return false;
 	else
 		return corner.at(m_ncorners-1).end_contour;
 }
@@ -1148,6 +1130,7 @@ int CPolyLine::GetClosed()
 //
 void CPolyLine::Hatch()
 {
+#if 0
 	if( m_hatch == NO_HATCH )
 	{
 		m_nhatch = 0;
@@ -1337,6 +1320,7 @@ void CPolyLine::Hatch()
 		m_nhatch = nhatch;
 		dl_hatch.SetSize( m_nhatch );
 	}
+#endif
 }
 
 // test to see if a point is inside polyline
@@ -1489,62 +1473,6 @@ bool CPolyLine::TestPointInsideContour( int icont, int x, int y )
 		return true;
 	else
 		return true;
-}
-
-// Test for intersection of sides
-//
-int CPolyLine::TestIntersection( CPolyLine * poly )
-{
-	if( !GetClosed() )
-		ASSERT(0);
-	if( !poly->GetClosed() )
-		ASSERT(0);
-	for( int ic=0; ic<GetNumContours(); ic++ )
-	{
-		int istart = GetContourStart(ic);
-		int iend = GetContourEnd(ic);
-		for( int is=istart; is<=iend; is++ )
-		{
-			int xi = GetX(is);
-			int yi = GetY(is);
-			int xf, yf;
-			if( is < GetContourEnd(ic) )
-			{
-				xf = GetX(is+1);
-				yf = GetY(is+1);
-			}
-			else
-			{
-				xf = GetX(istart);
-				yf = GetY(istart);
-			}
-			int style = GetSideStyle(is);
-			for( int ic2=0; ic2<poly->GetNumContours(); ic2++ )
-			{
-				int istart2 = poly->GetContourStart(ic2);
-				int iend2 = poly->GetContourEnd(ic2);
-				for( int is2=istart2; is2<=iend2; is2++ )
-				{
-					int xi2 = poly->GetX(is2);
-					int yi2 = poly->GetY(is2);
-					int xf2, yf2;
-					if( is2 < poly->GetContourEnd(ic2) )
-					{
-						xf2 = poly->GetX(is2+1);
-						yf2 = poly->GetY(is2+1);
-					}
-					else
-					{
-						xf2 = poly->GetX(istart2);
-						yf2 = poly->GetY(istart2);
-					}
-					int style2 = poly->GetSideStyle(is2);
-					// test for intersection between side and side2
-				}
-			}
-		}
-	}
-	return 0;
 }
 
 // set selection box size 
@@ -1720,7 +1648,6 @@ void CPolyLine::AddContourForPadClearance( int type, int x, int y, int w,
 			Close( STRAIGHT ); 
 		}
 	}
-	return;
 }
 
 void CPolyLine::AppendArc( int xi, int yi, int xf, int yf, int xc, int yc, int num )
@@ -1752,4 +1679,444 @@ void CPolyLine::ClipGpcPolygon( gpc_op op, CPolyLine * clip_poly )
 	delete m_gpc_poly;
 	m_gpc_poly = result;
 }
+
+
+
+
+
+// Functions migrated from netlist
+
+/// Test an area for self-intersection.
+/// \returns
+///	-1 if arcs intersect other sides
+///	 0 if no intersecting sides
+///	 1 if intersecting sides, but no intersecting arcs
+int CPolyLine::TestSelfIntersection()
+{
+	// first, check for sides intersecting other sides, especially arcs
+	bool bInt = false;
+	bool bArcInt = false;
+	int n_cont = GetNumContours();
+
+	// make bounding rect for each contour
+	QList<QRect> cr;
+	for( int icont=0; icont<n_cont; icont++ )
+		cr.append(GetCornerBounds( icont ));
+
+	for( int icont=0; icont<n_cont; icont++ )
+	{
+		int is_start = GetContourStart(icont);
+		int is_end = GetContourEnd(icont);
+		// check each side
+		for( int is=is_start; is<=is_end; is++ )
+		{
+			// wrap prev/next around end of array
+			int is_prev = ((is - 1) < is_start) ? is_end : is-1;
+			int is_next = ((is + 1) > is_end) ? is_start : is+1;
+
+			int style = GetSideStyle( is );
+			QPoint p1i = GetPt(is);
+			QPoint p1f = GetPt(is_next);
+			// check for intersection with any other sides
+			for( int icont2=icont; icont2<n_cont; icont2++ )
+			{
+				if( cr[icont].intersects(cr[icont2]))
+				{
+					int is2_start = GetContourStart(icont2);
+					int is2_end = GetContourEnd(icont2);
+					for( int is2=is2_start; is2<=is2_end; is2++ )
+					{
+						// wrap around
+						int is2_prev = ((is2 - 1) < is2_start) ? is2_end : is2-1;
+						int is2_next = ((is2 + 1) > is2_end) ? is2_start : is2+1;
+
+						if( icont != icont2 || (is2 != is && is2 != is_prev && is2 != is_next && is != is2_prev && is != is2_next ) )
+						{
+							int style2 = GetSideStyle( is2 );
+							QPoint p2i = GetPt(is2);
+							QPoint p2f = GetPt(is2_next);
+
+							int ret = FindSegmentIntersections( p1i.x(), p1i.y(), p1f.x(), p1f.y(), style,
+																p2i.x(), p2i.y(), p2f.x(), p2f.y(), style2 );
+							if( ret )
+							{
+								// intersection between non-adjacent sides
+								bInt = true;
+								if( style != CPolyLine::STRAIGHT || style2 != CPolyLine::STRAIGHT )
+								{
+									bArcInt = true;
+									break;
+								}
+							}
+						}
+					}
+				}
+				if( bArcInt )
+					break;
+			}
+			if( bArcInt )
+				break;
+		}
+		if( bArcInt )
+			break;
+	}
+	// this used to set utility2 in area
+	if( bArcInt )
+		return -1;
+	else if( bInt )
+		return 1;
+	else
+		return 0;
+}
+
+/// Process an area that has been modified, by clipping its polygon against itself.
+/// This may change the number and order of copper areas in the net [NOT ANYMORE].
+/// \returns
+///	-1 if arcs intersect other sides, so polygon can't be clipped
+///	 0 if no intersecting sides
+///	 1 if intersecting sides
+
+int CPolyLine::Clip(bool bRetainArcs )
+{
+	int test = TestSelfIntersection();
+	if( test == -1 && !bRetainArcs )
+		test = 1;
+	if( test == -1 )
+	{
+		// arc intersections, don't clip unless bRetainArcs == false
+//		if( bMessageBoxArc && bDontShowSelfIntersectionArcsWarning == false )
+//		{
+//			CString str;
+//			str.Format( "Area %d of net \"%s\" has arcs intersecting other sides.\n",
+//				iarea+1, net->name );
+//			str += "This may cause problems with other editing operations,\n";
+//			str += "such as adding cutouts. It can't be fixed automatically.\n";
+//			str += "Manual correction is recommended.\n";
+//			CDlgMyMessageBox dlg;
+//			dlg.Initialize( str );
+//			dlg.DoModal();
+//			bDontShowSelfIntersectionArcsWarning = dlg.bDontShowBoxState;
+//		}
+		return -1;	// arcs intersect with other sides, error
+	}
+
+	// mark all areas as unmodified except this one
+//	for( int ia=0; ia<net->nareas; ia++ )
+//		net->area[ia].utility = 0;
+//	net->area[iarea].utility = 1;
+
+//	if( test == 1 )
+//	{
+//		// non-arc intersections, clip the polygon
+//		if( bMessageBoxInt && bDontShowSelfIntersectionWarning == false)
+//		{
+//			CString str;
+//			str.Format( "Area %d of net \"%s\" is self-intersecting and will be clipped.\n",
+//				iarea+1, net->name );
+//			str += "This may result in splitting the area.\n";
+//			str += "If the area is complex, this may take a few seconds.";
+//			CDlgMyMessageBox dlg;
+//			dlg.Initialize( str );
+//			dlg.DoModal();
+//			bDontShowSelfIntersectionWarning = dlg.bDontShowBoxState;
+//		}
+//	}
+//** TODO test for cutouts outside of area
+//**	if( test == 1 )
+	{
+		// XXX IGOR removed support for adding more polygons;
+		// now it just keeps the first one if the area intersects
+//		CArray<CPolyLine*> * pa = new CArray<CPolyLine*>;
+		int n_poly = NormalizeWithGpc( NULL, bRetainArcs );
+//		if( n_poly > 1 )
+//		{
+//			for( int ip=1; ip<n_poly; ip++ )
+//			{
+//				// create new copper area and copy poly into it
+//				CPolyLine * new_p = (*pa)[ip-1];
+//				int ia = AddArea( net, 0, 0, 0, 0 );
+//				// remove the poly that was automatically created for the new area
+//				// and replace it with a poly from NormalizeWithGpc
+//				delete net->area[ia].poly;
+//				net->area[ia].poly = new_p;
+//				net->area[ia].poly->SetDisplayList( net->m_dlist );
+//				net->area[ia].poly->SetHatch( p->GetHatch() );
+//				net->area[ia].poly->SetLayer( p->GetLayer() );
+//				id p_id( ID_NET, ID_AREA, ia );
+//				net->area[ia].poly->SetId( &p_id );
+//				net->area[ia].poly->Draw();
+//				net->area[ia].utility = 1;
+//			}
+//		}
+//		delete pa;
+	}
+	return test;
+}
+
+
+// XXX TODO this needs to be moved to the CArea class or something
+/// Process an area that has been modified, by clipping its polygon against
+/// itself and the polygons for any other areas on the same net.
+/// This may change the number and order of copper areas in the net.
+/// \returns
+///	-1 if arcs intersect other sides, so polygon can't be clipped
+///	 0 if no intersecting sides
+///	 1 if intersecting sides, polygon clipped
+int CPolyLine::OnModified()
+{
+	// clip polygon against itself
+	int test = Clip();
+	if( test == -1 )
+		return test;
+	// now see if we need to clip against other areas
+	bool bCheckAllAreas = false;
+	if( test == 1 )
+		bCheckAllAreas = true;
+	else
+		bCheckAllAreas = TestAreaIntersections( net, iarea );
+	if( bCheckAllAreas )
+		CombineAllAreasInNet( net, bMessageBoxInt, true );
+	SetAreaConnections( net );
+	return test;
+}
+
+// XXX TODO move this to area class
+
+// Checks all copper areas in net for intersections, combining them if found
+// If bUseUtility == true, don't check areas if both utility flags are 0
+// Sets utility flag = 1 for any areas modified
+// If an area has self-intersecting arcs, doesn't try to combine it
+//
+int CNetList::CombineAllAreasInNet( cnet * net, bool bMessageBox, bool bUseUtility )
+{
+	if( net->nareas > 1 )
+	{
+		// start by testing all area polygons to set utility2 flags
+		for( int ia=0; ia<net->nareas; ia++ )
+			TestAreaPolygon( net, ia );
+		// now loop through all combinations
+		bool message_shown = false;
+		for( int ia1=0; ia1<net->nareas-1; ia1++ )
+		{
+			// legal polygon
+			CRect b1 = net->area[ia1].poly->GetCornerBounds();
+			bool mod_ia1 = false;
+			for( int ia2=net->nareas-1; ia2 > ia1; ia2-- )
+			{
+				if( net->area[ia1].poly->GetLayer() == net->area[ia2].poly->GetLayer()
+					&& net->area[ia1].utility2 != -1 && net->area[ia2].utility2 != -1 )
+				{
+					CRect b2 = net->area[ia2].poly->GetCornerBounds();
+					if( !( b1.left > b2.right || b1.right < b2.left
+						|| b1.bottom > b2.top || b1.top < b2.bottom ) )
+					{
+						// check ia2 against 1a1
+						if( net->area[ia1].utility || net->area[ia2].utility || bUseUtility == false )
+						{
+							int ret = TestAreaIntersection( net, ia1, ia2 );
+							if( ret == 1 )
+								ret = CombineAreas( net, ia1, ia2 );
+							if( ret == 1 )
+							{
+								if( bMessageBox && bDontShowIntersectionWarning == false )
+								{
+									CString str;
+									str.Format( "Areas %d and %d of net \"%s\" intersect and will be combined.\n",
+										ia1+1, ia2+1, net->name );
+									str += "If they are complex, this may take a few seconds.";
+									CDlgMyMessageBox dlg;
+									dlg.Initialize( str );
+									dlg.DoModal();
+									bDontShowIntersectionWarning = dlg.bDontShowBoxState;
+								}
+								mod_ia1 = true;
+							}
+							else if( ret == 2 )
+							{
+								if( bMessageBox && bDontShowIntersectionArcsWarning == false )
+								{
+									CString str;
+									str.Format( "Areas %d and %d of net \"%s\" intersect, but some of the intersecting sides are arcs.\n",
+										ia1+1, ia2+1, net->name );
+									str += "Therefore, these areas can't be combined.";
+									CDlgMyMessageBox dlg;
+									dlg.Initialize( str );
+									dlg.DoModal();
+									bDontShowIntersectionArcsWarning = dlg.bDontShowBoxState;
+								}
+							}
+						}
+					}
+				}
+			}
+			if( mod_ia1 )
+				ia1--;		// if modified, we need to check it again
+		}
+	}
+	return 0;
+}
+
+
+/// Test for intersection of 2 copper areas
+/// ia2 must be > ia1
+/// \returns 0 if no intersection
+///			1 if intersection
+///			2 if arcs intersect
+int CPolyLine::TestIntersection( const CPolyLine &other )
+{
+	// see if polygons are on same layer
+	if( GetLayer() != other.GetLayer() )
+		return 0;
+
+	// test bounding rects
+	QRect b1 = GetCornerBounds();
+	QRect b2 = other.GetCornerBounds();
+	if( !b1.intersects(b2) )
+		return 0;
+
+	// now test for intersecting segments
+	bool bInt = false;
+	bool bArcInt = false;
+	for( int icont1=0; icont1<GetNumContours(); icont1++ )
+	{
+		int is1 = GetContourStart( icont1 );
+		int ie1 = GetContourEnd( icont1 );
+		for( int ic1=is1; ic1<=ie1; ic1++ )
+		{
+			QPoint pi1 = GetPt(ic1);
+			QPoint pf1;
+
+			if( ic1 < ie1 )
+				pf1 = GetPt(ic1+1);
+			else
+				pf1 = GetPt(is1);
+
+			int style1 = GetSideStyle( ic1 );
+
+			for( int icont2=0; icont2<other.GetNumContours(); icont2++ )
+			{
+				int is2 = other.GetContourStart( icont2 );
+				int ie2 = other.GetContourEnd( icont2 );
+				for( int ic2=is2; ic2<=ie2; ic2++ )
+				{
+					QPoint pi2 = other.GetPt(ic2);
+					QPoint pf2;
+
+					int style2;
+					if( ic2 < ie2 )
+						pf2 = other.GetPt(ic2+1);
+					else
+						pf2 = other.GetPt(is2);
+
+					style2 = other.GetSideStyle( ic2 );
+					int n_int = FindSegmentIntersections( pi1.x(), pi1.y(), pf1.x(), pf1.y(), style1,
+									pi2.x(), pi2.y(), pf2.x(), pf2.y(), style2 );
+					if( n_int )
+					{
+						bInt = true;
+						if( style1 != CPolyLine::STRAIGHT || style2 != CPolyLine::STRAIGHT )
+							bArcInt = true;
+						break;
+					}
+				}
+				if( bArcInt )
+					break;
+			}
+			if( bArcInt )
+				break;
+		}
+		if( bArcInt )
+			break;
+	}
+	if( !bInt )
+		return 0;
+	if( bArcInt )
+		return 2;
+	return 1;
+}
+
+/// Combines this polygon with the supplied one, if possible.
+/// returns: 0 if no intersection
+///			1 if intersection
+int CPolyLine::Combine( const CPolyLine &other )
+{
+	// save arcs when making GPC poly
+	QList<CArc> arc_array1;
+	QList<CArc> arc_array2;
+
+	MakeGpcPoly( -1, &arc_array1 );
+	other.MakeGpcPoly( -1, &arc_array2 );
+	int n_ext_cont1 = 0;
+	for( int ic=0; ic<GetGpcPoly()->num_contours; ic++ )
+		if( !((GetGpcPoly()->hole)[ic]) )
+			n_ext_cont1++;
+	int n_ext_cont2 = 0;
+	for( int ic=0; ic<other.GetGpcPoly()->num_contours; ic++ )
+		if( !((other.GetGpcPoly()->hole)[ic]) )
+			n_ext_cont2++;
+
+	gpc_polygon * union_gpc = new gpc_polygon;
+	gpc_polygon_clip( GPC_UNION, poly1->GetGpcPoly(), poly2->GetGpcPoly(), union_gpc );
+
+	// get number of outside contours
+	int n_union_ext_cont = 0;
+	for( int ic=0; ic<union_gpc->num_contours; ic++ )
+		if( !((union_gpc->hole)[ic]) )
+			n_union_ext_cont++;
+
+	// if no intersection, free new gpc and return
+	if( n_union_ext_cont == n_ext_cont1 + n_ext_cont2 )
+	{
+		gpc_free_polygon( union_gpc );
+		delete union_gpc;
+		return 0;
+	}
+
+	// create area with external contour
+	for( int ic=0; ic<union_gpc->num_contours; ic++ )
+	{
+		if( !(union_gpc->hole)[ic] )
+		{
+			// external contour, replace this poly
+			corner.clear();
+			side_style.clear();
+
+			for( int i=0; i<union_gpc->contour[ic].num_vertices; i++ )
+			{
+				int x = ((union_gpc->contour)[ic].vertex)[i].x;
+				int y = ((union_gpc->contour)[ic].vertex)[i].y;
+				if( i==0 )
+				{
+					corner.append(CPolyPt(x, y));
+				}
+				else
+					AppendCorner( x, y, CPolyLine::STRAIGHT );
+			}
+
+			Close( CPolyLine::STRAIGHT );
+		}
+	}
+	// add holes
+	for( int ic=0; ic<union_gpc->num_contours; ic++ )
+	{
+		if( (union_gpc->hole)[ic] )
+		{
+			// hole
+			for( int i=0; i<union_gpc->contour[ic].num_vertices; i++ )
+			{
+				int x = ((union_gpc->contour)[ic].vertex)[i].x;
+				int y = ((union_gpc->contour)[ic].vertex)[i].y;
+				AppendCorner(x, y, CPolyLine::STRAIGHT );
+			}
+			Close( CPolyLine::STRAIGHT );
+		}
+	}
+	RestoreArcs( &arc_array1 );
+	RestoreArcs( &arc_array2 );
+	gpc_free_polygon( union_gpc );
+	delete union_gpc;
+	return 1;
+}
+
+
 

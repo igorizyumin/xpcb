@@ -3,40 +3,34 @@
 
 #include "Shape.h"
 #include "UndoList.h"
+#include "PCBObject.h"
 
 // forward declarations
 class Net;
 class CPartList;
-
-// struct used for DRC to store pin info
-struct drc_pin {
-	int hole_size;	// hole diameter or 0
-	int min_x;		// bounding rect of padstack
-	int max_x;
-	int min_y;
-	int max_y;
-	int max_r;		// max. radius of padstack
-	int layers;		// bit mask of layers with pads
-};
+class Vertex;
 
 // class part_pin represents a pin on a part
 // note that pin numbers start at 1,
 // so index to pin array is (pin_num-1)
-class PartPin
+class PartPin : public PCBObject
 {
+	PartPin(Part* parent);
+	~PartPin();
 	void setNet(Net* newnet);
 	QPoint getPos() { return pos; }
 	PCBLAYER getLayer();
 	Net* getNet() {return net; }
 	int getWidth();
-	bool TestHit( QPoint pt, PCBLAYER layer );
+	bool testHit( QPoint pt, PCBLAYER layer );
+	void setVertex(Vertex* vertex);
 
 private:
 	QString name;			// pin name (e.g. A23)
 	QPoint pos;				// position on PCB
 	Net * net;				// pointer to net, or NULL if not assigned
 	Part * part;			// pointer to parent part
-	drc_pin drc;			// drc info
+	Vertex* vertex;
 };
 
 #if 0
@@ -163,7 +157,6 @@ private:
 	int layers;		// bit mask for layers with pads
 	// flag used for importing
 	bool bPreserve;	// preserve connections to this part
-	SMFontUtil * m_fontutil;	// class for Hershey font
 
 };
 

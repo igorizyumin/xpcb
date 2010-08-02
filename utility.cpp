@@ -728,7 +728,6 @@ int FindSegmentIntersections( int xi, int yi, int xf, int yf, int style,
 		// both segments are arcs
 		EllipseKH el1;
 		EllipseKH el2;
-		Point IntPts[12];
 		MakeEllipseFromArc( xi, yi, xf, yf, style, &el1 );
 		MakeEllipseFromArc( xi2, yi2, xf2, yf2, style2, &el2 );
 		int n;

@@ -1502,7 +1502,7 @@ int Footprint::Copy( Footprint * shape )
 	m_tl->RemoveAllTexts();
 	for( int it=0; it<shape->m_tl->text_ptr.GetSize(); it++ )
 	{
-		CText * t = shape->m_tl->text_ptr[it];
+		Text * t = shape->m_tl->text_ptr[it];
 		m_tl->AddText( t->m_x, t->m_y, t->m_angle, t->m_mirror, t->m_bNegative, 
 			LAY_FP_SILK_TOP, t->m_font_size, t->m_stroke_width, &t->m_str, false );
 	}
@@ -1572,8 +1572,8 @@ bool Footprint::Compare( Footprint * shape )
 		return false;
 	for( int it=0; it<m_tl->text_ptr.GetSize(); it++ )
 	{
-		CText * t = m_tl->text_ptr[it];
-		CText * st = shape->m_tl->text_ptr[it];
+		Text * t = m_tl->text_ptr[it];
+		Text * st = shape->m_tl->text_ptr[it];
 		if( t->m_x != st->m_x
 			|| t->m_y != st->m_y
 			|| t->m_layer != st->m_layer
@@ -1664,7 +1664,7 @@ int Footprint::WriteFootprint( CStdioFile * file )
 		}
 		for( int it=0; it<m_tl->text_ptr.GetSize(); it++ )
 		{
-			CText * t = m_tl->text_ptr[it];
+			Text * t = m_tl->text_ptr[it];
 			line.Format( "  text: \"%s\" %s %s %s %d %s %d %d\n", t->m_str,
 				ws(t->m_font_size,m_units), ws(t->m_x,m_units), ws(t->m_y,m_units), t->m_angle, 
 				ws(t->m_stroke_width,m_units), t->m_mirror, t->m_layer );
