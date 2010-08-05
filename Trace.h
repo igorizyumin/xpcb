@@ -1,24 +1,12 @@
 #ifndef TRACE_H
 #define TRACE_H
 
+#include <QList>
+#include <QSet>
 #include "PCBObject.h"
-#include "Part.h"
 
-/// A copper trace.
-
-/// A trace consists of a set of connected segments and
-/// vertices, which form a graph structure.
-class Trace : public PCBObject
-{
-public:
-	Trace();
-
-	bool isVoid() {return mySeg.size() == 0 || myVtx.size() == 0;}
-
-private:
-	QSet<Segment> mySeg;		// set of segments
-	QList<Vertex> myVtx;		// set of vertices
-};
+class Area;
+class PolyLine;
 
 /// A trace vertex.
 
@@ -27,7 +15,7 @@ private:
 class Vertex : public PCBObject
 {
 public:
-	Vertex(Trace* parent, QPoint pos = QPoint(0, 0));
+	Vertex(TraceList* parent, QPoint pos = QPoint(0, 0));
 
 	QPoint pos() {return myPos;}
 
@@ -37,11 +25,15 @@ public:
 	void removeSegment(Segment* seg);
 	/// Returns a reference to the segment set.
 	const QSet<Segment*> & segments() { return mySegs; }
+	/// Returns true if a vertex is present on the given layer
+	bool onLayer(PCBLAYER layer);
+	/// Returns true if the vertex is a via (exists on multiple layers)
+	bool isVia();
 
 private:
-	Trace * myParent;
-	QPoint myPos;
-	QSet<Segment*> mySegs;
+	TraceList * mParent;
+	QPoint mPos;
+	QSet<Segment*> mSegs;
 };
 
 /// Trace segment
@@ -50,20 +42,47 @@ private:
 class Segment : public PCBObject
 {
 public:
-	Segment(Trace* parent, Vertex* v1, Vertex* v2, PCBLAYER l = LAY_RAT_LINE, int w = 0);
+	Segment(TraceList* parent, Vertex* v1, Vertex* v2, PCBLAYER l = LAY_RAT_LINE, int w = 0);
 
 	int width() {return myWidth;}
 	void setWidth(int w) {myWidth = w;}
 	PCBLAYER layer() {return myLayer;}
 	void setLayer(PCBLAYER layer) {myLayer = layer;}
 
+	Vertex* otherVertex(Vertex* v) {return (v == mV1 ? mV2 : mV1);}
 	void draw(QPainter *painter, PCBLAYER layer);
 private:
-	PCBLAYER myLayer;
-	Trace *myParent;
-	Vertex *myV1;
-	Vertex *myV2;
-	int myWidth;
+	PCBLAYER mLayer;
+	TraceList *mParent;
+	Vertex *mV1;
+	Vertex *mV2;
+	int mWidth;
 };
+
+
+/// The container for all copper traces and areas on the board.
+
+/// A trace consists of a set of connected segments and
+/// vertices, which form a graph structure.
+class TraceList
+{
+public:
+	TraceList();
+
+	QSet<Vertex*> getConnectedVertices(Vertex* vtx);
+	QSet<Vertex*> getVerticesInPoly(PolyLine* poly);
+
+private:
+
+	void rebuildConnectionList();
+
+	QSet<Segment*> mySeg;		// set of segments
+	QSet<Vertex*> myVtx;		// set of vertices
+
+	/// Master list of connections
+	QList< QSet<Vertex*> > mConnections;
+};
+
+
 
 #endif // TRACE_H

@@ -22,37 +22,54 @@ int PartPin::getWidth( )
 	return max(ps.top.size_h, max(ps.bottom.size_h, ps.hole_size));
 }
 
-// Test for hit on pad
-//
-bool PartPin::TestHit( QPoint pt, PCBLAYER layer )
+bool PartPin::getPadOnLayer(PCBLAYER layer, Pad &pad)
 {
+	if (layer < LAY_PAD_THRU)
+		return false; // non-copper layer
+
 	Padstack ps = part->getFootprint()->getPadstack(this->name);
-	Pad p;
+	PCBSIDE side = part->getSide();
 	if( ps.hole_size == 0 )
 	{
 		// SMT pad
-		if( layer == LAY_TOP_COPPER && part->GetSide() == SIDE_TOP ||
-			layer == LAY_BOTTOM_COPPER && part->GetSide() == SIDE_BOTTOM)
-			p = ps.top;
+		if( layer == LAY_TOP_COPPER && side == SIDE_TOP ||
+			layer == LAY_BOTTOM_COPPER && side == SIDE_BOTTOM)
+			pad = ps.top;
 		else
 			return false;
 	}
 	else
 	{
 		// TH pad
-		if( layer == LAY_TOP_COPPER && part->GetSide() == SIDE_TOP ||
-			layer == LAY_BOTTOM_COPPER && part->GetSide() == SIDE_BOTTOM )
-			p = ps.top;
-		else if( layer == LAY_TOP_COPPER && part->GetSide() == SIDE_BOTTOM ||
-				 layer == LAY_BOTTOM_COPPER && part->GetSide() == SIDE_TOP )
-			p = ps.bottom;
+		if( layer == LAY_TOP_COPPER && side == SIDE_TOP ||
+			layer == LAY_BOTTOM_COPPER && side == SIDE_BOTTOM )
+			pad = ps.top;
+		else if( layer == LAY_TOP_COPPER && side == SIDE_BOTTOM ||
+				 layer == LAY_BOTTOM_COPPER && side == SIDE_TOP )
+			pad = ps.bottom;
 		else
-			p = ps.inner;
+			pad = ps.inner;
 	}
+	return true
+}
+
+// Test for hit on pad
+//
+bool PartPin::TestHit( QPoint pt, PCBLAYER layer )
+{
+	Padstack ps = part->getFootprint()->getPadstack(this->name);
+	// check if we hit a thru-hole
 	QPoint delta( pt - this->getPos() );
 	double dist = sqrt( delta.x()*delta.x() + delta.y()*delta.y() );
 	if( dist < ps.hole_size/2 )
 		return true;
+
+	// otherwise, check if there is a pad on this layer
+	Pad p;
+	if (!getPadOnLayer(layer, p))
+		return false;
+
+	// check if we hit the pad
 	switch( p.shape )
 	{
 	case PAD_NONE:
@@ -83,6 +100,8 @@ bool PartPin::TestHit( QPoint pt, PCBLAYER layer )
 		}
 		break;
 	}
+
+	// did not hit anything
 	return false;
 }
 

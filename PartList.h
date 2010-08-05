@@ -8,7 +8,7 @@
 #define MAX_REF_DES_SIZE 39
 
 class Part;
-class CPartList;
+class PartList;
 class CNetList;
 class Net;
 
@@ -56,7 +56,7 @@ enum
 	PL_ERR
 };
 
-class CPartList
+class PartList
 {
 public:
 	enum {
@@ -75,8 +75,8 @@ public:
 		UNDO_PART_MODIFY, 
 		UNDO_PART_ADD };	// undo types
 
-	CPartList( SMFontUtil * fontutil );
-	~CPartList();
+	PartList( SMFontUtil * fontutil );
+	~PartList();
 
 
 	// getter/setter functions
@@ -130,7 +130,7 @@ public:
 	bool CheckForProblemFootprints();
 	void DRC( CDlgLog * log, int copper_layers, 
 		int units, bool check_unrouted,
-		CArray<CPolyLine> * board_outline,
+		CArray<PolyLine> * board_outline,
 		DesignRules * dr, DRErrorList * DRElist );
 
 private:

@@ -34,6 +34,8 @@ bool Pad::operator==(Pad p)
 			); 
 }
 
+
+
 // class padstack
 Padstack::Padstack()
 { 
@@ -1273,7 +1275,7 @@ int Footprint::MakeFromFile( QFile & in_file, QString name, int pos = -1 )
 		{
 			int x = StrToDimension( p.at(0), m_units);
 			int y = StrToDimension( p.at(1), m_units);
-			int style = CPolyLine::STRAIGHT;
+			int style = PolyLine::STRAIGHT;
 			if( np >= 4 )
 				style = p.at(2).toInt(); ;
 			int npolys = m_outline_poly.GetSize();
@@ -1281,7 +1283,7 @@ int Footprint::MakeFromFile( QFile & in_file, QString name, int pos = -1 )
 		}
 		else if( key_str == "close_polyline" && np >= 2 )
 		{
-			int style = CPolyLine::STRAIGHT;
+			int style = PolyLine::STRAIGHT;
 			if( np >= 2 )
 				style = p.at(0).toInt(); ;
 			int npolys = m_outline_poly.GetSize();
@@ -1407,7 +1409,7 @@ int Footprint::MakeFromFile( QFile & in_file, QString name, int pos = -1 )
 	np = m_outline_poly.size();
 	for( int ip=np-1; ip>=0; ip-- )
 	{
-		CPolyLine * p = &m_outline_poly[ip];
+		PolyLine * p = &m_outline_poly[ip];
 		if( p->GetNumCorners() == 1 )
 			m_outline_poly.remove(ip);
 	}

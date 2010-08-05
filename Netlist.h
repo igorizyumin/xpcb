@@ -14,7 +14,7 @@ class Segment;
 class Vertex;
 class Part;
 class Area;
-class CPartList;
+class PartList;
 class Footprint;
 
 
@@ -39,7 +39,7 @@ public:
 		UNDO_NET_MODIFY,		// undo modify net
 		UNDO_NET_OPTIMIZE		// flag to optimize net on undo
 	};
-	CNetList( CPartList * plist );
+	CNetList( PartList * plist );
 	~CNetList();
 	void SetNumCopperLayers( int layers ){ m_layers = layers;}
 	void SetWidths( int w, int via_w, int via_hole_w );
@@ -64,8 +64,6 @@ public:
 	int UnrouteNetConnect( cnet * net, int ic );
 	int SetConnectionWidth( cnet * net, int ic, int w, int via_w, int via_hole_w );
 	int OptimizeConnections( cnet * net, int ic, bool bBelowPinCount, int pin_count, bool bVisibleNetsOnly=true );
-	void RenumberConnection( cnet * net, int ic );
-	void RenumberConnections( cnet * net );
 	int AppendSegment( cnet * net, int ic, int x, int y, int layer, int width );
 	int InsertSegment( cnet * net, int ic, int iseg, int x, int y, int layer, int width,
 						int via_width, int via_hole_width, int dir );
@@ -214,31 +212,8 @@ public:
 	void ImportNetRouting( CString * name, CArray<cnode> * nodes,
 		CArray<cpath> * paths, int tolerance, CDlgLog * log=NULL, bool bVerbose=true );
 
-	// undo functions
-	undo_con * CreateConnectUndoRecord( cnet * net, int icon, bool set_areas=true );
-	undo_area * CreateAreaUndoRecord( cnet * net, int iarea, int type );
-	undo_net * CreateNetUndoRecord( cnet * net );
-	static void ConnectUndoCallback( int type, void * ptr, bool undo );
-	static void AreaUndoCallback( int type, void * ptr, bool undo );
-	static void NetUndoCallback( int type, void * ptr, bool undo );
-
-	// functions for tee_IDs
-	void ClearTeeIDs();
-	int GetNewTeeID();
-	int FindTeeID( int id );
-	void RemoveTeeID( int id );
-	void AddTeeID( int id );
-	// functions for tees and branches
-	bool FindTeeVertexInNet( cnet * net, int id, int * ic=NULL, int * iv=NULL );
-	bool FindTeeVertex( int id, cnet ** net, int * ic=NULL, int * iv=NULL );
-	int RemoveTee( cnet * net, int id );
-	bool DisconnectBranch( cnet * net, int ic );
-	int RemoveTeeIfNoBranches( cnet * net, int id );
-	bool TeeViaNeeded( cnet * net, int id );
-	bool RemoveOrphanBranches( cnet * net, int id, bool bRemoveSegs=false );
-
 private:
-	CPartList * m_plist;
+	PartList * m_plist;
 	int m_layers;	// number of copper layers
 	int m_def_w, m_def_via_w, m_def_via_hole_w;
 	int m_pos_i;	// index for iterators

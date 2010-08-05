@@ -87,6 +87,7 @@ class Pad
 public:
 	Pad();
 	bool operator==(Pad p);
+
 	int shape;	// see enum above
 	int size_l, size_r, size_h, radius;
 	int connect_flag;	// only for copper pads
@@ -98,6 +99,7 @@ class Padstack
 public:
 	Padstack();
 	bool operator==(Padstack p);
+
 	bool exists;		// only used when converting Ivex footprints or editing
 	QString name;		// identifier such as "1" or "B24"
 	int hole_size;		// 0 = no hole (i.e SMT)
@@ -131,7 +133,7 @@ private:
 	int m_centroid_x, m_centroid_y;		// position of centroid
 	int m_centroid_angle;				// angle of centroid (CCW)
 	QVector<Padstack> m_padstack;		// array of padstacks for shape
-	QVector<CPolyLine> m_outline_poly;	// array of polylines for part outline
+	QVector<PolyLine> m_outline_poly;	// array of polylines for part outline
 	CTextList * m_tl;					// list of text strings
 	QVector<Glue> m_glue;		// array of adhesive dots
 

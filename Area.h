@@ -1,7 +1,13 @@
 #ifndef AREA_H
 #define AREA_H
 
-#include "PCBObject.h"
+#include "PolyLine.h"
+
+class PartPin;
+class Vertex;
+class Net;
+class TraceList;
+class PCBDoc;
 
 /// A copper area.
 
@@ -9,17 +15,26 @@
 /// or they can be assigned to a net.  In the latter case, the area will
 /// automatically connect to any vertices, vias, or pins that are within its
 /// boundaries.
-class Area : public PCBObject
+class Area : public PolyLine
 {
 public:
 	Area();
-	~Area();						// destructor
+	~Area();
 
 private:
-	QPolygon * poly;	// outline
-	QList<PartPin*> pin;	// array of thru-hole pins
-	QList<int> vcon;	// via connections (wtf is this???)
-	QList<int> vtx;	// vertices (what is this???)
+	/// Parent container
+	PCBDoc* mDoc;
+
+	/// Net assigned to this area
+	Net* mNet;
+
+	/// Whether to connect SMT pads to this area
+	bool mConnectSMT;
+
+	/// List of connected pins
+	QList<PartPin*> mConnPins;
+	/// List of connected vias and vertices
+	QList<Vertex*> mConnVtx;
 };
 
 #endif // AREA_H

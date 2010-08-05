@@ -532,7 +532,7 @@ int MakeEllipseFromArc( int xi, int yi, int xf, int yf, int style, EllipseKH * e
 	// arc (quadrant of ellipse)
 	// convert to clockwise arc
 	int xxi, xxf, yyi, yyf;
-	if( style == CPolyLine::ARC_CCW )
+	if( style == PolyLine::ARC_CCW )
 	{
 		xxi = xf;
 		xxf = xi;
@@ -613,7 +613,7 @@ int FindSegmentIntersections( int xi, int yi, int xf, int yf, int style,
 		|| min(yi,yf) > max(yi2,yf2) )
 		return 0;
 
-	if( style != CPolyLine::STRAIGHT && style2 != CPolyLine::STRAIGHT )
+	if( style != PolyLine::STRAIGHT && style2 != PolyLine::STRAIGHT )
 	{
 		// two identical arcs intersect
 		if( style == style2 && xi == xi2 && yi == yi2 && xf == xf2 && yf == yf2 )
@@ -636,7 +636,7 @@ int FindSegmentIntersections( int xi, int yi, int xf, int yf, int style,
 		}
 	}
 
-	if( style == CPolyLine::STRAIGHT && style2 == CPolyLine::STRAIGHT )
+	if( style == PolyLine::STRAIGHT && style2 == PolyLine::STRAIGHT )
 	{
 		// both straight-line segments
 		int x, y;
@@ -647,7 +647,7 @@ int FindSegmentIntersections( int xi, int yi, int xf, int yf, int style,
 		yr[0] = y;
 		iret = 1;
 	}
-	else if( style == CPolyLine::STRAIGHT )
+	else if( style == PolyLine::STRAIGHT )
 	{
 		// first segment is straight, second segment is an arc
 		int ret;
@@ -685,7 +685,7 @@ int FindSegmentIntersections( int xi, int yi, int xf, int yf, int style,
 			}
 		}
 	}
-	else if( style2 == CPolyLine::STRAIGHT )
+	else if( style2 == PolyLine::STRAIGHT )
 	{
 		// first segment is an arc, second segment is straight
 		int ret;
@@ -768,7 +768,7 @@ int FindLineSegmentIntersection( double a, double b, int xi, int yi, int xf, int
 	if( xf != xi )
 	{
 		// non-vertical segment, get intersection
-		if( style == CPolyLine::STRAIGHT || yf == yi )
+		if( style == PolyLine::STRAIGHT || yf == yi )
 		{
 			// horizontal or oblique straight segment
 			// put into form y = c + dx;
@@ -817,12 +817,12 @@ int FindLineSegmentIntersection( double a, double b, int xi, int yi, int xf, int
 					return 0;
 			}
 		}
-		else if( style == CPolyLine::ARC_CW || style == CPolyLine::ARC_CCW )
+		else if( style == PolyLine::ARC_CW || style == PolyLine::ARC_CCW )
 		{
 			// arc (quadrant of ellipse)
 			// convert to clockwise arc
 			int xxi, xxf, yyi, yyf;
-			if( style == CPolyLine::ARC_CCW )
+			if( style == PolyLine::ARC_CCW )
 			{
 				xxi = xf;
 				xxf = xi;
@@ -996,7 +996,7 @@ bool TestForIntersectionOfStraightLineSegments( int x1i, int y1i, int x1f, int y
 		b = (double)(y2f-y2i)/(x2f-x2i);
 		a = (double)y2i - b*x2i;
 		double x1, y1, x2, y2;
-		int test = FindLineSegmentIntersection( a, b, x1i, y1i, x1f, y1f, CPolyLine::STRAIGHT,
+		int test = FindLineSegmentIntersection( a, b, x1i, y1i, x1f, y1f, PolyLine::STRAIGHT,
 			&x1, &y1, &x2, &y2 );
 		if( test )
 		{
@@ -1019,7 +1019,7 @@ bool TestForIntersectionOfStraightLineSegments( int x1i, int y1i, int x1f, int y
 		b = (double)(y2f-y2i)/(x2f-x2i);
 		a = (double)y2i - b*x2i;
 		double x1, y1, x2, y2;
-		int test = FindLineSegmentIntersection( a, b, x1i, y1i, x1f, y1f, CPolyLine::STRAIGHT,
+		int test = FindLineSegmentIntersection( a, b, x1i, y1i, x1f, y1f, PolyLine::STRAIGHT,
 			&x1, &y1, &x2, &y2 );
 		if( test )
 		{
@@ -1042,7 +1042,7 @@ bool TestForIntersectionOfStraightLineSegments( int x1i, int y1i, int x1f, int y
 		b = (double)(y1f-y1i)/(x1f-x1i);
 		a = (double)y1i - b*x1i;
 		double x1, y1, x2, y2;
-		int test = FindLineSegmentIntersection( a, b, x2i, y2i, x2f, y2f, CPolyLine::STRAIGHT,
+		int test = FindLineSegmentIntersection( a, b, x2i, y2i, x2f, y2f, PolyLine::STRAIGHT,
 			&x1, &y1, &x2, &y2 );
 		if( test )
 		{
@@ -1065,7 +1065,7 @@ bool TestForIntersectionOfStraightLineSegments( int x1i, int y1i, int x1f, int y
 		b = (double)(y1f-y1i)/(x1f-x1i);
 		a = (double)y1i - b*x1i;
 		double x1, y1, x2, y2;
-		int test = FindLineSegmentIntersection( a, b, x2i, y2i, x2f, y2f, CPolyLine::STRAIGHT,
+		int test = FindLineSegmentIntersection( a, b, x2i, y2i, x2f, y2f, PolyLine::STRAIGHT,
 			&x1, &y1, &x2, &y2 );
 		if( test )
 		{
@@ -1090,7 +1090,7 @@ bool TestForIntersectionOfStraightLineSegments( int x1i, int y1i, int x1f, int y
 			b = (double)(y1f-y1i)/(x1f-x1i);
 			a = (double)y1i - b*x1i;
 			double x1, y1, x2, y2;
-			int test = FindLineSegmentIntersection( a, b, x2i, y2i, x2f, y2f, CPolyLine::STRAIGHT,
+			int test = FindLineSegmentIntersection( a, b, x2i, y2i, x2f, y2f, PolyLine::STRAIGHT,
 				&x1, &y1, &x2, &y2 );
 			// both segments oblique
 			if( test )
@@ -1604,7 +1604,7 @@ int GetClearanceBetweenSegments( int x1i, int y1i, int x1f, int y1f, int style1,
 	if( min(y2i,y2f)-max(y1i,y1f) > test )
 		return max_cl;
 
-	if( style1 == CPolyLine::STRAIGHT && style1 == CPolyLine::STRAIGHT )
+	if( style1 == PolyLine::STRAIGHT && style1 == PolyLine::STRAIGHT )
 	{
 		// both segments are straight lines
 		int xx, yy;
@@ -1638,7 +1638,7 @@ int GetClearanceBetweenSegments( int x1i, int y1i, int x1f, int y1f, int style1,
 	EllipseKH el2;
 	bool bArcs;
 	int xi, yi, xf, yf;
-	if( style2 == CPolyLine::STRAIGHT )
+	if( style2 == PolyLine::STRAIGHT )
 	{
 		// style1 = arc, style2 = straight
 		MakeEllipseFromArc( x1i, y1i, x1f, y1f, style1, &el1 );
@@ -1648,7 +1648,7 @@ int GetClearanceBetweenSegments( int x1i, int y1i, int x1f, int y1f, int style1,
 		yf = y2f;
 		bArcs = false;
 	}
-	else if( style1 == CPolyLine::STRAIGHT )
+	else if( style1 == PolyLine::STRAIGHT )
 	{
 		// style2 = arc, style1 = straight
 		xi = x1i;

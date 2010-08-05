@@ -1,6 +1,61 @@
 #include "Trace.h"
+#include "PolyLine.h"
+
+static void vertexDFS(QSet<Vertex> &toVisit, QSet<Vertex> &currSet, Vertex *currVtx);
 
 
+QSet<Vertex*> TraceList::getConnectedVertices(Vertex* vtx)
+{
+	foreach(QSet<Vertex*> set, mConnections)
+	{
+		if (set.contains(vtx))
+			return set;
+	}
+	return QSet<Vertex*>();
+}
+
+QSet<Vertex*> TraceList::getVerticesInPoly(PolyLine* poly)
+{
+	PCBLAYER layer = poly->GetLayer();
+	QSet<Vertex*> set;
+	foreach(Vertex* vtx, myVtx)
+	{
+		if (vtx->onLayer(layer))
+			set.insert(vtx);
+	}
+	return set;
+}
+
+
+void TraceList::rebuildConnectionList()
+{
+	QSet<Vertex*> toVisit(myVtx);
+	QSet<Vertex*> currSet;
+	this->mConnections.clear();
+	while(!toVisit.empty())
+	{
+		currSet.clear();
+		Vertex* vtx = *toVisit.begin();
+		toVisit.remove(vtx);
+		vertexDFS(toVisit, currSet, vtx);
+		mConnections.append(currSet);
+	}
+}
+
+void vertexDFS(QSet<Vertex> &toVisit, QSet<Vertex> &currSet, Vertex *currVtx)
+{
+	foreach(Segment* seg, currVtx.segments())
+	{
+		Vertex* vtx = seg->otherVertex(currVtx);
+		if (toVisit.contains(vtx))
+		{
+			toVisit.remove(vtx);
+			currSet.insert(vtx);
+			vertexDFS(toVisit, currSet, vtx);
+		}
+
+	}
+}
 
 Trace::Trace(PartPin* start, PartPin* end)
 {
@@ -349,3 +404,33 @@ Segment::~Segment()
 	myV2->removeSegment(this);
 }
 
+
+bool Vertex::isVia()
+{
+	PCBLAYER layer = 0;
+	foreach(Segment* seg, this->mSegs)
+	{
+		if (layer && seg->layer() != layer)
+			return true; // consecutive segments on different layers
+		layer = seg->layer;
+	}
+	// all segments on the same layer
+	return false;
+}
+
+
+bool Vertex::onLayer(PCBLAYER layer)
+{
+	// vias are present on all layers
+	if (isVia())
+		return true;
+	else
+	{
+		// not a via, all segments must be on same layer
+		Segment* first = *this->mSegs.begin();
+		if (layer == first->layer())
+			return true;
+		else
+			return false;
+	}
+}

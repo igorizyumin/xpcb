@@ -46,7 +46,7 @@ public:
 	int utility;
 };
 
-class CPolyLine : public PCBObject
+class PolyLine : public PCBObject
 {
 public:
 	enum { STRAIGHT, ARC_CW, ARC_CCW };	// side styles
@@ -54,11 +54,11 @@ public:
 	enum { DEF_SIZE = 50, DEF_ADD = 50 };	// number of array elements to add at a time
 
 	// constructors/destructor
-	CPolyLine();
-	~CPolyLine();
+	PolyLine();
+	~PolyLine();
 
 	// functions for modifying polyline
-	void Start( int layer, int w, int sel_box, int x, int y,
+	void Start( int layer, int w, int x, int y,
 		int hatch);
 	void AppendCorner( int x, int y, int style = STRAIGHT );
 	void InsertCorner( int ic, int x, int y );
@@ -68,22 +68,20 @@ public:
 	void RemoveContour( int icont );
 
 	// clipping/combination
-	int TestSelfIntersection();
 	int Clip(bool bRetainArcs=true );
-	int TestIntersection( const CPolyLine &other );
-	int Combine( CPolyLine *other );
+	int TestIntersection( const PolyLine &other );
+	int Combine( PolyLine *other );
 
 	// drawing functions
 	// XXX move this to editor delegate
-	void HighlightSide( int is );
-	void HighlightCorner( int ic );
-	void StartDraggingToInsertCorner( QPainter *painter, int ic, int x, int y, int crosshair = 1 );
-	void StartDraggingToMoveCorner( QPainter *painter, int ic, int x, int y, int crosshair = 1 );
-	void CancelDraggingToInsertCorner( int ic );
-	void CancelDraggingToMoveCorner( int ic );
+//	void HighlightSide( int is );
+//	void HighlightCorner( int ic );
+//	void StartDraggingToInsertCorner( QPainter *painter, int ic, int x, int y, int crosshair = 1 );
+//	void StartDraggingToMoveCorner( QPainter *painter, int ic, int x, int y, int crosshair = 1 );
+//	void CancelDraggingToInsertCorner( int ic );
+//	void CancelDraggingToMoveCorner( int ic );
 	virtual void draw( QPainter *painter, PCBLAYER layer);
 
-	void SetVisible( bool visible = true );
 	void MoveOrigin( int x_off, int y_off );
 	void SetSideVisible( int is, int visible );
 
@@ -91,7 +89,7 @@ public:
 	QRect GetBounds();
 	QRect GetCornerBounds();
 	QRect GetCornerBounds( int icont );
-	void Copy( CPolyLine * src );
+	void Copy( PolyLine * src );
 	bool TestPointInside( int x, int y );
 	bool TestPointInsideContour( int icont, int x, int y );
 	void AppendArc( int xi, int yi, int xf, int yf, int xc, int yc, int num );
@@ -107,10 +105,9 @@ public:
 	int GetContourEnd( int icont );
 	int GetContourSize( int icont );
 	const CPolyPt & GetPt(int ic) {return corner.at(ic);}
-	int GetLayer();
+	PCBLAYER GetLayer();
 	int GetW();
 	int GetSideStyle( int is );
-	int GetSelBoxSize();
 	int GetHatch(){ return m_hatch; }
 	void SetX( int ic, int x );
 	void SetY( int ic, int y );
@@ -118,33 +115,33 @@ public:
 	void SetLayer( int layer );
 	void SetW( int w );
 	void SetSideStyle( int is, int style );
-	void SetSelBoxSize( int sel_box );
 	void SetHatch( int hatch ){ m_hatch = hatch; }
 
 	// XXX TODO this needs to be moved to the CArea class or something
 	int OnModified();
 	// XXX move this to pad class?
-	CPolyLine * MakePolylineForPad( int type, int x, int y, int w, int l, int r, int angle );
+	PolyLine * MakePolylineForPad( int type, int x, int y, int w, int l, int r, int angle );
 
 	void AddContourForPadClearance( int type, int x, int y, int w, 
 						int l, int r, int angle, int fill_clearance,
 						int hole_w, int hole_clearance, bool bThermal=false, int spoke_w=0 );
 
 private:
+	int TestSelfIntersection();
+
 	// GPC functions
 	int MakeGpcPoly( int icontour=0, QList<CArc> * arc_array=NULL );
 	int FreeGpcPoly();
 	gpc_polygon * GetGpcPoly(){ return m_gpc_poly; }
-	int NormalizeWithGpc( QList<CPolyLine*> * pa=NULL, bool bRetainArcs=false );
-	int RestoreArcs( QList<CArc> * arc_array, QList<CPolyLine*> * pa=NULL );
-	void ClipGpcPolygon( gpc_op op, CPolyLine * poly );
+	int NormalizeWithGpc( QList<PolyLine*> * pa=NULL, bool bRetainArcs=false );
+	int RestoreArcs( QList<CArc> * arc_array, QList<PolyLine*> * pa=NULL );
+	void ClipGpcPolygon( gpc_op op, PolyLine * poly );
 
 	/// Draws the hatch lines.
 	void Hatch();
 
 	int m_layer;	// layer to draw on
 	int m_w;		// line width
-	int m_sel_box;	// corner selection box width/2
 	QList <CPolyPt> corner;	// array of points for corners
 	QList <int> side_style;	// array of styles for sides
 	int m_hatch;	// hatch style, see enum above

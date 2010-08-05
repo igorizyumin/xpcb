@@ -33,11 +33,9 @@ public:
 	/// \return object ID
 	int getid() {return objID;}
 
-protected:
+private:
 	bool isSelected;
 	bool isVisible;
-
-private:
 	int objID;
 	static int nextObjID = 0;
 };

@@ -7,7 +7,7 @@
 
 // forward declarations
 class Net;
-class CPartList;
+class PartList;
 class Vertex;
 
 // class part_pin represents a pin on a part
@@ -24,6 +24,9 @@ class PartPin : public PCBObject
 	int getWidth();
 	bool testHit( QPoint pt, PCBLAYER layer );
 	void setVertex(Vertex* vertex);
+	Part* getPart() { return part; }
+	QString getName() {return name; }
+	bool getPadOnLayer(PCBLAYER layer, Pad &pad);
 
 private:
 	QString name;			// pin name (e.g. A23)
