@@ -3,3 +3,8 @@
 PCBDoc::PCBDoc()
 {
 }
+
+bool PCBDoc::loadFile(const QString &file)
+{
+
+}

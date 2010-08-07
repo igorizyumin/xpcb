@@ -21,30 +21,6 @@ enum {
 	CLEAR_NONE
 };
 
-
-
-// partlist_info is used to hold digest of CPartList 
-// for editing in dialogs, or importing from netlist file
-// notes:
-//	package may be "" if no package assigned
-//	shape may be NULL if no footprint assigned
-//	may have package but no footprint, but not the reverse
-typedef struct {
-	Part * part;		// pointer to original part, or NULL if new part added
-	CString ref_des;	// ref designator string
-	int ref_size;		// size of ref text characters
-	int ref_width;		// stroke width of ref text characters
-	CString package;	// package (from original imported netlist, don't edit)
-	CString value;		// value (from original imported netlist, don't edit)
-	bool value_vis;		// visibility of value
-	Footprint * shape;		// pointer to shape (may be edited)
-	bool deleted;		// flag to indicate that part was deleted
-	bool bShapeChanged;	// flag to indicate that the shape has changed
-	bool bOffBoard;		// flag to indicate that position has not been set
-	int x, y;			// position (may be edited)
-	int angle, side;	// angle and side (may be edited)
-} part_info;
-
 typedef CArray<part_info> partlist_info;
 
 // error codes
@@ -128,10 +104,9 @@ public:
 	// check functions
 	int CheckPartlist( CString * logstr );
 	bool CheckForProblemFootprints();
-	void DRC( CDlgLog * log, int copper_layers, 
-		int units, bool check_unrouted,
-		CArray<PolyLine> * board_outline,
-		DesignRules * dr, DRErrorList * DRElist );
+
+	// move to document
+	void DRC();
 
 private:
 	QList<Part> m_parts;	// the actual list of parts
@@ -139,7 +114,6 @@ private:
 	int m_layers;
 	int m_annular_ring;
 	CNetList * m_nlist;
-	SMFontUtil * m_fontutil;	// class for Hershey font
 	QMap<QString,Footprint*> * m_footprint_cache_map;
 
 

@@ -31,7 +31,8 @@ SOURCES += main.cpp\
     PCBObject.cpp \
     Text.cpp \
     Area.cpp \
-    PCBDoc.cpp
+    PCBDoc.cpp \
+    Log.cpp
 
 HEADERS  += MainWindow.h \
     PCBView.h \
@@ -54,7 +55,8 @@ HEADERS  += MainWindow.h \
     PCBObject.h \
     Text.h \
     Area.h \
-    PCBDoc.h
+    PCBDoc.h \
+    Log.h
 
 FORMS    += MainWindow.ui \
     GridToolbarWidget.ui \

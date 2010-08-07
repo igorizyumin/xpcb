@@ -1,0 +1,221 @@
+# RELAX NG schema for xpcb file format
+
+start = XPcbBoard
+
+# basic types
+# boolean value
+Bool = ( "1" | "0" )
+# display units selection for board/footprint editor 
+# (all units are always nm in the XML file)
+Units = (element units { "mm" | "mils" })
+# dimension data type
+Dimension = (xsd:int {minInclusive = "0"})
+# coordinate data type
+Coord = (xsd:int)
+# x,y coordinate pair as attributes
+CoordsAttr = (attribute x { Coord }, attribute y { Coord } )
+# rotation; currently only 90 degree increments
+RotAttr = (attribute rot { "0" | "90" | "180" | "270" } )
+# layer index
+Layer = (xsd:int)
+
+# toplevel element
+XPcbBoard = element xpcbBoard 
+{ 
+	Properties, Footprints, Outline, 
+	Parts, Nets, Traces, Areas, Texts 
+}
+
+# Board properties
+Properties = element props 
+{ 
+		element name { xsd:string },
+		Units
+}
+
+# Footprints section
+Footprints = element footprints
+{
+	Footprint*
+}
+# footprint definition
+Footprint = element footprint
+{
+	element name { xsd:string },
+	Units,
+	element author { xsd:string }?,
+	element source { xsd:string }?,
+	element desc { xsd:string }?,
+	element centroid { CoordsAttr },
+	PolyLine*,
+	Pins,
+	RefText,
+	ValueText
+}
+
+# Pins section
+Pins = element pins 
+{
+	Pin*
+}
+# Pin definition
+Pin = element pin
+{
+	attribute name { xsd:string },
+	CoordsAttr,
+	RotAttr,
+	Padstack
+}
+# padstack definition
+Padstack = element padstack {
+	attribute name { xsd:string }?,
+	attribute id {xsd:unsignedInt},
+	attribute holesize { Dimension},
+	(element startpad { PadDef }? &
+	element innerpad {PadDef} ? &
+	element endpad { PadDef }? &
+	element startmask { PadDef }? &
+	element endmask { PadDef }? &
+	element startpaste {PadDef }? &
+	element endpaste {PadDef }?) 
+}
+# pad definition
+PadDef = (RoundPad | SquarePad | RectPad | ObroundPad | OctagonPad)?
+RoundPad = element roundpad {
+	attribute width {Dimension}
+}
+SquarePad = element squarepad {
+	attribute width {Dimension}
+}
+RectPad = element rectpad {
+	attribute width {Dimension},
+	attribute height {Dimension}
+}
+ObroundPad  = element obroundpad {
+	attribute width {Dimension},
+	attribute height {Dimension}
+}
+OctagonPad = element octagonpad {
+	attribute width {Dimension}
+}
+
+# element reference text location
+RefText = element refText {
+	CoordsAttr,
+	RotAttr,
+	attribute height { Dimension },
+	attribute visible {Bool}?
+}
+# element value text position
+ValueText = element valueText {
+	CoordsAttr,
+	RotAttr,
+	attribute height { Dimension },
+	attribute visible {Bool}?
+}
+
+# Outline section
+Outline = element outline {
+	PolyLine*
+}
+
+# Parts section
+Parts = element parts {
+	Part*
+}
+# part definition
+Part = element part {
+	attribute refdes { xsd:string },
+	attribute value { xsd:string },
+	attribute footprint { xsd:string },
+	CoordsAttr,
+	RotAttr,
+	attribute side {"top" | "bot"},
+	RefText?,
+	ValueText?
+}
+
+# Nets section
+Nets = element nets {
+	Net*
+}
+# Reference to a pin
+PinRef = element pinRef {
+	attribute partref { xsd:string },
+	attribute pinname { xsd:string }
+}
+# Net definition
+Net = element net {
+	attribute name { xsd:string },
+	PinRef+
+}
+
+# Traces section
+Traces = element traces {
+	element viapadstacks {
+		Padstack*
+	},
+	element vertices {
+		Vertex*
+	},
+	element segments {
+		Segment*
+	}
+}
+
+# Vertex defintion
+Vertex = element vertex {
+	attribute id { xsd:unsignedInt },
+	CoordsAttr,
+	attribute forcevia { Bool }?,
+	PSRef?,
+	PinRef?
+
+}
+# Padstack reference
+PSRef = attribute padstack { xsd:unsignedInt }
+
+# Segment definition
+Segment = element segment {
+	attribute start { xsd:unsignedInt },
+	attribute end { xsd:unsignedInt },
+	attribute layer { Layer },
+	attribute width { Dimension }
+}
+
+# polyline definition
+PolyLine = element polyline {
+	attribute layer { Layer },
+	attribute width { Dimension },
+	(PolylineStart, (PolylineLineTo | PolylineArcTo))+
+}
+# polyline start marker
+PolylineStart = element start { CoordsAttr }
+# lineTo marker
+PolylineLineTo = element lineTo { CoordsAttr }
+# arcTo marker
+PolylineArcTo = element arcTo { CoordsAttr }
+
+# areas section
+Areas = element areas {
+	Area*
+}
+# area definition
+Area = element area {
+	attribute net { xsd:string },
+	PolyLine
+}
+
+# Texts section
+Texts = element texts {
+	Text*
+}
+# Text definition
+Text = element \text {
+	attribute layer {Layer},
+	CoordsAttr,
+	RotAttr,
+	attribute height {Dimension},
+	xsd:string
+}
+

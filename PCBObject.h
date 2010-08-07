@@ -37,7 +37,7 @@ private:
 	bool isSelected;
 	bool isVisible;
 	int objID;
-	static int nextObjID = 0;
+	static int nextObjID;
 };
 
 #endif // PCBOBJECT_H

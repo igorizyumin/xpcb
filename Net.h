@@ -21,7 +21,7 @@ public:
 	QString getName() {return name;}
 //	void moveOrigin(QPoint delta);
 	void AddPin( PartPin * pin, bool set_areas=true );
-//	PartPin* TestHitOnPin( QPoint pt, PCBLAYER layer);
+	PartPin* TestHitOnPin( QPoint pt, PCBLAYER layer);
 	QSet<PartPin*> getPins() { return mPins; }
 
 private:

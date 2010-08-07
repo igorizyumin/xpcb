@@ -1,5 +1,7 @@
 #include "PCBObject.h"
 
+int PCBObject::objID = 0;
+
 PCBObject::PCBObject() : isSelected(false), isVisible(true), objID(nextObjID++)
 {
 }

@@ -14,11 +14,14 @@ public:
 	TraceList& traceList() {return mTraceList;}
 	PartList& partList() {return mPartList;}
 
+	bool loadFile(const QString & file);
+	bool saveFile(const QString & file);
 private:
 	TraceList mTraceList;
 	QList<Net*> mNets;
-	PartList mPartList;
-
+	QList<Part*> mParts;
+	QList<Footprint*> mFootprints;
+	PolyLine * mBoardOutline;
 
 };
 
