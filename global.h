@@ -4,14 +4,14 @@
 
 
 // units for length
-enum
+typedef enum
 {
 	NM,		// nanometers
 	MM,		// millimeters
 	MIL,	// mils (1/1000 inch)
 	MM_MIL,	// both mm and mils (for text output)
 	NATIVE	// native units (for text output )
-};
+} UNIT;
 // conversion factors
 #define NM_PER_MIL 25400
 #define NM_PER_MM 1000000

@@ -4,6 +4,7 @@
 #include "Shape.h"
 #include "UndoList.h"
 #include "PCBObject.h"
+#include "smfontutil.h"
 
 // forward declarations
 class Net;
@@ -100,7 +101,7 @@ public:
 	CRect GetValueRect();
 	CPoint GetCentroidPoint();
 	CPoint GetGluePoint( int iglue );
-	PartPin& GetPin(QString pin_name);	// returns reference to pin
+	PartPin& GetPin(const QString & pin_name);	// returns reference to pin
 	PartPin& GetPin(int pin_index);
 #if 0
 	int Draw(  );

@@ -4,32 +4,32 @@
 #include <QString>
 #include <QList>
 #include <QSet>
+#include <QXmlStreamReader>
 #include "global.h"
 #include "Part.h"
 #include "Trace.h"
 
 // Basic types
 
-
+class PCBDoc;
 
 class Net : public PCBObject
 {
 public:
-	Net( QString name, int def_width, int def_via_w, int def_via_hole_w );
+	Net( PCBDoc *doc, const QString &name);
 	~Net();
 
-	QString getName() {return name;}
-//	void moveOrigin(QPoint delta);
+	QString name() {return name;}
 	void AddPin( PartPin * pin, bool set_areas=true );
 	PartPin* TestHitOnPin( QPoint pt, PCBLAYER layer);
 	QSet<PartPin*> getPins() { return mPins; }
 
+	static Net* newFromXML(QXmlStreamReader &reader);
 private:
+	PCBDoc * mDoc;	// PCB document
 	QString mName;		// net name
 	QSet<PartPin*> mPins;	// pointers to part pins that are in this net
-	int mDefW;			// default trace width
-	int mDefViaW;		// default via width
-	int mDefViaHole;	// default via hole width
+	Padstack* mViaPS; // via padstack for this net
 };
 
 #endif // NET_H

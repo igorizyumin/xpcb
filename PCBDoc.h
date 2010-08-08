@@ -3,8 +3,9 @@
 
 #include <QList>
 #include "Trace.h"
-#include "PartList.h"
+#include "Part.h"
 #include "Net.h"
+#include "Text.h"
 
 class PCBDoc
 {
@@ -14,13 +15,26 @@ public:
 	TraceList& traceList() {return mTraceList;}
 	PartList& partList() {return mPartList;}
 
-	bool loadFile(const QString & file);
-	bool saveFile(const QString & file);
+	bool saveToFile(const QString & file);
+	bool loadFromFile(const QString & file, PCBDoc *newdoc);
+
+	Part* getPart(const QString & refdes);
+
 private:
-	TraceList mTraceList;
+
+
+	/// Project name
+	QString mName;
+	/// Default units
+	UNIT mUnits;
+
+	TraceList* mTraceList;
 	QList<Net*> mNets;
 	QList<Part*> mParts;
+	QList<Text*> mTexts;
+	QList<Area*> mAreas;
 	QList<Footprint*> mFootprints;
+	QList<Padstack*> mPadstacks;
 	PolyLine * mBoardOutline;
 
 };

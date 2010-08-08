@@ -18,5 +18,6 @@
         <file>Resources/tango-icons/22x22/actions/edit-select-all.png</file>
         <file>Resources/tango-icons/22x22/actions/edit-undo.png</file>
         <file>Resources/FreePcb.ico</file>
+        <file>xpcbschema.xsd</file>
     </qresource>
 </RCC>

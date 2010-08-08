@@ -1,23 +1,50 @@
 #include "Net.h"
 #include "Part.h"
+#include "PCBDoc.h"
+#include "Log.h"
 
-
-// Add new net to netlist
-//
-Net::Net( QString name, int def_w, int def_via_w, int def_via_hole_w )
+Net::Net( PCBDoc *doc, const QString &name ) :
+		mDoc(doc), mName(name), mViaPS(NULL)
 {
-	// set default trace width
-	this->def_w = def_w;
-	this->def_via_w = def_via_w;
-	this->def_via_hole_w = def_via_hole_w;
+}
 
-	// create id and set name
-	id id( ID_NET, 0 );
-	this->id = id;
-	this->name = name;
+Net* Net::newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
+					 const QHash<int, Padstack*> &padstacks)
+{
+	Q_ASSERT(reader.isStartElement() && reader.name() == "net");
 
-	// visible by default
-	this->visible = true;
+	QXmlStreamAttributes attr = reader.attributes();
+	Net* n = new Net(doc, attr.value("name"));
+	if (attr.hasAttribute("visible"))
+	{
+		bool visible = attr.value("visible").toString() == "1";
+		n->setVisible(visible);
+	}
+	if (attr.hasAttribute("defViaPadstack"))
+	{
+		int ips = attr.value("defViaPadstack").toString().toInt();
+		if (padstacks.contains(ips))
+		{
+			n->mViaPS = padstacks.value(ips);
+		}
+		else
+		{
+			Log::instance().error("Got invalid via padstack reference when creating net");
+		}
+	}
+	// read pins, find them in the document, and insert into net
+	while(reader.readNextStartElement())
+	{
+		Q_ASSERT(reader.isStartElement() && reader.name() == "pinRef");
+		attr = reader.attributes();
+		QString refdes = attr.value("partref");
+		QString pinname = attr.value("pinname");
+		PartPin* pin = doc->getPart(refdes)->GetPin(pinname);
+		Q_ASSERT(pin != NULL);
+		n->mPins.insert(pin);
+	}
+	Q_ASSERT(reader.isEndElement() && reader.name() == "net");
+	return n;
 }
 
 Net::~Net()
