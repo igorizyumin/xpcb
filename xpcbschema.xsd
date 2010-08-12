@@ -1,0 +1,417 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <!-- RELAX NG schema for xpcb file format -->
+  <!--
+    basic types
+    boolean value
+  -->
+  <xs:simpleType name="Bool">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="1"/>
+      <xs:enumeration value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!--
+    display units selection for board/footprint editor 
+    (all units are always nm in the XML file)
+  -->
+  <xs:element name="units">
+    <xs:simpleType>
+      <xs:restriction base="xs:token">
+        <xs:enumeration value="mm"/>
+        <xs:enumeration value="mils"/>
+      </xs:restriction>
+    </xs:simpleType>
+  </xs:element>
+  <!-- dimension data type -->
+  <xs:simpleType name="Dimension">
+    <xs:restriction base="xs:int">
+      <xs:minInclusive value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- object id type -->
+  <xs:simpleType name="ObjID">
+    <xs:restriction base="xs:int">
+      <xs:minInclusive value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- coordinate data type -->
+  <xs:simpleType name="Coord">
+    <xs:restriction base="xs:int"/>
+  </xs:simpleType>
+  <!-- x,y coordinate pair as attributes -->
+  <xs:attributeGroup name="CoordsAttr">
+    <xs:attribute name="x" use="required" type="Coord"/>
+    <xs:attribute name="y" use="required" type="Coord"/>
+  </xs:attributeGroup>
+  <!-- rotation; currently only 90 degree increments -->
+  <xs:attributeGroup name="RotAttr">
+    <xs:attribute name="rot" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:token">
+          <xs:enumeration value="0"/>
+          <xs:enumeration value="90"/>
+          <xs:enumeration value="180"/>
+          <xs:enumeration value="270"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+  </xs:attributeGroup>
+  <!-- layer index -->
+  <xs:simpleType name="Layer">
+    <xs:restriction base="xs:int"/>
+  </xs:simpleType>
+  <!-- toplevel element -->
+  <xs:element name="xpcbBoard">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="props"/>
+        <xs:element ref="padstacks"/>
+        <xs:element ref="footprints"/>
+        <xs:element ref="outline"/>
+        <xs:element ref="parts"/>
+        <xs:element ref="nets"/>
+        <xs:element ref="traces"/>
+        <xs:element ref="areas"/>
+        <xs:element ref="texts"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- Board properties -->
+  <xs:element name="props">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="name"/>
+        <xs:element ref="units"/>
+        <xs:element ref="defaultPadstack"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="name" type="xs:string"/>
+  <xs:element name="defaultPadstack" type="ObjID"/>
+  <!-- Padstacks section -->
+  <xs:element name="padstacks">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="padstack"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- padstack definition -->
+  <xs:element name="padstack">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="startpad"/>
+        <xs:element ref="innerpad"/>
+        <xs:element ref="endpad"/>
+        <xs:element ref="startmask"/>
+        <xs:element ref="endmask"/>
+        <xs:element ref="startpaste"/>
+        <xs:element ref="endpaste"/>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string"/>
+      <xs:attribute name="id" use="required" type="ObjID"/>
+      <xs:attribute name="holesize" use="required" type="Dimension"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="startpad" type="PadDef"/>
+  <xs:element name="innerpad" type="PadDef"/>
+  <xs:element name="endpad" type="PadDef"/>
+  <xs:element name="startmask" type="PadDef"/>
+  <xs:element name="endmask" type="PadDef"/>
+  <xs:element name="startpaste" type="PadDef"/>
+  <xs:element name="endpaste" type="PadDef"/>
+  <!-- Padstack reference -->
+  <xs:attributeGroup name="PSRef">
+    <xs:attribute name="padstack" use="required" type="ObjID"/>
+  </xs:attributeGroup>
+  <!-- Footprints section -->
+  <xs:element name="footprints">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="footprint"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- footprint definition -->
+  <xs:element name="footprint">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="name"/>
+        <xs:element ref="units"/>
+        <xs:element minOccurs="0" ref="author"/>
+        <xs:element minOccurs="0" ref="source"/>
+        <xs:element minOccurs="0" ref="desc"/>
+        <xs:element ref="centroid"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="polyline"/>
+        <xs:element ref="pins"/>
+        <xs:element ref="refText"/>
+        <xs:element ref="valueText"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="author" type="xs:string"/>
+  <xs:element name="source" type="xs:string"/>
+  <xs:element name="desc" type="xs:string"/>
+  <xs:element name="centroid">
+    <xs:complexType>
+      <xs:attributeGroup ref="CoordsAttr"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- Pins section -->
+  <xs:element name="pins">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="pin"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- Pin definition -->
+  <xs:element name="pin">
+    <xs:complexType>
+      <xs:attribute name="name" use="required" type="xs:string"/>
+      <xs:attributeGroup ref="CoordsAttr"/>
+      <xs:attributeGroup ref="RotAttr"/>
+      <xs:attributeGroup ref="PSRef"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- pad definition -->
+  <xs:complexType name="PadDef">
+    <xs:choice minOccurs="0">
+      <xs:element ref="roundpad"/>
+      <xs:element ref="squarepad"/>
+      <xs:element ref="rectpad"/>
+      <xs:element ref="obroundpad"/>
+      <xs:element ref="octagonpad"/>
+    </xs:choice>
+  </xs:complexType>
+  <xs:element name="roundpad">
+    <xs:complexType>
+      <xs:attribute name="width" use="required" type="Dimension"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="squarepad">
+    <xs:complexType>
+      <xs:attribute name="width" use="required" type="Dimension"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="rectpad">
+    <xs:complexType>
+      <xs:attribute name="width" use="required" type="Dimension"/>
+      <xs:attribute name="height" use="required" type="Dimension"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="obroundpad">
+    <xs:complexType>
+      <xs:attribute name="width" use="required" type="Dimension"/>
+      <xs:attribute name="height" use="required" type="Dimension"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="octagonpad">
+    <xs:complexType>
+      <xs:attribute name="width" use="required" type="Dimension"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- element reference text location -->
+  <xs:element name="refText">
+    <xs:complexType>
+      <xs:attributeGroup ref="CoordsAttr"/>
+      <xs:attributeGroup ref="RotAttr"/>
+      <xs:attribute name="height" use="required" type="Dimension"/>
+      <xs:attribute name="visible" type="Bool"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- element value text position -->
+  <xs:element name="valueText">
+    <xs:complexType>
+      <xs:attributeGroup ref="CoordsAttr"/>
+      <xs:attributeGroup ref="RotAttr"/>
+      <xs:attribute name="height" use="required" type="Dimension"/>
+      <xs:attribute name="visible" type="Bool"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- Outline section -->
+  <xs:element name="outline">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="polyline"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- Parts section -->
+  <xs:element name="parts">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="part"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- part definition -->
+  <xs:element name="part">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="refText"/>
+        <xs:element minOccurs="0" ref="valueText"/>
+      </xs:sequence>
+      <xs:attribute name="refdes" use="required" type="xs:string"/>
+      <xs:attribute name="value" type="xs:string"/>
+      <xs:attribute name="footprint" use="required" type="xs:string"/>
+      <xs:attributeGroup ref="CoordsAttr"/>
+      <xs:attributeGroup ref="RotAttr"/>
+      <xs:attribute name="side" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="top"/>
+            <xs:enumeration value="bot"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="locked" type="Bool"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- Nets section -->
+  <xs:element name="nets">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="net"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- Reference to a pin -->
+  <xs:element name="pinRef">
+    <xs:complexType>
+      <xs:attribute name="partref" use="required" type="xs:string"/>
+      <xs:attribute name="pinname" use="required" type="xs:string"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- Net definition -->
+  <xs:element name="net">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="pinRef"/>
+      </xs:sequence>
+      <xs:attribute name="name" use="required" type="xs:string"/>
+      <xs:attribute name="visible" type="Bool"/>
+      <xs:attribute name="defViaPadstack" type="ObjID"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- Traces section -->
+  <xs:element name="traces">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="vertices"/>
+        <xs:element ref="segments"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="vertices">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="vertex"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="segments">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="segment"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- Vertex defintion -->
+  <xs:element name="vertex">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="pinRef"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="ObjID"/>
+      <xs:attributeGroup ref="CoordsAttr"/>
+      <xs:attribute name="forcevia" type="Bool"/>
+      <xs:attribute name="padstack" type="ObjID"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- Segment definition -->
+  <xs:element name="segment">
+    <xs:complexType>
+      <xs:attribute name="start" use="required" type="ObjID"/>
+      <xs:attribute name="end" use="required" type="ObjID"/>
+      <xs:attribute name="layer" use="required" type="Layer"/>
+      <xs:attribute name="width" use="required" type="Dimension"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- polyline definition -->
+  <xs:element name="polyline">
+    <xs:complexType>
+      <xs:sequence maxOccurs="unbounded">
+        <xs:element ref="start"/>
+        <xs:choice maxOccurs="unbounded">
+          <xs:element ref="lineTo"/>
+          <xs:element ref="arcTo"/>
+        </xs:choice>
+        <xs:element minOccurs="0" ref="close"/>
+      </xs:sequence>
+      <xs:attribute name="layer" use="required" type="Layer"/>
+      <xs:attribute name="width" use="required" type="Dimension"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- polyline start marker -->
+  <xs:element name="start">
+    <xs:complexType>
+      <xs:attributeGroup ref="CoordsAttr"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- lineTo marker -->
+  <xs:element name="lineTo">
+    <xs:complexType>
+      <xs:attributeGroup ref="CoordsAttr"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- arcTo marker -->
+  <xs:element name="arcTo">
+    <xs:complexType>
+      <xs:attributeGroup ref="CoordsAttr"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- close contour marker -->
+  <xs:element name="close">
+    <xs:complexType/>
+  </xs:element>
+  <!-- areas section -->
+  <xs:element name="areas">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="area"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- area definition -->
+  <xs:element name="area">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="polyline"/>
+      </xs:sequence>
+      <xs:attribute name="net" use="required" type="xs:string"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- Texts section -->
+  <xs:element name="texts">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="text"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- Text definition -->
+  <xs:element name="text">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:string">
+          <xs:attribute name="layer" use="required" type="Layer"/>
+          <xs:attributeGroup ref="CoordsAttr"/>
+          <xs:attributeGroup ref="RotAttr"/>
+          <xs:attribute name="height" use="required" type="Dimension"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

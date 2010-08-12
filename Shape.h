@@ -35,6 +35,7 @@ class Pad
 public:
 	Pad();
 	bool operator==(const Pad &p) const;
+	bool isNull() { return shape == PAD_NONE; }
 
 	static Pad newFromXML(QXmlStreamReader &reader);
 
@@ -53,6 +54,10 @@ public:
 	bool operator==(Padstack p);
 
 	static Padstack* newFromXML(QXmlStreamReader &reader);
+	int getHole() {return hole_size;}
+	Pad getStartPad() {return start;}
+	Pad getEndPad() {return end;}
+	Pad getInnerPad() {return inner;}
 private:
 	/// Padstack name; optional; only used for library padstacks
 	/// (i.e. VIA_15MIL)
@@ -74,6 +79,8 @@ public:
 	int getAngle() const { return mAngle; }
 	QPoint getPos() const { return mPos; }
 	Padstack* getPadstack() { return mPadstack; }
+	QString getName() { return mName; }
+
 
 	static Pin newFromXML(QXmlStreamReader &reader, QHash<int, Padstack*> &padstacks, Footprint* fp);
 private:
@@ -101,12 +108,16 @@ public:
 
 	int numPins();
 	Pin* getPin( QString name );
+	Pin* getPin(int i) {return mPins[i];}
 
 	QRect getBounds( bool bIncludeLineWidths=true );
 	QRect getCornerBounds();
 	QRect getPadBounds( int i );
 	QRect getPadRowBounds( int i, int num );
 	QRect getAllPadBounds();
+
+	Text getRefText() {return mRefText;}
+	Text getValueText() {return mValueText;}
 
 	int Copy( Footprint * shape );	// copy all data from shape
 	bool Compare( Footprint * shape );	// compare shapes, return true if same

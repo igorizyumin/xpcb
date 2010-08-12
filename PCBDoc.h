@@ -19,6 +19,7 @@ public:
 	bool loadFromFile(const QString & file, PCBDoc *newdoc);
 
 	Part* getPart(const QString & refdes);
+	Footprint* getFootprint(const QString &name);
 
 private:
 

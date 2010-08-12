@@ -9,379 +9,25 @@
 #define pi  3.14159265359
 
 PolyLine::PolyLine()
-	: m_ncorners(0), m_hatch(0)
+	: m_ncorners(0), mHatch(0)
 { 
-	m_gpc_poly = new gpc_polygon;
-	m_gpc_poly->num_contours = 0;
 }
 
 // destructor, removes display elements
 //
 PolyLine::~PolyLine()
 {
-	FreeGpcPoly();
-	delete m_gpc_poly;
 }
 
-// Use the General Polygon Clipping Library to clip contours
-// If this results in new polygons, return them as CArray p
-// If bRetainArcs == true, try to retain arcs in polys
-// Returns number of external contours, or -1 if error
-//
-int PolyLine::NormalizeWithGpc( QList<PolyLine*> * pa, bool bRetainArcs )
-{
-	QList<CArc> arc_array;
-
-	if( bRetainArcs )
-		MakeGpcPoly( -1, &arc_array );
-	else
-		MakeGpcPoly( -1, NULL );
-
-	// now, recreate poly
-	// first, find outside contours and create new CPolyLines if necessary
-	int n_ext_cont = 0;
-	for( int ic=0; ic<m_gpc_poly->num_contours; ic++ )
-	{
-		if( !(m_gpc_poly->hole)[ic] )
-		{
-			if( n_ext_cont == 0 )
-			{
-				// first external contour, replace this poly
-				corner.RemoveAll();
-				side_style.RemoveAll();
-				m_ncorners = 0;
-				for( int i=0; i<m_gpc_poly->contour[ic].num_vertices; i++ )
-				{
-					int x = ((m_gpc_poly->contour)[ic].vertex)[i].x;
-					int y = ((m_gpc_poly->contour)[ic].vertex)[i].y;
-					if( i==0 )
-						Start( m_layer, m_w, x, y, m_hatch, &m_id, m_ptr );
-					else
-						AppendCorner( x, y, STRAIGHT, false );
-				}
-				Close();
-				n_ext_cont++;
-			}
-			else if( pa )
-			{
-				// next external contour, create new poly
-				PolyLine * poly = new PolyLine;
-				pa->SetSize(n_ext_cont);	// put in array
-				(*pa)[n_ext_cont-1] = poly;
-				for( int i=0; i<m_gpc_poly->contour[ic].num_vertices; i++ )
-				{
-					int x = ((m_gpc_poly->contour)[ic].vertex)[i].x;
-					int y = ((m_gpc_poly->contour)[ic].vertex)[i].y;
-					if( i==0 )
-						poly->Start( m_layer, m_w, m_sel_box, x, y, m_hatch, &m_id, m_ptr );
-					else
-						poly->AppendCorner( x, y, STRAIGHT, false );
-				}
-				poly->Close( STRAIGHT, false );
-				n_ext_cont++;
-			}
-		}
-	}
-
-
-	// now add cutouts to the CPolyLine(s)
-	for( int ic=0; ic<m_gpc_poly->num_contours; ic++ ) 
-	{
-		if( (m_gpc_poly->hole)[ic] )
-		{
-			PolyLine * ext_poly = NULL;
-			if( n_ext_cont == 1 )
-			{
-				ext_poly = this;
-			}
-			else
-			{
-				// find the polygon that contains this hole
-				for( int i=0; i<m_gpc_poly->contour[ic].num_vertices; i++ )
-				{
-					int x = ((m_gpc_poly->contour)[ic].vertex)[i].x;
-					int y = ((m_gpc_poly->contour)[ic].vertex)[i].y;
-					if( TestPointInside( x, y ) )
-						ext_poly = this;
-					else
-					{
-						for( int ext_ic=0; ext_ic<n_ext_cont-1; ext_ic++ )
-						{
-							if( (*pa)[ext_ic]->TestPointInside( x, y ) )
-							{
-								ext_poly = (*pa)[ext_ic];
-								break;
-							}
-						}
-					}
-					if( ext_poly )
-						break;
-				}
-			}
-			if( !ext_poly )
-				ASSERT(0);
-			for( int i=0; i<m_gpc_poly->contour[ic].num_vertices; i++ )
-			{
-				int x = ((m_gpc_poly->contour)[ic].vertex)[i].x;
-				int y = ((m_gpc_poly->contour)[ic].vertex)[i].y;
-				ext_poly->AppendCorner( x, y, STRAIGHT, false );
-			}
-			ext_poly->Close( STRAIGHT, false );
-		}
-	}
-	if( bRetainArcs )
-		RestoreArcs( &arc_array, pa );
-	FreeGpcPoly();
-
-	return n_ext_cont;
-}
-
-// make a gpc_polygon for a closed polyline contour
-// approximates arcs with multiple straight-line segments
-// if icontour = -1, make polygon with all contours,
-// combining intersecting contours if possible
-// returns data on arcs in arc_array
-//
-int PolyLine::MakeGpcPoly( int icontour, QList<CArc> * arc_array )
-{
-	if( m_gpc_poly->num_contours )
-		FreeGpcPoly();
-	if( !GetClosed() && (icontour == (GetNumContours()-1) || icontour == -1))
-		return 1;	// error
-
-	// initialize m_gpc_poly
-	m_gpc_poly->num_contours = 0;
-	m_gpc_poly->hole = NULL;
-	m_gpc_poly->contour = NULL;
-	int n_arcs = 0;
-
-	int first_contour = icontour;
-	int last_contour = icontour;
-	if( icontour == -1 )
-	{
-		first_contour = 0;
-		last_contour = GetNumContours() - 1;
-	}
-	if( arc_array )
-		arc_array->clear();
-
-	for( int icont=first_contour; icont<=last_contour; icont++ )
-	{
-		// make gpc_polygon for this contour
-		gpc_polygon * gpc = new gpc_polygon;
-		gpc->num_contours = 0;
-		gpc->hole = NULL;
-		gpc->contour = NULL;
-
-		// first, calculate number of vertices in contour
-		int n_vertices = 0;
-		int ic_st = GetContourStart(icont);
-		int ic_end = GetContourEnd(icont);
-		for( int ic=ic_st; ic<=ic_end; ic++ )
-		{
-			int style = side_style[ic];
-			int x1 = corner[ic].x;
-			int y1 = corner[ic].y;
-			int x2, y2;
-			if( ic < ic_end )
-			{
-				x2 = corner[ic+1].x;
-				y2 = corner[ic+1].y;
-			}
-			else
-			{
-				x2 = corner[ic_st].x;
-				y2 = corner[ic_st].y;
-			}
-			if( style == STRAIGHT )
-				n_vertices++;
-			else
-			{
-				// style is ARC_CW or ARC_CCW
-				int n;	// number of steps for arcs
-				n = (abs(x2-x1)+abs(y2-y1))/(CArc::MAX_STEP);
-				n = max( n, CArc::MIN_STEPS );	// or at most 5 degrees of arc
-				n_vertices += n;
-				n_arcs++;
-			}
-		}
-		// now create gcp_vertex_list for this contour
-		gpc_vertex_list * g_v_list = new gpc_vertex_list;
-		g_v_list->vertex = (gpc_vertex*)calloc( sizeof(gpc_vertex), n_vertices );
-		g_v_list->num_vertices = n_vertices;
-		int ivtx = 0;
-		for( int ic=ic_st; ic<=ic_end; ic++ )
-		{
-			int style = side_style[ic];
-			int x1 = corner[ic].x;
-			int y1 = corner[ic].y;
-			int x2, y2;
-			if( ic < ic_end )
-			{
-				x2 = corner[ic+1].x;
-				y2 = corner[ic+1].y;
-			}
-			else
-			{
-				x2 = corner[ic_st].x;
-				y2 = corner[ic_st].y;
-			}
-			if( style == STRAIGHT )
-			{
-				g_v_list->vertex[ivtx].x = x1;
-				g_v_list->vertex[ivtx].y = y1;
-				ivtx++;
-			}
-			else
-			{
-				// style is arc_cw or arc_ccw
-				int n;	// number of steps for arcs
-				n = (abs(x2-x1)+abs(y2-y1))/(CArc::MAX_STEP);
-				n = max( n, CArc::MIN_STEPS );	// or at most 5 degrees of arc
-				double xo, yo, theta1, theta2, a, b;
-				a = fabs( (double)(x1 - x2) );
-				b = fabs( (double)(y1 - y2) );
-				if( style == PolyLine::ARC_CW )
-				{
-					// clockwise arc (ie.quadrant of ellipse)
-					int i=0, j=0;
-					if( x2 > x1 && y2 > y1 )
-					{
-						// first quadrant, draw second quadrant of ellipse
-						xo = x2;	
-						yo = y1;
-						theta1 = pi;
-						theta2 = pi/2.0;
-					}
-					else if( x2 < x1 && y2 > y1 )
-					{
-						// second quadrant, draw third quadrant of ellipse
-						xo = x1;	
-						yo = y2;
-						theta1 = 3.0*pi/2.0;
-						theta2 = pi;
-					}
-					else if( x2 < x1 && y2 < y1 )	
-					{
-						// third quadrant, draw fourth quadrant of ellipse
-						xo = x2;	
-						yo = y1;
-						theta1 = 2.0*pi;
-						theta2 = 3.0*pi/2.0;
-					}
-					else
-					{
-						xo = x1;	// fourth quadrant, draw first quadrant of ellipse
-						yo = y2;
-						theta1 = pi/2.0;
-						theta2 = 0.0;
-					}
-				}
-				else
-				{
-					// counter-clockwise arc
-					int i=0, j=0;
-					if( x2 > x1 && y2 > y1 )
-					{
-						xo = x1;	// first quadrant, draw fourth quadrant of ellipse
-						yo = y2;
-						theta1 = 3.0*pi/2.0;
-						theta2 = 2.0*pi;
-					}
-					else if( x2 < x1 && y2 > y1 )
-					{
-						xo = x2;	// second quadrant
-						yo = y1;
-						theta1 = 0.0;
-						theta2 = pi/2.0;
-					}
-					else if( x2 < x1 && y2 < y1 )	
-					{
-						xo = x1;	// third quadrant
-						yo = y2;
-						theta1 = pi/2.0;
-						theta2 = pi;
-					}
-					else
-					{
-						xo = x2;	// fourth quadrant
-						yo = y1;
-						theta1 = pi;
-						theta2 = 3.0*pi/2.0;
-					}
-				}
-				// now write steps for arc
-				if( arc_array )
-				{
-					CArc arc;
-					arc.style = style;
-					arc.n_steps = n;
-					arc.xi = x1;
-					arc.yi = y1;
-					arc.xf = x2;
-					arc.yf = y2;
-					arc_array->append(arc);
-				}
-				for( int is=0; is<n; is++ )
-				{
-					double theta = theta1 + ((theta2-theta1)*(double)is)/n;
-					double x = xo + a*cos(theta);
-					double y = yo + b*sin(theta);
-					if( is == 0 )
-					{
-						x = x1;
-						y = y1;
-					}
-					g_v_list->vertex[ivtx].x = x;
-					g_v_list->vertex[ivtx].y = y;
-					ivtx++;
-				}
-			}
-		}
-		if( n_vertices != ivtx )
-			ASSERT(0);
-		// add vertex_list to gpc
-		gpc_add_contour( gpc, g_v_list, 0 );
-		// now clip m_gpc_poly with gpc, put new poly into result
-		gpc_polygon * result = new gpc_polygon;
-		if( icontour == -1 && icont != 0 )
-			gpc_polygon_clip( GPC_DIFF, m_gpc_poly, gpc, result );	// hole
-		else
-			gpc_polygon_clip( GPC_UNION, m_gpc_poly, gpc, result );	// outside
-		// now copy result to m_gpc_poly
-		gpc_free_polygon( m_gpc_poly );
-		delete m_gpc_poly;
-		m_gpc_poly = result;
-		gpc_free_polygon( gpc );
-		delete gpc;
-		free( g_v_list->vertex );
-		free( g_v_list );
-	}
-	return 0;
-}
-
-int PolyLine::FreeGpcPoly()
-{
-	if( m_gpc_poly->num_contours )
-	{
-		delete m_gpc_poly->contour->vertex;
-		delete m_gpc_poly->contour;
-		delete m_gpc_poly->hole;
-	}
-	m_gpc_poly->num_contours = 0;
-	return 0;
-}
 
 
 // Restore arcs to a polygon where they were replaced with steps
 // If pa != NULL, also use polygons in pa array
 //
-int PolyLine::RestoreArcs( QList<CArc> * arc_array, QList<PolyLine*> * pa )
+int PolyLine::RestoreArcs( QList<CArc> * arc_array)
 {
 	// get poly info
 	int n_polys = 1;
-	if( pa )
-		n_polys += pa->length();
 	PolyLine * poly;
 
 	// clear utility flag for all corners
@@ -463,7 +109,7 @@ int PolyLine::RestoreArcs( QList<CArc> * arc_array, QList<PolyLine*> * pa )
 							}
 							if( bFound )
 							{
-								poly->side_style[arc_start] = style;
+								poly->mSides[arc_start] = style;
 								// mark corners for deletion from arc_start+1 to arc_end-1
 								for( int i=arc_start+1; i!=arc_end; )
 								{
@@ -526,11 +172,11 @@ int PolyLine::RestoreArcs( QList<CArc> * arc_array, QList<PolyLine*> * pa )
 void PolyLine::Start( int layer, int w, int sel_box, int x, int y, 
 					  int hatch )
 {
-	m_layer = layer;
-	m_w = w;
-	m_hatch = hatch;
+	mLayer = layer;
+	mWidth = w;
+	mHatch = hatch;
 
-	corner.append(CPolyPt(x,y));
+	mCorners.append(CPolyPt(x,y));
 }
 
 // add a corner to unclosed polyline
@@ -538,13 +184,13 @@ void PolyLine::Start( int layer, int w, int sel_box, int x, int y,
 void PolyLine::AppendCorner( int x, int y, int style)
 {
 	// add entries for new corner and side
-	if( !corner.last().end_contour )
+	if( !mCorners.last().end_contour )
 	{
-		side_style.pop_back();
-		side_style.push_back(style);
+		mSides.pop_back();
+		mSides.push_back(style);
 	}
 
-	corner.append(CPolyPt(x,y));
+	mCorners.append(CPolyPt(x,y));
 
 	ASSERT( style == PolyLine::STRAIGHT ||
 			style == PolyLine::ARC_CW ||
@@ -558,17 +204,17 @@ void PolyLine::Close( int style )
 {
 	ASSERT( !GetClosed() );
 
-	side_style.pop_back();
-	side_style.push_back(style);
-	corner.last().end_contour = true;
+	mSides.pop_back();
+	mSides.push_back(style);
+	mCorners.last().end_contour = true;
 }
 
 // move corner of polyline
 //
 void PolyLine::MoveCorner( int ic, int x, int y )
 {
-	corner[ic].x = x;
-	corner[ic].y = y;
+	mCorners[ic].x = x;
+	mCorners[ic].y = y;
 }
 
 // delete corner and adjust arrays
@@ -583,17 +229,17 @@ void PolyLine::DeleteCorner( int ic )
 	if( !bClosed )
 	{
 		// open contour, must be last contour
-		corner.removeAt( ic );
+		mCorners.removeAt( ic );
 		if( ic != istart )
-			side_style.removeAt( ic-1 );
+			mSides.removeAt( ic-1 );
 	}
 	else
 	{
 		// closed contour
-		corner.removeAt( ic );
-		side_style.removeAt( ic );
+		mCorners.removeAt( ic );
+		mSides.removeAt( ic );
 		if( ic == iend )
-			corner[ic-1].end_contour = true;
+			mCorners[ic-1].end_contour = true;
 	}
 	if( bClosed && GetContourSize(icont) < 3 )
 	{
@@ -616,8 +262,8 @@ void PolyLine::RemoveContour( int icont )
 		// remove closed contour
 		for( int ic=iend; ic>=istart; ic-- )
 		{
-			corner.removeAt( ic );
-			side_style.removeAt( ic );
+			mCorners.removeAt( ic );
+			mSides.removeAt( ic );
 		}
 	}
 }
@@ -626,14 +272,14 @@ void PolyLine::RemoveContour( int icont )
 //
 void PolyLine::InsertCorner( int ic, int x, int y )
 {
-	corner.insert( ic, CPolyPt(x,y) );
-	side_style.insert( ic, STRAIGHT );
+	mCorners.insert( ic, CPolyPt(x,y) );
+	mSides.insert( ic, STRAIGHT );
 	if( ic )
 	{
-		if( corner[ic-1].end_contour )
+		if( mCorners[ic-1].end_contour )
 		{
-			corner[ic].end_contour = true;
-			corner[ic-1].end_contour = false;
+			mCorners[ic].end_contour = true;
+			mCorners[ic-1].end_contour = false;
 		}
 	}
 }
@@ -708,248 +354,12 @@ void PolyLine::Draw(  QPainter * painter )
 #endif
 }
 
-void PolyLine::SetSideVisible( int is, int visible )
-{
-	if( m_dlist && dl_side.GetSize() > is )
-	{
-		m_dlist->Set_visible( dl_side[is], visible );
-	}
-}
-
-// start dragging new corner to be inserted into side, make side and hatching invisible
-//
-void PolyLine::StartDraggingToInsertCorner( QPainter *painter, int ic, int x, int y, int crosshair )
-{
-	if( !m_dlist )
-		ASSERT(0);
-
-	int icont = GetContour( ic );
-	int istart = GetContourStart( icont );
-	int iend = GetContourEnd( icont );
-	int post_c;
-
-	if( ic == iend )
-		post_c = istart;
-	else
-		post_c = ic + 1;
-	int xi = corner[ic].x;
-	int yi = corner[ic].y;
-	int xf = corner[post_c].x;
-	int yf = corner[post_c].y;
-	m_dlist->StartDraggingLineVertex( painter, x, y, xi, yi, xf, yf, 
-		LAY_SELECTION, LAY_SELECTION, 1, 1, DSS_STRAIGHT, DSS_STRAIGHT,
-		0, 0, 0, 0, crosshair );
-	m_dlist->CancelHighLight();
-	m_dlist->Set_visible( dl_side[ic], 0 );
-	for( int ih=0; ih<m_nhatch; ih++ )
-		m_dlist->Set_visible( dl_hatch[ih], 0 );
-}
-
-// cancel dragging inserted corner, make side and hatching visible again
-//
-void PolyLine::CancelDraggingToInsertCorner( int ic )
-{
-	if( !m_dlist )
-		ASSERT(0);
-
-	int post_c;
-	if( ic == (m_ncorners-1) )
-		post_c = 0;
-	else
-		post_c = ic + 1;
-	m_dlist->StopDragging();
-	m_dlist->Set_visible( dl_side[ic], 1 );
-	for( int ih=0; ih<m_nhatch; ih++ )
-		m_dlist->Set_visible( dl_hatch[ih], 1 );
-}
-
-// start dragging corner to new position, make adjacent sides and hatching invisible
-//
-void PolyLine::StartDraggingToMoveCorner( QPainter *painter, int ic, int x, int y, int crosshair )
-{
-	if( !m_dlist )
-		ASSERT(0);
-
-	// see if corner is the first or last corner of an open contour
-	int icont = GetContour( ic );
-	int istart = GetContourStart( icont );
-	int iend = GetContourEnd( icont );
-	if( !GetClosed()
-		&& icont == GetNumContours() - 1
-		&& (ic == istart || ic == iend) )
-	{
-		// yes
-		int style, xi, yi, iside;
-		if( ic == istart )
-		{
-			// first corner
-			iside = ic;
-			xi = GetX( ic+1 );
-			yi = GetY( ic+1 );
-			style = GetSideStyle( iside );
-			// reverse arc since we are drawing from corner 1 to 0
-			if( style == PolyLine::ARC_CW )
-				style = PolyLine::ARC_CCW;
-			else if( style == PolyLine::ARC_CCW )
-				style = PolyLine::ARC_CW;
-		}
-		else
-		{
-			// last corner
-			iside = ic - 1;
-			xi = GetX( ic-1 );
-			yi = GetY( ic-1);
-			style = GetSideStyle( iside );
-		}		
-		m_dlist->StartDraggingArc( painter, style, GetX(ic), GetY(ic), xi, yi, LAY_SELECTION, 1, crosshair );
-		m_dlist->CancelHighLight();
-		m_dlist->Set_visible( dl_side[iside], 0 );
-		for( int ih=0; ih<m_nhatch; ih++ )
-			m_dlist->Set_visible( dl_hatch[ih], 0 );
-	}
-	else
-	{
-		// no
-		// get indexes for preceding and following corners
-		int pre_c, post_c;
-		int poly_side_style1, poly_side_style2;
-		int style1, style2;
-		if( ic == istart )
-		{
-			pre_c = iend;
-			post_c = istart+1;
-			poly_side_style1 = side_style[iend];
-			poly_side_style2 = side_style[istart];
-		}
-		else if( ic == iend )
-		{
-			// last side
-			pre_c = ic-1;
-			post_c = istart;
-			poly_side_style1 = side_style[ic-1];
-			poly_side_style2 = side_style[ic];
-		}
-		else
-		{
-			pre_c = ic-1;
-			post_c = ic+1;
-			poly_side_style1 = side_style[ic-1];
-			poly_side_style2 = side_style[ic];
-		}
-		if( poly_side_style1 == STRAIGHT )
-			style1 = DSS_STRAIGHT;
-		else if( poly_side_style1 == ARC_CW )
-			style1 = DSS_ARC_CW;
-		else if( poly_side_style1 == ARC_CCW )
-			style1 = DSS_ARC_CCW;
-		if( poly_side_style2 == STRAIGHT )
-			style2 = DSS_STRAIGHT;
-		else if( poly_side_style2 == ARC_CW )
-			style2 = DSS_ARC_CW;
-		else if( poly_side_style2 == ARC_CCW )
-			style2 = DSS_ARC_CCW;
-		int xi = corner[pre_c].x;
-		int yi = corner[pre_c].y;
-		int xf = corner[post_c].x;
-		int yf = corner[post_c].y;
-		m_dlist->StartDraggingLineVertex( painter, x, y, xi, yi, xf, yf, 
-			LAY_SELECTION, LAY_SELECTION, 1, 1, style1, style2, 
-			0, 0, 0, 0, crosshair );
-		m_dlist->CancelHighLight();
-		m_dlist->Set_visible( dl_side[pre_c], 0 );
-		m_dlist->Set_visible( dl_side[ic], 0 );
-		for( int ih=0; ih<m_nhatch; ih++ )
-			m_dlist->Set_visible( dl_hatch[ih], 0 );
-	}
-}
-
-// cancel dragging corner to new position, make sides and hatching visible again
-//
-void PolyLine::CancelDraggingToMoveCorner( int ic )
-{
-	if( !m_dlist )
-		ASSERT(0);
-
-	// get indexes for preceding and following sides
-	int pre_c;
-	if( ic == 0 )
-	{
-		pre_c = m_ncorners-1;
-	}
-	else
-	{
-		pre_c = ic-1;
-	}
-	m_dlist->StopDragging();
-	m_dlist->Set_visible( dl_side[pre_c], 1 );
-	m_dlist->Set_visible( dl_side[ic], 1 );
-	for( int ih=0; ih<m_nhatch; ih++ )
-		m_dlist->Set_visible( dl_hatch[ih], 1 );
-}
-
-
-// highlight side by drawing line over it
-//
-void PolyLine::HighlightSide( int is )
-{
-	if( !m_dlist )
-		ASSERT(0);
-	if( GetClosed() && is >= m_ncorners )
-		return;
-	if( !GetClosed() && is >= (m_ncorners-1) )
-		return;
-
-	int style;
-	if( side_style[is] == PolyLine::STRAIGHT )
-		style = DL_LINE;
-	else if( side_style[is] == PolyLine::ARC_CW )
-		style = DL_ARC_CW;
-	else if( side_style[is] == PolyLine::ARC_CCW )
-		style = DL_ARC_CCW;
-	m_dlist->HighLight( style, 
-		m_dlist->Get_x( dl_side_sel[is] ),
-		m_dlist->Get_y( dl_side_sel[is] ),
-		m_dlist->Get_xf( dl_side_sel[is] ),
-		m_dlist->Get_yf( dl_side_sel[is] ),
-		m_dlist->Get_w( dl_side_sel[is]) );
-}
-
-// highlight corner by drawing box around it
-//
-void PolyLine::HighlightCorner( int ic )
-
-{
-	if( !m_dlist )
-		ASSERT(0);
-
-	m_dlist->HighLight( DL_HOLLOW_RECT, 
-		m_dlist->Get_x( dl_corner_sel[ic] ),
-		m_dlist->Get_y( dl_corner_sel[ic] ),
-		m_dlist->Get_xf( dl_corner_sel[ic] ),
-		m_dlist->Get_yf( dl_corner_sel[ic] ),
-		m_dlist->Get_w( dl_corner_sel[ic]) );
-}
-
-void PolyLine::SetVisible( bool visible )
-{	
-	if( m_dlist )
-	{
-		int ns = m_ncorners-1;
-		if( GetClosed() )
-			ns = m_ncorners;
-		for( int is=0; is<ns; is++ )
-			m_dlist->Set_visible( dl_side[is], visible ); 
-		for( int ih=0; ih<m_nhatch; ih++ )
-			m_dlist->Set_visible( dl_hatch[ih], visible ); 
-	}
-}
-
 QRect PolyLine::GetBounds()
 {
 	QRect r = GetCornerBounds();
 	// XXX IGOR XXX
 	// check this
-	r.adjust(-m_w/2, m_w/2, m_w/2, -m_w/2 );
+	r.adjust(-mWidth/2, mWidth/2, mWidth/2, -mWidth/2 );
 	return r;
 }
 
@@ -960,10 +370,10 @@ QRect PolyLine::GetCornerBounds()
 	right = top = INT_MIN;
 	for( int i=0; i<m_ncorners; i++ )
 	{
-		left = min( left, corner.at(i).x );
-		right = max( right, corner.at(i).x );
-		bottom = min( bottom, corner.at(i).y );
-		top = max( top, corner.at(i).y );
+		left = min( left, mCorners.at(i).x );
+		right = max( right, mCorners.at(i).x );
+		bottom = min( bottom, mCorners.at(i).y );
+		top = max( top, mCorners.at(i).y );
 	}
 	return QRect(left, top, right-left, bottom-top);
 }
@@ -977,10 +387,10 @@ QRect PolyLine::GetCornerBounds( int icont )
 	int iend = GetContourEnd( icont );
 	for( int i=istart; i<=iend; i++ )
 	{
-		left = min( left, corner.at(i).x );
-		right = max( right, corner.at(i).x );
-		bottom = min( bottom, corner.at(i).y );
-		top = max( top, corner.at(i).y );
+		left = min( left, mCorners.at(i).x );
+		right = max( right, mCorners.at(i).x );
+		bottom = min( bottom, mCorners.at(i).y );
+		top = max( top, mCorners.at(i).y );
 	}
 	return QRect(left, top, right-left, bottom-top);
 }
@@ -1000,12 +410,12 @@ int PolyLine::GetNumSides()
 
 int PolyLine::GetLayer() 
 {	
-	return m_layer;	
+	return mLayer;
 }
 
 int PolyLine::GetW() 
 {	
-	return m_w;	
+	return mWidth;
 }
 
 int PolyLine::GetNumContours()
@@ -1015,9 +425,9 @@ int PolyLine::GetNumContours()
 		return 0;
 
 	for( int ic=0; ic<corners.size(); ic++ )
-		if( corner.at(ic).end_contour )
+		if( mCorners.at(ic).end_contour )
 			ncont++;
-	if( !corner.last().end_contour )
+	if( !mCorners.last().end_contour )
 		ncont++;
 	return ncont;
 }
@@ -1027,7 +437,7 @@ int PolyLine::GetContour( int ic )
 	int ncont = 0;
 	for( int i=0; i<ic; i++ )
 	{
-		if( corner.at(i).end_contour )
+		if( mCorners.at(i).end_contour )
 			ncont++;
 	}
 	return ncont;
@@ -1039,9 +449,9 @@ int PolyLine::GetContourStart( int icont )
 		return 0;
 
 	int ncont = 0;
-	for( int i=0; i<corner.length(); i++ )
+	for( int i=0; i<mCorners.length(); i++ )
 	{
-		if( corner.at(i).end_contour )
+		if( mCorners.at(i).end_contour )
 		{
 			ncont++;
 			if( ncont == icont )
@@ -1063,7 +473,7 @@ int PolyLine::GetContourEnd( int icont )
 	int ncont = 0;
 	for( int i=0; i<corners.size(); i++ )
 	{
-		if( corner.at(i).end_contour )
+		if( mCorners.at(i).end_contour )
 		{
 			if( ncont == icont )
 				return i;
@@ -1085,27 +495,27 @@ void PolyLine::SetSideStyle( int is, int style )
 	int icont = GetContour( is );
 	int istart = GetContourStart( icont );
 	int iend = GetContourEnd( icont );
-	QPoint p1(corner[is].x, corner[is].y);
+	QPoint p1(mCorners[is].x, mCorners[is].y);
 	QPoint p2;
 	if( is == iend )
 	{
-		p2.setX(corner[istart].x);
-		p2.setY(corner[istart].y);
+		p2.setX(mCorners[istart].x);
+		p2.setY(mCorners[istart].y);
 	}
 	else
 	{
-		p2.setX(corner[is+1].x);
-		p2.setY(corner[is+1].y);
+		p2.setX(mCorners[is+1].x);
+		p2.setY(mCorners[is+1].y);
 	}
 	if( p1.x() == p2.x() || p1.y() == p2.y() )
-		side_style[is] = STRAIGHT;
+		mSides[is] = STRAIGHT;
 	else
-		side_style[is] = style;	
+		mSides[is] = style;
 }
 
 int PolyLine::GetSideStyle( int is ) 
 {	
-	return side_style[is];	
+	return mSides[is];
 }
 
 bool PolyLine::GetClosed()
@@ -1113,7 +523,7 @@ bool PolyLine::GetClosed()
 	if( m_ncorners == 0 )
 		return false;
 	else
-		return corner.at(m_ncorners-1).end_contour;
+		return mCorners.at(m_ncorners-1).end_contour;
 }
 
 // draw hatch lines
@@ -1343,15 +753,15 @@ bool PolyLine::TestPointInside( int x, int y )
 				int ok;
 				if( ic == istart )
 					ok = FindLineSegmentIntersection( a, slope, 
-					corner[iend].x, corner[iend].y,
-					corner[ic].x, corner[ic].y, 
-					side_style[iend],
+					mCorners[iend].x, mCorners[iend].y,
+					mCorners[ic].x, mCorners[ic].y,
+					mSides[iend],
 					&x, &y, &x2, &y2 );
 				else
 					ok = FindLineSegmentIntersection( a, slope, 
-					corner[ic-1].x, corner[ic-1].y, 
-					corner[ic].x, corner[ic].y,
-					side_style[ic-1],
+					mCorners[ic-1].x, mCorners[ic-1].y,
+					mCorners[ic].x, mCorners[ic].y,
+					mSides[ic-1],
 					&x, &y, &x2, &y2 );
 				if( ok )
 				{
@@ -1420,15 +830,15 @@ bool PolyLine::TestPointInsideContour( int icont, int x, int y )
 			int ok;
 			if( ic == istart )
 				ok = FindLineSegmentIntersection( a, slope, 
-				corner[iend].x, corner[iend].y,
-				corner[istart].x, corner[istart].y, 
-				side_style[m_ncorners-1],
+				mCorners[iend].x, mCorners[iend].y,
+				mCorners[istart].x, mCorners[istart].y,
+				mSides[m_ncorners-1],
 				&x, &y, &x2, &y2 );
 			else
 				ok = FindLineSegmentIntersection( a, slope, 
-				corner[ic-1].x, corner[ic-1].y, 
-				corner[ic].x, corner[ic].y,
-				side_style[ic-1],
+				mCorners[ic-1].x, mCorners[ic-1].y,
+				mCorners[ic].x, mCorners[ic].y,
+				mSides[ic-1],
 				&x, &y, &x2, &y2 );
 			if( ok )
 			{
@@ -1479,11 +889,11 @@ void PolyLine::MoveOrigin( int x_off, int y_off )
 //   the calling function should Undraw() before calling them,
 //   and Draw() after
 //
-void PolyLine::SetX( int ic, int x ) { corner[ic].x = x; }
-void PolyLine::SetY( int ic, int y ) { corner[ic].y = y; }
-void PolyLine::SetEndContour( int ic, bool end_contour ) { corner[ic].end_contour = end_contour; }
-void PolyLine::SetLayer( int layer ) { m_layer = layer; }
-void PolyLine::SetW( int w ) { m_w = w; }
+void PolyLine::SetX( int ic, int x ) { mCorners[ic].x = x; }
+void PolyLine::SetY( int ic, int y ) { mCorners[ic].y = y; }
+void PolyLine::SetEndContour( int ic, bool end_contour ) { mCorners[ic].end_contour = end_contour; }
+void PolyLine::SetLayer( int layer ) { mLayer = layer; }
+void PolyLine::SetW( int w ) { mWidth = w; }
 
 // Create CPolyLine for a pad
 //
@@ -1653,22 +1063,8 @@ void PolyLine::AppendArc( int xi, int yi, int xf, int yf, int xc, int yc, int nu
 	Close( STRAIGHT );
 }
 
-
-void PolyLine::ClipGpcPolygon( gpc_op op, PolyLine * clip_poly )
-{
-	gpc_polygon * result = new gpc_polygon;
-	gpc_polygon_clip( op, m_gpc_poly, clip_poly->GetGpcPoly(), result );
-	gpc_free_polygon( m_gpc_poly );
-	delete m_gpc_poly;
-	m_gpc_poly = result;
-}
-
-
-
-
-
 // Functions migrated from netlist
-
+#if 0
 /// Test an area for self-intersection.
 /// \returns
 ///	-1 if arcs intersect other sides
@@ -1751,7 +1147,9 @@ int PolyLine::TestSelfIntersection()
 	else
 		return 0;
 }
+#endif
 
+#if 0
 /// Process an area that has been modified, by clipping its polygon against itself.
 /// This may change the number and order of copper areas in the net [NOT ANYMORE].
 /// \returns
@@ -1810,7 +1208,7 @@ int PolyLine::Clip(bool bRetainArcs )
 		// XXX IGOR removed support for adding more polygons;
 		// now it just keeps the first one if the area intersects
 //		CArray<CPolyLine*> * pa = new CArray<CPolyLine*>;
-		int n_poly = NormalizeWithGpc( NULL, bRetainArcs );
+		int n_poly = NormalizeWithGpc( bRetainArcs );
 //		if( n_poly > 1 )
 //		{
 //			for( int ip=1; ip<n_poly; ip++ )
@@ -1835,8 +1233,9 @@ int PolyLine::Clip(bool bRetainArcs )
 	}
 	return test;
 }
+#endif
 
-
+#if 0
 // XXX TODO this needs to be moved to the CArea class or something
 /// Process an area that has been modified, by clipping its polygon against
 /// itself and the polygons for any other areas on the same net.
@@ -1862,7 +1261,9 @@ int PolyLine::OnModified()
 	SetAreaConnections( net );
 	return test;
 }
+#endif
 
+#if 0
 // XXX TODO move this to area class
 
 // Checks all copper areas in net for intersections, combining them if found
@@ -1938,6 +1339,7 @@ int CNetList::CombineAllAreasInNet( cnet * net, bool bMessageBox, bool bUseUtili
 	}
 	return 0;
 }
+#endif
 
 
 /// Test for intersection of 2 copper areas
@@ -2018,6 +1420,7 @@ int PolyLine::TestIntersection( const PolyLine &other )
 	return 1;
 }
 
+#if 0
 /// Combines this polygon with the supplied one, if possible.
 /// returns: 0 if no intersection
 ///			1 if intersection
@@ -2061,8 +1464,8 @@ int PolyLine::Combine( const PolyLine &other )
 		if( !(union_gpc->hole)[ic] )
 		{
 			// external contour, replace this poly
-			corner.clear();
-			side_style.clear();
+			mCorners.clear();
+			mSides.clear();
 
 			for( int i=0; i<union_gpc->contour[ic].num_vertices; i++ )
 			{
@@ -2070,7 +1473,7 @@ int PolyLine::Combine( const PolyLine &other )
 				int y = ((union_gpc->contour)[ic].vertex)[i].y;
 				if( i==0 )
 				{
-					corner.append(CPolyPt(x, y));
+					mCorners.append(CPolyPt(x, y));
 				}
 				else
 					AppendCorner( x, y, PolyLine::STRAIGHT );
@@ -2100,6 +1503,7 @@ int PolyLine::Combine( const PolyLine &other )
 	delete union_gpc;
 	return 1;
 }
+#endif
 
 
 

@@ -19,10 +19,7 @@
 #include "PCBObject.h"
 #include <QList>
 #include <QPainter>
-
-
-class gpc_polygon;
-class gpc_op;
+#include "gpc.h"
 
 
 class CArc {
@@ -104,18 +101,18 @@ public:
 	int GetContourStart( int icont );
 	int GetContourEnd( int icont );
 	int GetContourSize( int icont );
-	const CPolyPt & GetPt(int ic) {return corner.at(ic);}
+	const CPolyPt & GetPt(int ic) {return mCorners.at(ic);}
 	PCBLAYER GetLayer();
 	int GetW();
 	int GetSideStyle( int is );
-	int GetHatch(){ return m_hatch; }
+	int GetHatch(){ return mHatch; }
 	void SetX( int ic, int x );
 	void SetY( int ic, int y );
 	void SetEndContour( int ic, bool end_contour );
 	void SetLayer( int layer );
 	void SetW( int w );
 	void SetSideStyle( int is, int style );
-	void SetHatch( int hatch ){ m_hatch = hatch; }
+	void SetHatch( int hatch ){ mHatch = hatch; }
 
 	// XXX TODO this needs to be moved to the CArea class or something
 	int OnModified();
@@ -132,19 +129,19 @@ private:
 	// GPC functions
 	int MakeGpcPoly( int icontour=0, QList<CArc> * arc_array=NULL );
 	int FreeGpcPoly();
-	gpc_polygon * GetGpcPoly(){ return m_gpc_poly; }
-	int NormalizeWithGpc( QList<PolyLine*> * pa=NULL, bool bRetainArcs=false );
+	gpc_polygon * GetGpcPoly(){ return mGpcPoly; }
+	int NormalizeWithGpc( bool bRetainArcs=false );
 	int RestoreArcs( QList<CArc> * arc_array, QList<PolyLine*> * pa=NULL );
 	void ClipGpcPolygon( gpc_op op, PolyLine * poly );
 
 	/// Draws the hatch lines.
 	void Hatch();
 
-	int m_layer;	// layer to draw on
-	int m_w;		// line width
-	QList <CPolyPt> corner;	// array of points for corners
-	QList <int> side_style;	// array of styles for sides
-	int m_hatch;	// hatch style, see enum above
-	int m_nhatch;	// number of hatch lines
-	gpc_polygon * m_gpc_poly;	// polygon in gpc format
+	int mLayer;	// layer to draw on
+	int mWidth;		// line width
+	QList <CPolyPt> mCorners;	// array of points for corners
+	QList <int> mSides;	// array of styles for sides
+	int mHatch;	// hatch style, see enum above
+	int mNumHatch;	// number of hatch lines
+	gpc_polygon * mGpcPoly;	// polygon in gpc format
 };

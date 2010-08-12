@@ -15,7 +15,6 @@ SOURCES += main.cpp\
     PCBView.cpp \
     GridToolbarWidget.cpp \
     AboutDialog.cpp \
-    Netlist.cpp \
     PolyLine.cpp \
     gpc.cpp \
     utility.cpp \
@@ -32,14 +31,12 @@ SOURCES += main.cpp\
     Text.cpp \
     Area.cpp \
     PCBDoc.cpp \
-    Log.cpp \
-    PCBDocFactory.cpp
+    Log.cpp
 
 HEADERS  += MainWindow.h \
     PCBView.h \
     GridToolbarWidget.h \
     AboutDialog.h \
-    Netlist.h \
     PolyLine.h \
     gpc.h \
     global.h \
@@ -57,8 +54,7 @@ HEADERS  += MainWindow.h \
     Text.h \
     Area.h \
     PCBDoc.h \
-    Log.h \
-    PCBDocFactory.h
+    Log.h
 
 FORMS    += MainWindow.ui \
     GridToolbarWidget.ui \

@@ -27,44 +27,6 @@ typedef struct EllipseTag
 
 const QPoint zero(0,0);
 
-class my_circle {
-public:
-	my_circle(){}
-	my_circle( int xx, int yy, int rr )
-	{
-		x = xx;
-		y = yy;
-		r = rr;
-	};
-	int x, y, r; 
-};
-
-class my_rect {
-public:
-	my_rect(){}
-	my_rect( int xi, int yi, int xf, int yf )
-	{
-		xlo = min(xi,xf);
-		xhi = max(xi,xf);
-		ylo = min(yi,yf);
-		yhi = max(yi,yf);
-	};
-	int xlo, ylo, xhi, yhi; 
-};
-
-class my_seg { 
-public:
-	my_seg(){}
-	my_seg( int xxi, int yyi, int xxf, int yyf )
-	{
-		xi = xxi;
-		yi = yyi;
-		xf = xxf;
-		yf = yyf;
-	};
-	int xi, yi, xf, yf; 
-};
-
 
 // map part angle to reported part angle
 int GetReportedAngleForPart( int part_angle, int cent_angle, int side );
@@ -82,8 +44,6 @@ bool CheckLegalPinName( QString * pinstr,
 					   QString * nstr=NULL,
 					   int * n=NULL );
 int ParseRef( QString & ref, QString & prefix );
-void SetGuidFromString( CString * str, GUID * guid  );
-void GetStringFromGuid( GUID * guid, CString * str );
 
 // math stuff for graphics
 int ccw( int angle );
@@ -107,8 +67,6 @@ bool FindVerticalLineEllipseIntersections( double a, double b, double x, double 
 bool TestForIntersectionOfStraightLineSegments( int x1i, int y1i, int x1f, int y1f,
 									   int x2i, int y2i, int x2f, int y2f,
 									   int * x=NULL, int * y=NULL, double * dist=NULL );
-void GetPadElements( int type, int x, int y, int wid, int len, int radius, int angle,
-					int * nr, my_rect r[], int * nc, my_circle c[], int * ns, my_seg s[] );
 int GetClearanceBetweenPads( int type1, int x1, int y1, int w1, int l1, int r1, int angle1,
 							 int type2, int x2, int y2, int w2, int l2, int r2, int angle2 );
 int GetClearanceBetweenSegmentAndPad( int x1, int y1, int x2, int y2, int w,
