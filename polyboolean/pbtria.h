@@ -96,9 +96,9 @@ public:
 	}
 	~TRIAGLOBS()
 	{
-		free(m_rndv);
-		free(m_mon);
-		free((void *)m_rc);
+		delete (m_rndv);
+		delete (m_mon);
+		delete (m_rc);
 	}
 
 	// !!! should be called only once
@@ -120,7 +120,7 @@ protected:
 	MCHAIN   **	m_mon;				// array of monotone chains
 	UINT32		m_mon_idx, m_choose_idx;
 
-    const VNODE2 **	m_rc;			// reflex chain for monotone triangulation
+	const VNODE2 **	m_rc;			// reflex chain for monotone triangulation
 
 	UINT32		m_tria_idx;			// index of currently processed triangle
 

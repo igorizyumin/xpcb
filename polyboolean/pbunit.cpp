@@ -14,37 +14,33 @@ int main()
 	{5, 2}, {5, -4}, {0, -4}, {0, 0}, {-5, 0} }; 
 	PAREA * A = NULL; 
 	PAREA * B = NULL; 
-	int     i; 
-	PLINE2 * pline = NULL; 
 
-	// construct 1st polygon 
-	for (i = 0; i < 4; i++) 
-
-	PLINE2::Incl(&pline, a1[i]);
+	// construct 1st polygon
+	PLINE2 * pline = new PLINE2(a1, 4);
 	pline->Prepare(); 
 	if (not pline->IsOuter()) // make sure the contour is outer 
-	pline->Invert();
-	PAREA::InclPline(&A, pline); 
-	pline = NULL; 
-	for (i = 0; i < 4; i++) 
+		pline->Invert();
 
-	PLINE2::Incl(&pline, a2[i]);
+	PAREA::AddPlineToList(&A, pline);
+
+	pline = new PLINE2(a2, 4);
 	pline->Prepare(); 
 	if (pline->IsOuter()) // make sure the contour is a hole 
-	pline->Invert();
-	PAREA::InclPline(&A, pline); 
-	// construct 2nd polygon 
-	pline = NULL; 
-	for (i = 0; i < 11; i++) 
+		pline->Invert();
 
-	PLINE2::Incl(&pline, b[i]);
+	PAREA::AddPlineToList(&A, pline);
+
+	// construct 2nd polygon
+	pline = new PLINE2(b, 11);
 	pline->Prepare(); 
 	if (not pline->IsOuter()) // make sure the contour is outer 
-	pline->Invert();
-	PAREA::InclPline(&B, pline); 
+		pline->Invert();
+
+	PAREA::AddPlineToList(&B, pline);
+
 	// do Boolean operation XOR
 	PAREA * R = NULL; 
-	int err = PAREA::Boolean(A, B, &R, PAREA::XR);
+	int err = PAREA::Boolean(A, B, &R, PAREA::XOR);
 
 	// triangulate R 
 	err = PAREA::Triangulate(R);

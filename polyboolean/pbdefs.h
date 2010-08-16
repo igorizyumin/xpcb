@@ -8,26 +8,18 @@
 #ifndef _PBDEFS_H_
 #define _PBDEFS_H_
 
+#include <qglobal.h>
+
 namespace POLYBOOLEAN
 {
 
 ////////////// Begin of the platform specific section //////////////////
 
-#ifdef _MSC_VER
-
-typedef __int32				INT32;
-typedef __int64				INT64;
-typedef unsigned __int32	UINT32;
-
-#else
-
 // insert platform specific sized integer types here
 
-typedef int					INT32;
-typedef long long			INT64;
-typedef unsigned int		UINT32;
-
-#endif // _MSC_VER
+typedef qint32				INT32;
+typedef qint64				INT64;
+typedef quint32				UINT32;
 
 ////////////// End of the platform specific section //////////////////
 
@@ -35,7 +27,7 @@ typedef unsigned int		UINT32;
 // instead of the default struct VECT2 definition
 struct VECT2
 {
-	double	x, y;
+		double  x, y;
 };
 
 } // namespace POLYBOOLEAN
@@ -45,7 +37,7 @@ struct VECT2
 #define INT20_MIN			-524288
 
 // error codes thrown by the library 
-enum {
+enum PBERRCODE {
 	err_ok = 0,		// never thrown
 	err_no_memory,	// not enough memory
 	err_io,			// file I/O error

@@ -21,6 +21,9 @@ struct GRID2
 	static const GRID2	PosInfinity;
 	static const GRID2	NegInfinity;
 
+	GRID2() : x(0), y(0) {}
+	GRID2(int x_, int y_) : x(x_), y(y_) {}
+
 	// returns if t lies inside [a, b)
 	static inline bool	AngleInside(const GRID2 & t, const GRID2 & a, const GRID2 & b);
 
@@ -35,9 +38,11 @@ struct GRID2
 	static inline const GRID2 *ymax(const GRID2 * v0, const GRID2 * v1);
 };
 
+
+
 inline GRID2 operator-(const GRID2 & v0)
 {
-	GRID2 v = {-v0.x, -v0.y};
+	GRID2 v(-v0.x, -v0.y);
 	return v;
 }
 
@@ -71,31 +76,31 @@ inline GRID2 & operator/=(GRID2 & v0, INT32 d)
 
 inline GRID2 operator+(const GRID2 & a, const GRID2 & b)
 {
-	GRID2 v = {a.x + b.x, a.y + b.y};
+	GRID2 v(a.x + b.x, a.y + b.y);
 	return v;
 }
 
 inline GRID2 operator-(const GRID2 & a, const GRID2 & b)
 {
-	GRID2 v = {a.x - b.x, a.y - b.y};
+	GRID2 v(a.x - b.x, a.y - b.y);
 	return v;
 }
 
 inline GRID2 operator*(const GRID2 & a, INT32 b)
 {
-	GRID2 v = {a.x * b, a.y * b};
+	GRID2 v(a.x * b, a.y * b);
 	return v;
 }
 
 inline GRID2 operator*(INT32 b, const GRID2 & a)
 {
-	GRID2 v = {a.x * b, a.y * b};
+	GRID2 v (a.x * b, a.y * b);
 	return v;
 }
 
 inline GRID2 operator/(const GRID2 & a, INT32 b)
 {
-	GRID2 v = {a.x / b, a.y / b};
+	GRID2 v (a.x / b, a.y / b);
 	return v;
 }
 

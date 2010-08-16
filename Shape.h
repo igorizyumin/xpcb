@@ -149,7 +149,7 @@ private:
 	/// Footprint pins
 	QList<Pin> mPins;
 	/// Silkscreen lines (used for part outline)
-	QList<PolyLine*> mOutline;
+	QList<Polygon*> mOutline;
 	/// Silkscreen text
 	QList<Text*> mTexts;
 };

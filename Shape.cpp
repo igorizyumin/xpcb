@@ -194,7 +194,7 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader, QHash<int, Padstack*>
 				fp->mCustomCentroid = (attr.value("custom") == "1");
 			break;
 		case "polyline":
-			PolyLine *p = PolyLine::newFromXML(reader);
+			Polygon *p = Polygon::newFromXML(reader);
 			fp->mOutline.append(p);
 			break;
 		case "pins":

@@ -31,7 +31,9 @@ SOURCES += main.cpp\
     Text.cpp \
     Area.cpp \
     PCBDoc.cpp \
-    Log.cpp
+    Log.cpp \
+    PolygonList.cpp \
+    Polygon.cpp
 
 HEADERS  += MainWindow.h \
     PCBView.h \
@@ -54,7 +56,9 @@ HEADERS  += MainWindow.h \
     Text.h \
     Area.h \
     PCBDoc.h \
-    Log.h
+    Log.h \
+    PolygonList.h \
+    Polygon.h
 
 FORMS    += MainWindow.ui \
     GridToolbarWidget.ui \

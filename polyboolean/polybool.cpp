@@ -5,9 +5,11 @@
 //	Consult your license regarding permissions and restrictions
 //
 
-#include "pbarea.h"
+#include "pbsweep.h"
 #include "ObjHeap.h"
 #include "Sort.h"
+#include "PArea.h"
+#include "PLine.h"
 
 namespace POLYBOOLEAN
 {
@@ -95,7 +97,7 @@ struct VLINK
 	} // Compare
 }; // struct VLINK
 
-typedef ObjStorageClass<VLINK, 16, err_no_memory>	LNK_HEAP;
+typedef ObjStorageClass<VLINK, 16>	LNK_HEAP;
 
 struct POLYBOOL
 {
@@ -387,7 +389,7 @@ void LabelIsected(PLINE2 * pline, PAREA * other)
 		if (nPrev != E_UNKNOWN and nPrev != E_SHARED3)
 			SetVnodeLabel(vn, nPrev);
 		else
-            SetVnodeLabel(vn, GridInParea(&vn->g, other) ? E_INSIDE : E_OUTSIDE);
+			SetVnodeLabel(vn, other->GridInside(vn->g) ? E_INSIDE : E_OUTSIDE);
     } while ((vn = vn->next) != pline->head);
 } // LabelIsected
 
@@ -398,7 +400,7 @@ void LabelPline(PLINE2 * pline, PAREA * other)
         LabelIsected(pline, other);
     else
         pline->Flags = SETBITS(pline, P_MASK,
-			PlineInParea(pline, other) ? P_INSIDE : P_OUTSIDE);
+			other->PlineInside(*pline) ? P_INSIDE : P_OUTSIDE);
 } // LabelPline
 
 local
@@ -557,8 +559,8 @@ VNODE2 * Jump(VNODE2 * cur, DIRECTION * cdir, EDGERULE eRule)
 		{
 			if (start->dx == n->dx and start->dy == n->dy)
 				continue;
-			if (n->IsIn() and eRule(n->vn->prev, cdir) or
-			   !n->IsIn() and eRule(n->vn, cdir))
+			if ((n->IsIn() and eRule(n->vn->prev, cdir)) or
+			   (!n->IsIn() and eRule(n->vn, cdir)))
 				return n->vn;
 		}
 	return cur;
@@ -572,7 +574,10 @@ void CollectVnode(VNODE2 * start, PLINE2 ** result, EDGERULE edgeRule, DIRECTION
     DIRECTION   dir  = initdir;
 
     do {
-        PLINE2::Incl(result, V->g);
+		if (!(*result))
+			(*result) = new PLINE2(V->g);
+		else
+			(*result)->AddVertex(V->g);
 
         SetMarked(E);
 
@@ -609,7 +614,7 @@ void CollectPline(PLINE2 * pline, PAREA ** r, PLINE2 ** holes, PAREA::PBOPCODE n
 				PLINE2 *p = NULL;
 				CollectVnode((dir == FORW) ? vn : vn->next, &p, edgeRule[nOpCode], dir);
 				if (p->Prepare())
-					PLINE2::Put(p, r, holes);
+					p->Put(r, holes);
 				else
 					PLINE2::Del(&p);
 			}
@@ -634,7 +639,7 @@ void CollectPline(PLINE2 * pline, PAREA ** r, PLINE2 ** holes, PAREA::PBOPCODE n
 			{
 				if (dir == BACKW)
 					copy->Invert();
-				PLINE2::Put(copy, r, holes);
+				copy->Put(r, holes);
 			}
 		}
     }
@@ -663,9 +668,9 @@ void DoBoolean(PAREA * a, PAREA * b, PAREA ** r, PAREA::PBOPCODE nOpCode)
 
 	try
 	{
-		PAREA::InsertHoles(r, &holes);
+		PAREA::AddPlinesToList(r, &holes);
 	}
-	catch (int)
+	catch (...)
 	{
 		PLINE2::Del(&holes);
 		PAREA::Del(r);
@@ -788,7 +793,7 @@ void RecalcCount(PAREA * area)
 	} while ((pa = pa->f) != area);
 } // RecalcCount
 
-int PAREA::Boolean0(PAREA * a, PAREA * b, PAREA ** r, PBOPCODE nOpCode)
+PBERRCODE PAREA::Boolean0(PAREA * a, PAREA * b, PAREA ** r, PBOPCODE nOpCode)
 {
 	*r = NULL;
 
@@ -796,7 +801,7 @@ int PAREA::Boolean0(PAREA * a, PAREA * b, PAREA ** r, PBOPCODE nOpCode)
 	assert(b->CheckDomain());
 
 	SEGM2 * aSegms = NULL;
-	int err = 0;
+	PBERRCODE err = err_ok;
 	try
 	{
 		InitArea(a, true);
@@ -805,9 +810,7 @@ int PAREA::Boolean0(PAREA * a, PAREA * b, PAREA ** r, PBOPCODE nOpCode)
 		POLYBOOL pb;
 		{
 			UINT32	nSegms = VertCnt(a) + VertCnt(b);
-			aSegms = (SEGM2 *)calloc(nSegms, sizeof(SEGM2));
-			if (aSegms == NULL)
-				error(err_no_memory);
+			aSegms = new SEGM2[nSegms];
 			SEGM2 * pSegm = aSegms;
 
 			Area2Segms(a, &pSegm);
@@ -822,72 +825,63 @@ int PAREA::Boolean0(PAREA * a, PAREA * b, PAREA ** r, PBOPCODE nOpCode)
 		RecalcCount(a);
 		RecalcCount(b);
 	}
-	catch (int e)
+	catch (PBERRCODE e)
 	{
 		err = e;
 	}
-	catch (const STD::bad_alloc &)
+	catch (const std::bad_alloc &)
 	{
 		err = err_no_memory;
 	}
-	free(aSegms);
+	delete aSegms;
 	return err;
 } // PAREA::Boolean0
 
-int PAREA::Boolean(const PAREA * _a, const PAREA * _b, PAREA ** r, PBOPCODE nOpCode)
+PBERRCODE PAREA::Boolean(const PAREA * _a, const PAREA * _b, PAREA ** r, PBOPCODE nOpCode)
 {
 	*r = NULL;
 
-	if (_a == NULL and _b == NULL)
-		return 0;
-
-	if		(_b == NULL)
-	{
-		int err = 0;
-		if (_a != NULL and (nOpCode == SB or nOpCode == XR or nOpCode == UN))
-		{
-			try
-			{
-				*r = _a->Copy();
-			}
-			catch (int e)
-			{
-				err = e;
-			}
-		}
-		return err;
-	}
-	else if (_a == NULL)
-	{
-		int err = 0;
-		if (nOpCode == XR or nOpCode == UN)
-		{
-			try
-			{
-				*r = _b->Copy();
-			}
-			catch (int e)
-			{
-				err = e;
-			}
-		}
-		return err;
-	}
+	if (_a == NULL && _b == NULL)
+		return err_ok;
 
 	PAREA * a = NULL, * b = NULL;
-	if (_a != NULL and (a = _a->Copy()) == NULL)
-		return err_no_memory;
-	if (_b != NULL and (b = _b->Copy()) == NULL)
+	try
+	{
+		if (_b == NULL)
+		{
+			if (nOpCode != AND)
+				*r = _a->Copy();
+			return err_ok;
+		}
+		else if (_a == NULL)
+		{
+			if (nOpCode == XOR or nOpCode == OR)
+				*r = _b->Copy();
+			return err_ok;
+		}
+
+		a = _a->Copy();
+		b = _b->Copy();
+
+		PBERRCODE err = Boolean0(a, b, r, nOpCode);
+
+		PAREA::Del(&a);
+		PAREA::Del(&b);
+
+		return err;
+	}
+	catch(PBERRCODE e)
 	{
 		PAREA::Del(&a);
+		PAREA::Del(&b);
+		return e;
+	}
+	catch(std::bad_alloc)
+	{
+		PAREA::Del(&a);
+		PAREA::Del(&b);
 		return err_no_memory;
 	}
-	int err = Boolean0(a, b, r, nOpCode);
-
-	PAREA::Del(&a);
-	PAREA::Del(&b);
-
-	return err;
 } // PAREA::Boolean
 
 } // namespace POLYBOOLEAN

@@ -24,7 +24,10 @@ void LoadPLINE(FILE * f, PLINE2 **pline)
 	    GRID2 g;
 		if (fscanf(f, "%d,%d", &g.x, &g.y) != 2)
 			error(err_io);
-		PLINE2::Incl(pline, g);
+		if (!pline)
+			*pline = new PLINE2(g);
+		else
+			(*pline)->AddVertex(g);
     }
 } // LoadPLINE
 
@@ -66,7 +69,7 @@ void LoadPAREA(FILE *f, PAREA ** area)
 			if (cntr->IsOuter() != bOuter)
 				cntr->Invert();
 
-			PAREA::InclPline(area, cntr);
+			PAREA::AddPlineToList(area, cntr);
         }
 	}
 } // LoadPAREA
@@ -220,7 +223,7 @@ void PareaToGrid(PAREA ** area, const VECT2 & vMin, const VECT2 & vMax)
 				else
 				{
 					VNODE2 * save = vn->prev;
-					vn->Excl(), pline->Count--, vn = save;
+					vn->Remove(), pline->Count--, vn = save;
 				}
 			} while ((vn = vn->next) != pline->head);
 
@@ -245,7 +248,8 @@ void PareaToGrid(PAREA ** area, const VECT2 & vMin, const VECT2 & vMax)
 		else if (pa != *area)
 		{
 			PAREA * save = pa->f;
-			pa->Excl(), PAREA::Del(&pa), pa = save;
+			delete pa;
+			pa = save;
 			if (pa == *area)
 				break;
 		}
@@ -257,7 +261,8 @@ void PareaToGrid(PAREA ** area, const VECT2 & vMin, const VECT2 & vMax)
 		else
 		{
 			PAREA * save = pa->f;
-			pa->Excl(), PAREA::Del(&pa), *area = pa = save;
+			delete pa;
+			*area = pa = save;
 		}
 	}; // for (area)
 } // PareaToGrid

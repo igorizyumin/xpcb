@@ -14,7 +14,7 @@ QSet<Vertex*> TraceList::getConnectedVertices(Vertex* vtx)
 	return QSet<Vertex*>();
 }
 
-QSet<Vertex*> TraceList::getVerticesInPoly(PolyLine* poly)
+QSet<Vertex*> TraceList::getVerticesInPoly(Polygon* poly)
 {
 	PCBLAYER layer = poly->GetLayer();
 	QSet<Vertex*> set;

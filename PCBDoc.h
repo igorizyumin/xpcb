@@ -36,7 +36,7 @@ private:
 	QList<Area*> mAreas;
 	QList<Footprint*> mFootprints;
 	QList<Padstack*> mPadstacks;
-	PolyLine * mBoardOutline;
+	Polygon * mBoardOutline;
 
 };
 

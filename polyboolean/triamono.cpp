@@ -6,6 +6,7 @@
 //
 
 #include "pbtria.h"
+#include <new>
 
 namespace POLYBOOLEAN
 {
@@ -227,8 +228,8 @@ void TRIAGLOBS::TraversePolygon(MCHAIN **mcur, TRAP *t, TRAP *from, TraverseDir 
         { /* downward + upward cusps */
             vp0 = t->d1->l;
             vp1 = t->u0->r;
-            if (dir == TR_FROM_DN && t->d1 == from ||
-                dir == TR_FROM_UP && t->u1 == from)
+			if ((dir == TR_FROM_DN && t->d1 == from) ||
+				(dir == TR_FROM_UP && t->u1 == from))
             {
                 mnew = MakeNewMonotonePoly( mcur, vp1, vp0);
                 TraversePolygon( mcur, t->u1, t, TR_FROM_DN);
@@ -288,8 +289,8 @@ bool InsidePolygon(const TRAP * t)
 
     if (t->l == NULL ||
            r == NULL ||
-        !(  t->u0 == NULL && t->u1 == NULL ||
-            t->d0 == NULL && t->d1 == NULL)) /* not triangle */
+		!(  (t->u0 == NULL && t->u1 == NULL) ||
+			(t->d0 == NULL && t->d1 == NULL))) /* not triangle */
         return false;
 
     return GRID2::gt(r->next->g, r->g);
@@ -445,9 +446,8 @@ void TRIAGLOBS::Triangulate(PAREA * p)
 
     try
     {
-		if ((m_mon  = (MCHAIN **)calloc(m_nseg, sizeof(MCHAIN*))) == NULL ||
-			(m_rndv = (VNODE2 **)calloc(m_nseg, sizeof(UINT32 ))) == NULL)
-			error(err_no_memory);
+		m_mon = new MCHAIN*[m_nseg];
+		m_rndv = new VNODE2*[m_nseg];
 
         m_mon[0] = NULL;
 
@@ -479,15 +479,13 @@ void TRIAGLOBS::Triangulate(PAREA * p)
 
         p->tnum = (vi - 2) + 2 * (--holes);
 
-		free(p->tria); // free previous triangulation
+		delete p->tria; // free previous triangulation
 
-        if ((p->tria = (PTRIA2*)calloc(p->tnum, sizeof(PTRIA2))) == NULL)
-            error(err_no_memory);
+		p->tria = new PTRIA2[p->tnum];
 
 	    ConstructTrapezoids();
 
-        if ((m_rc = (const VNODE2 **)calloc(m_nseg + 1, sizeof(VNODE2 *))) == NULL)
-            error(err_no_memory);
+		m_rc = new const VNODE2*[m_nseg+1];
 
         MonotonateTrapezoids();
 	    TriangulateMonPolys();
@@ -495,19 +493,27 @@ void TRIAGLOBS::Triangulate(PAREA * p)
         if (p->tnum != m_tria_idx) // too few triangles - bad input data
 			error(err_bad_parm);
     }
+	catch (std::bad_alloc)
+	{
+		delete p->tria;
+		p->tria = NULL;
+		p->tnum = 0;
+		throw err_no_memory;
+	}
 	catch (...)
 	{
-        free(p->tria), p->tria = NULL;
-        p->tnum = 0;
+		delete p->tria;
+		p->tria = NULL;
+		p->tnum = 0;
 		throw;
 	}
 } // Triangulate
 
-int PAREA::Triangulate(PAREA * area)
+PBERRCODE PAREA::Triangulate(PAREA * area)
 {
 	if (area == NULL)
-		return 0;
-    int		errc = 0;
+		return err_ok;
+	PBERRCODE errc = err_ok;
 	try
 	{
 	    PAREA *	pa   = area;
@@ -516,7 +522,7 @@ int PAREA::Triangulate(PAREA * area)
 			g.Triangulate(pa);
 		} while ((pa = pa->f) != area);
 	}
-	catch (int e)
+	catch (PBERRCODE e)
 	{
 		errc = e;
 	}

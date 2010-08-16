@@ -5,6 +5,8 @@
 //	Consult your license regarding permissions and restrictions
 //
 
+#include "pbgeom.h"
+
 namespace POLYBOOLEAN
 {
 
@@ -35,22 +37,22 @@ bool GRID2::AngleConvex(const GRID2 & vp, const GRID2 & vc, const GRID2 & vn)
 
 bool GRID2::gt(const GRID2 & v1, const GRID2 & v2)
 {
-    return (v1.y > v2.y or v1.y == v2.y and v1.x > v2.x);
+	return (v1.y > v2.y or (v1.y == v2.y and v1.x > v2.x));
 } // GRID2::gt
 
 bool GRID2::ls(const GRID2 & v1, const GRID2 & v2)
 {
-    return (v1.y < v2.y or v1.y == v2.y and v1.x < v2.x);
+	return (v1.y < v2.y or (v1.y == v2.y and v1.x < v2.x));
 } // GRID2::ls
 
 bool GRID2::ge(const GRID2 & v1, const GRID2 & v2)
 {
-    return (v1.y > v2.y or v1.y == v2.y and v1.x >= v2.x);
+	return (v1.y > v2.y or (v1.y == v2.y and v1.x >= v2.x));
 } // GRID2::ge
 
 bool GRID2::le(const GRID2 & v1, const GRID2 & v2)
 {
-    return (v1.y < v2.y or v1.y == v2.y and v1.x <= v2.x);
+	return (v1.y < v2.y or (v1.y == v2.y and v1.x <= v2.x));
 } // GRID2::le
 
 const GRID2 * GRID2::ymin(const GRID2 * v0, const GRID2 * v1)

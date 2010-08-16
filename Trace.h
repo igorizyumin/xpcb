@@ -6,7 +6,7 @@
 #include "PCBObject.h"
 
 class Area;
-class PolyLine;
+class Polygon;
 
 /// A trace vertex.
 
@@ -70,7 +70,7 @@ public:
 	TraceList();
 
 	QSet<Vertex*> getConnectedVertices(Vertex* vtx);
-	QSet<Vertex*> getVerticesInPoly(PolyLine* poly);
+	QSet<Vertex*> getVerticesInPoly(Polygon* poly);
 
 private:
 

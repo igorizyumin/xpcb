@@ -10,9 +10,7 @@
 
 namespace POLYBOOLEAN
 {
-
-const GRID2	GRID2::PosInfinity = { INT20_MAX, INT20_MAX };
-const GRID2	GRID2::NegInfinity = { INT20_MIN, INT20_MIN };
-
+	const GRID2	GRID2::PosInfinity(INT20_MAX, INT20_MAX );
+	const GRID2	GRID2::NegInfinity(INT20_MIN, INT20_MIN );
 } // namespace POLYBOOLEAN
 

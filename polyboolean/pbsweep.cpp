@@ -5,7 +5,7 @@
 //	Consult your license regarding permissions and restrictions
 //
 
-#include "pbarea.h"
+#include "pbsweep.h"
 
 namespace POLYBOOLEAN
 {
@@ -158,7 +158,7 @@ bool LexGt(INT64 xnom, INT64 xden, INT64 ynom, INT64 yden,
 local
 bool IntLess(INT32 xa, INT32 ya, INT32 xb, INT32 yb)
 {
-	return (xa < xb or xa == xb and ya < yb);
+	return ((xa < xb) or (xa == xb and ya < yb));
 } // IntLess
 #endif // NDEBUG
 
@@ -419,14 +419,13 @@ void BOCTX::InsNewNode(SEGM2 * s, TSEL * tsel, INT32 X)
 		VNODE2 * after = (s->m_bRight) ? s->r->prev : s->r;
 		assert(after->g.x != X or after->g.y != Y);
 
-		vn = (VNODE2 *)calloc(1, sizeof(VNODE2));
-		if (vn == NULL)
-			error(err_no_memory);
+		GRID2 grid;
+		grid.x = X;
+		grid.y = Y;
+		vn = new VNODE2(grid);
 
 		vn->Flags = s->l->Flags;
-		vn->g.x = X;
-		vn->g.y = Y;
-		vn->Incl(after);
+		vn->Insert(*after);
 	}
 	m_InsertProc(&tsel->list, vn, m_InsertParm);
 } // BOCTX::InsNewNode

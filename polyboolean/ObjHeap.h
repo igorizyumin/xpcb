@@ -8,6 +8,10 @@
 #ifndef _OBJHEAP_H_
 #define _OBJHEAP_H_
 
+#include "pbdefs.h"
+#include <cstring> // memset
+#include <new>
+
 //	Example of use:
 //		typedef ObjStorageClass<ELEM> HEAP_TYPE;
 //
@@ -24,7 +28,7 @@
 //	{ ELEM & node = iter; [ node.m... <=> iter->m_... ] }
 //
 
-template <class T, unsigned int nBlockElements = 16, int ErrorCode = err_no_memory>
+template <class T, int nBlockElements = 16, int ErrorCode = err_no_memory>
 class ObjStorageClass
 {
 	struct ELEM
@@ -54,13 +58,21 @@ class ObjStorageClass
 			BLK * blk = new BLK;
 			if (blk == NULL)
 				throw ErrorCode;
-			
-			ELEM * h = (blk->next = m_Blocks, m_Blocks = blk)->contents;
-			for (ELEM * o = h; o - h < nBlockElements; o++)
+
+			blk->next = m_Blocks;
+			m_Blocks = blk;
+			ELEM *h = m_Blocks->contents;
+			// add all elements to freelist
+			for (unsigned int i = 0; i < nBlockElements; i++)
+			{
+				ELEM *o = h+i;
 				o->next = m_FreeList, m_FreeList = o;
+			}
 		}
 		assert(m_FreeList != NULL);
+		// pop o from freelist
 		ELEM * o = m_FreeList; m_FreeList = o->next;
+
 		o->next = Busy();
 		if (bClear)
 			memset(o->data, 0, sizeof o->data);
@@ -69,7 +81,7 @@ class ObjStorageClass
 
 public:
 	ObjStorageClass()
-		: m_FreeList(NULL), m_Blocks(NULL) {}
+		: m_Blocks(NULL), m_FreeList(NULL) {}
 
 	~ObjStorageClass() {
 		Clr();

@@ -8,6 +8,7 @@
 //		TRIAGLOBS::AddSegment/Runtime Check #3 in VC++ 2003
 
 #include <limits.h>
+#include <cstdlib> // random
 #include <time.h> /* clock() */
 
 #include "pbtria.h"
@@ -171,11 +172,11 @@ void TRIAGLOBS::MergeTrapezoids(const VNODE2 *s, TRAP *tfirst, TRAP *tlast, UpSi
     while (t != NULL && GRID2::ge(*t->lo, *tlast->lo))
     {
         if (side == S_LEFT)
-            cond = (tnext = t->d0) != NULL && tnext->r == s ||
-                   (tnext = t->d1) != NULL && tnext->r == s;
+			cond = ((tnext = t->d0) != NULL && tnext->r == s) ||
+				   ((tnext = t->d1) != NULL && tnext->r == s);
         else
-            cond = (tnext = t->d0) != NULL && tnext->l == s ||
-                   (tnext = t->d1) != NULL && tnext->l == s;
+			cond = ((tnext = t->d0) != NULL && tnext->l == s) ||
+				   ((tnext = t->d1) != NULL && tnext->l == s);
 
         if (cond && t->l == tnext->l
                  && t->r == tnext->r)

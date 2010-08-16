@@ -17,7 +17,7 @@ PCBDoc::PCBDoc()
 void loadProps(QXmlStreamReader &reader, QString &name, UNIT &units, int &defaultps);
 void loadPadstacks(QXmlStreamReader &reader, QHash<int, Padstack*> &padstacks);
 void loadFootprints(QXmlStreamReader &reader, QList<Footprint*> &footprints, const QHash<int, Padstack*> &padstacks);
-void loadOutline(QXmlStreamReader &reader, PolyLine *& poly);
+void loadOutline(QXmlStreamReader &reader, Polygon *& poly);
 void loadParts(QXmlStreamReader &reader, QList<Part*> parts);
 void loadNets(QXmlStreamReader &reader, QList<Net*> nets);
 void loadAreas(QXmlStreamReader &reader, QList<Area*> areas);
@@ -186,7 +186,7 @@ void loadFootprints(QXmlStreamReader &reader, QList<Footprint*> &footprints, con
 	}
 }
 
-void loadOutline(QXmlStreamReader &reader, PolyLine *& poly)
+void loadOutline(QXmlStreamReader &reader, Polygon *& poly)
 {
 	while(!reader.atEnd() && !reader.hasError())
 	{
@@ -197,7 +197,7 @@ void loadOutline(QXmlStreamReader &reader, PolyLine *& poly)
 			continue; // comments, etc.
 		if (reader.name() == "polyline")
 		{
-			poly = PolyLine::newFromXML(reader);
+			poly = Polygon::newFromXML(reader);
 			if (!poly)
 			{
 				Log::instance().error("Error loading board outline");
