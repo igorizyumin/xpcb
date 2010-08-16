@@ -7,7 +7,8 @@
 #include "PolygonList.h"
 
 // forward declarations
-struct PAREA;
+class PAREA;
+class PLINE2;
 
 /// A polygon contour.
 /// Describes a single polygon contour.  A contour can represent either the
@@ -42,21 +43,27 @@ public:
 
 
 
-	PolyContour(Polygon *parent = NULL);
+	PolyContour(PLINE2 * pline = NULL);
 
-	void appendSegment(const Segment& seg) { mSegs.append(seg); if (mParent) mParent->markChanged();}
-	void insertSegment(int pos, const Segment& seg) { mSegs.insert(pos, seg); if (mParent) mParent->markChanged();}
+	void appendSegment(const Segment& seg) { mSegs.append(seg); mPbDirty = true;}
+	void insertSegment(int pos, const Segment& seg) { mSegs.insert(pos, seg); mPbDirty = true;}
 	Segment& segment(int pos) { return mSegs[pos]; }
+	const Segment& segment(int pos) const { return mSegs[pos]; }
 	int numSegs() const { return mSegs.size(); }
-	bool testPointInside(const QPoint& pt);
+	bool testPointInside(const QPoint& pt) const;
 
-	QRect bbox();
+	QRect bbox() const;
 
 	void translate(const QPoint& vec);
 
+	void toPline(PLINE2 ** pline) const;
+
 private:
+	void rebuildPb();
 	QList<Segment> mSegs;
-	Polygon* mParent;
+
+	mutable bool mPbDirty;
+	mutable PLINE2 * mPline;
 };
 
 /// A polygon object represents a basic polygon type.  A polygon consists of multiple contours,
@@ -115,8 +122,10 @@ public:
 	void markChanged() { mPbDirty = true; }
 
 private:
-	/// Rebuilds the PolyBoolean area.
-	void rebuildPb();
+	/// Rebuilds the PolyBoolean area, if needed.
+	void rebuildPb() const;
+	/// Converts PAREA to PolygonList
+	static PolygonList pbToPolygons(PAREA * a);
 
 	/// Polygon outer border.
 	PolyContour mOutline;
@@ -126,9 +135,9 @@ private:
 	// PolyBoolean structures
 	/// When true, indicates that the PolyBoolean structures
 	/// need to be rebuilt.
-	bool mPbDirty;
+	mutable bool mPbDirty;
 	/// PolyBoolean area corresponding to this polygon
-	PAREA *mArea;
+	mutable PAREA *mArea;
 };
 
 #endif // POLYGON_H

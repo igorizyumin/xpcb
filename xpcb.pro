@@ -66,3 +66,7 @@ FORMS    += MainWindow.ui \
 
 RESOURCES += \
     qtfreepcb.qrc
+
+INCLUDEPATH += ./polyboolean/
+LIBS += -L./polyboolean/ -lpolyboolean
+

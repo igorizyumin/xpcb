@@ -10,6 +10,7 @@ class PolygonList : public QList<Polygon>
 	PolygonList();
 	PolygonList(const Polygon& from);
 	PolygonList(const QList<Polygon>& from);
+	~PolygonList();
 
 	// Operator overloads
 	/// Union operator -- performs boolean OR with rhs polygon.
