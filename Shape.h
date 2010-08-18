@@ -3,14 +3,13 @@
 #pragma once
 #include <QHash>
 #include <QXmlStreamReader>
-#include "PolyLine.h"
 #include "PCBObject.h"
 #include "Text.h"
 
 class Text;
 
 // pad shapes
-typedef enum {
+enum PADSHAPE {
 	PAD_NONE = 0,
 	PAD_ROUND,
 	PAD_SQUARE,
@@ -18,14 +17,14 @@ typedef enum {
 	PAD_OBROUND,
 	PAD_OCTAGON,
 	PAD_DEFAULT = 99
-} PADSHAPE;
+};
 
-// pad area connect flags
-enum {
-	PAD_CONNECT_DEFAULT = 0,
-	PAD_CONNECT_NEVER,
-	PAD_CONNECT_THERMAL,
-	PAD_CONNECT_NOTHERMAL
+/// Describes how to connect a pad to copper areas.
+enum PADCONNTYPE {
+	PAD_CONNECT_DEFAULT = 0,	///< use global setting
+	PAD_CONNECT_NEVER,			///< never connect pad to area
+	PAD_CONNECT_THERMAL,		///< connect pad using a thermal structure
+	PAD_CONNECT_NOTHERMAL		///< flood pad with copper
 };
 
 /// A pad is a padstack component; it describes the
@@ -39,9 +38,15 @@ public:
 
 	static Pad newFromXML(QXmlStreamReader &reader);
 
+	PADSHAPE shape() {return mShape;}
+	int width() {return mWidth;}
+	int height() {return mHeight;}
+	PADCONNTYPE connFlag() {return mConnFlag;}
+
 private:
-	PADSHAPE shape;	// see enum above
-	int width, height;
+	PADSHAPE mShape;
+	int mWidth, mHeight;
+	PADCONNTYPE mConnFlag;
 };
 
 /// A padstack is a collection of pads and a hole.

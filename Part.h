@@ -28,6 +28,7 @@ class PartPin : public PCBObject
 	Part* getPart() { return part; }
 	QString getName() {return mPin->getName(); }
 	bool getPadOnLayer(PCBLAYER layer, Pad &pad);
+	Pin* fpPin() { return mPin; }
 
 private:
 	/// Pointer to footprint pin (contains position, etc.)

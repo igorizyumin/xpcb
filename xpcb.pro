@@ -15,7 +15,6 @@ SOURCES += main.cpp\
     PCBView.cpp \
     GridToolbarWidget.cpp \
     AboutDialog.cpp \
-    PolyLine.cpp \
     gpc.cpp \
     utility.cpp \
     PartList.cpp \
@@ -39,7 +38,6 @@ HEADERS  += MainWindow.h \
     PCBView.h \
     GridToolbarWidget.h \
     AboutDialog.h \
-    PolyLine.h \
     gpc.h \
     global.h \
     utility.h \
@@ -69,4 +67,3 @@ RESOURCES += \
 
 INCLUDEPATH += ./polyboolean/
 LIBS += -L./polyboolean/ -lpolyboolean
-

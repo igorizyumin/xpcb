@@ -15,9 +15,7 @@ SOURCES += \
     triacons.cpp \
     polybool.cpp \
     PLine.cpp \
-    pbunit.cpp \
     pbsweep.cpp \
-    pbpolys.cpp \
     pbio.cpp \
     pbgeom.inl \
     pbgeom.cpp \

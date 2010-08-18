@@ -1,5 +1,5 @@
 #include "Trace.h"
-#include "PolyLine.h"
+#include "Area.h"
 
 static void vertexDFS(QSet<Vertex> &toVisit, QSet<Vertex> &currSet, Vertex *currVtx);
 
@@ -14,13 +14,13 @@ QSet<Vertex*> TraceList::getConnectedVertices(Vertex* vtx)
 	return QSet<Vertex*>();
 }
 
-QSet<Vertex*> TraceList::getVerticesInPoly(Polygon* poly)
+QSet<Vertex*> TraceList::getVerticesInArea(const Area& a)
 {
-	PCBLAYER layer = poly->GetLayer();
+	PCBLAYER layer = a.layer();
 	QSet<Vertex*> set;
 	foreach(Vertex* vtx, myVtx)
 	{
-		if (vtx->onLayer(layer))
+		if (vtx->onLayer(layer)  && a.pointInside(vtx->pos()))
 			set.insert(vtx);
 	}
 	return set;

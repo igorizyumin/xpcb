@@ -1,21 +1,26 @@
 #ifndef AREA_H
 #define AREA_H
 
-#include "PolyLine.h"
+#include "global.h"
+#include "PCBObject.h"
 
 class PartPin;
 class Vertex;
 class Net;
 class TraceList;
 class PCBDoc;
+class Polygon;
+class QXmlStreamReader;
 
 /// A copper area.
 
-/// Area describes a copper polygon.  Areas can either be unconnected,
+/// Area describes a copper area.  Areas can either be unconnected,
 /// or they can be assigned to a net.  In the latter case, the area will
 /// automatically connect to any vertices, vias, or pins that are within its
-/// boundaries.
-class Area : public Polygon
+/// boundaries.  Areas are internally represented as a Polygon object (the area
+/// outline, with any cutouts, drawn by the user).  For drawing and DRC, a PolygonList
+/// is computed by subtracting all pad/trace clearances from the master polygon.
+class Area : public PCBObject
 {
 public:
 	/// A list of the possible fill styles for the polygon when drawing.
@@ -24,7 +29,7 @@ public:
 					   DIAGONAL_EDGE	///< Short diagonal hatch lines are drawn on the inside part of the edges.
 				   };
 
-	Area();
+	Area(PCBDoc *doc);
 	~Area();
 
 	/// Sets the polygon layer.
@@ -40,6 +45,12 @@ public:
 	/// \param hatch the new hatch style.
 	void setHatchStyle( HATCH_STYLE hatch ) { mHatchStyle = hatch; }
 
+	/// Check if a point is within the area boundaries.
+	/// \returns true if p is inside area.
+	bool pointInside(const QPoint &p);
+
+	static Area* newFromXML(QXmlStreamReader &reader, const PCBDoc &doc);
+
 	// XXX move this to pad class?
 //	Polygon * MakePolylineForPad( int type, int x, int y, int w, int l, int r, int angle );
 
@@ -48,6 +59,9 @@ public:
 //						int hole_w, int hole_clearance, bool bThermal=false, int spoke_w=0 );
 
 private:
+	/// Compute list of connected pins and vertices
+	void findConnections();
+
 	/// Parent container
 	PCBDoc* mDoc;
 
@@ -56,6 +70,8 @@ private:
 
 	/// Whether to connect SMT pads to this area
 	bool mConnectSMT;
+
+	Polygon *mPoly;
 
 	/// List of connected pins
 	QList<PartPin*> mConnPins;

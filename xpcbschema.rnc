@@ -18,6 +18,10 @@ Coord = (xsd:int)
 CoordsAttr = (attribute x { Coord }, attribute y { Coord } )
 # rotation; currently only 90 degree increments
 RotAttr = (attribute rot { "0" | "90" | "180" | "270" } )
+# arc direction attributes
+ArcDirAttr = (attribute dir { "cw" | "ccw" })
+# arc center attributes
+ArcCtrAttr = (attribute ctrX {Coord}, attribute ctrY {Coord} )
 # layer index
 Layer = (xsd:int)
 
@@ -72,7 +76,7 @@ Footprint = element footprint
 	element source { xsd:string }?,
 	element desc { xsd:string }?,
 	element centroid { CoordsAttr, attribute custom {Bool}? },
-	PolyLine*,
+	Polyline*,
 	Pins,
 	RefText,
 	ValueText
@@ -124,9 +128,9 @@ ValueText = element valueText {
 	attribute visible {Bool}?
 }
 
-# Outline section
+# board outline
 Outline = element outline {
-	PolyLine*
+	Polygon*
 }
 
 # Parts section
@@ -190,20 +194,33 @@ Segment = element segment {
 	attribute width { Dimension }
 }
 
-# polyline definition
-PolyLine = element polyline {
-	attribute layer { Layer },
-	attribute width { Dimension },
-	(PolylineStart, (PolylineLineTo | PolylineArcTo)+, PolylineClose?)+
+# polygon definition
+Polygon = element polygon {
+	PolygonOutline,
+	PolygonHole*
 }
-# polyline start marker
-PolylineStart = element start { CoordsAttr }
-# lineTo marker
-PolylineLineTo = element lineTo { CoordsAttr }
-# arcTo marker
-PolylineArcTo = element arcTo { CoordsAttr }
-# close contour marker
-PolylineClose = element close { empty } 
+# polygon outline
+PolygonOutline = element outline { Contour }
+# polygon hole
+PolygonHole = element hole { Contour }
+
+# contour
+Contour = ((ContourStart, (LineTo | ArcTo)+)+)
+# contour start marker
+ContourStart = element start { CoordsAttr }
+# contour lineTo marker
+LineTo = element lineTo { CoordsAttr }
+# contour arcTo marker
+ArcTo = element arcTo { CoordsAttr, ArcDirAttr, ArcCtrAttr }
+
+# polyline definition
+Polyline = element polyline {
+	attribute width {Dimension},
+	attribute layer {Layer},
+	Contour
+}
+
+
 # areas section
 Areas = element areas {
 	Area*
@@ -211,7 +228,10 @@ Areas = element areas {
 # area definition
 Area = element area {
 	attribute net { xsd:string },
-	PolyLine
+	attribute layer { Layer },
+	attribute hatch { "none" | "full" | "edge" },
+	attribute connectSmt { Bool },
+	Polygon
 }
 
 # Texts section

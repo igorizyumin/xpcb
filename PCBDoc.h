@@ -20,6 +20,7 @@ public:
 
 	Part* getPart(const QString & refdes);
 	Footprint* getFootprint(const QString &name);
+	Net* getNet(const QString &name);
 
 private:
 

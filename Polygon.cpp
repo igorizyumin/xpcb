@@ -99,10 +99,62 @@ QRect PolyContour::bbox() const
 	return QRect(xmin, ymin, xmax-xmin, ymax-ymin);
 }
 
+PolyContour PolyContour::newFromXML(QXmlStreamReader &reader)
+{
+	Q_ASSERT(reader.isStartElement() && reader.name() == "start");
+
+	PolyContour pc;
+
+	while(reader.readNextStartElement())
+	{
+		QXmlStreamAttributes attr = reader.attributes();
+		QPoint endPt = QPoint(
+				attr.value("x").toString().toInt(),
+				attr.value("y").toString().toInt());
+
+		switch(reader.name())
+		{
+		case "start":
+			pc.mSegs.append(Segment(Segment::START, endPt));
+			break;
+		case "lineTo":
+			pc.mSegs.append(Segment(Segment::LINE, endPt));
+			break;
+		case "arcTo":
+			SEG_TYPE t = (attr.value("dir") == "cw")
+						 ? Segment::ARC_CW : Segment::ARC_CCW;
+			QPoint arcCtr = QPoint(
+					attr.value("ctrX").toString().toInt(),
+					attr.value("ctrY").toString().toInt());
+			pc.mSegs.append(Segment(t, endPt, arcCtr));
+			break;
+		}
+	}
+
+	return pc;
+}
+
+
 //// Polygon ////
 Polygon::Polygon()
 	: mArea(NULL), mPbDirty(true)
 {
+}
+
+Polygon::Polygon(PAREA *area)
+	: mArea(NULL), mPbDirty(true)
+{
+	if (area == NULL || area->cntr == NULL)
+		return;
+
+	mOutline = PolyContour(area->cntr);
+	// add holes
+	PLINE2 *pl = area->cntr->next;
+	while(pl != NULL)
+	{
+		mHoles.append(PolyContour(pl));
+		pl = pl->next;
+	}
 }
 
 void Polygon::translate( const QPoint& vec )
@@ -113,41 +165,6 @@ void Polygon::translate( const QPoint& vec )
 		p.translate(vec);
 	}
 	mPbDirty = true;
-}
-
-static PolygonList Polygon::pbToPolygons(PAREA *a)
-{
-	if (!a)
-		return PolygonList();
-
-	PAREA *curr = a;
-	PolygonList plist;
-
-	// iterate over polygons
-	do
-	{
-		// iterate over contours
-		Q_ASSERT(curr->cntr != NULL);
-		if (curr->cntr)
-		{
-			// make new polygon
-			Polygon p;
-			p.mOutline = PolyContour(curr->cntr);
-			// add holes
-			PLINE2 *pl = curr->cntr->next;
-			while(pl != NULL)
-			{
-				p.mHoles.append(PolyContour(pl));
-				pl = pl->next;
-			}
-			// add to polylist
-			plist.append(p);
-		}
-
-		curr = curr->f;
-	} while(curr != a);
-
-	return plist;
 }
 
 bool Polygon::intersects( const Polygon &other ) const
@@ -177,7 +194,7 @@ PolygonList Polygon::intersected(const Polygon &other) const
 
 	PAREA *r = NULL;
 	PAREA::Boolean(this->mArea, other.mArea, &r, PAREA::AND);
-	PolygonList pl = ::pbToPolygons(r);
+	PolygonList pl(r);
 	PAREA::Del(&r);
 
 	return pl;
@@ -198,7 +215,7 @@ PolygonList Polygon::united(const Polygon &other) const
 
 	PAREA *r = NULL;
 	PAREA::Boolean(this->mArea, other.mArea, &r, PAREA::OR);
-	PolygonList pl = ::pbToPolygons(r);
+	PolygonList pl(r);
 	PAREA::Del(&r);
 
 	return pl;
@@ -215,7 +232,7 @@ PolygonList Polygon::subtracted(const Polygon &other) const
 
 	PAREA *r = NULL;
 	PAREA::Boolean(this->mArea, other.mArea, &r, PAREA::SUB);
-	PolygonList pl = ::pbToPolygons(r);
+	PolygonList pl(r);
 	PAREA::Del(&r);
 
 	return pl;
@@ -262,4 +279,34 @@ void Polygon::rebuildPb() const
 	}
 
 	mPbDirty = false;
+}
+
+PAREA* Polygon::getParea()
+{
+	rebuildPb();
+	return mArea.Copy();
+}
+
+Polygon* Polygon::newFromXML(QXmlStreamReader &reader)
+{
+	Q_ASSERT(reader.isStartElement() && reader.name() == "polygon");
+
+	Polygon *poly = new Polygon();
+
+	while(reader.readNextStartElement())
+	{
+		switch(reader.name())
+		{
+		case "outline":
+			reader.readNextStartElement();
+			poly->mOutline = PolyContour::newFromXML(reader);
+			break;
+		case "hole":
+			reader.readNextStartElement();
+			poly->mHoles.append(PolyContour::newFromXML(reader));
+			break;
+		}
+	}
+
+	return poly;
 }

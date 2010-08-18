@@ -61,7 +61,8 @@ typedef enum
 	LAY_MASK_TOP = -100,	
 	LAY_MASK_BOTTOM = -101,
 	LAY_PASTE_TOP = -102,
-	LAY_PASTE_BOTTOM = -103
+	LAY_PASTE_BOTTOM = -103,
+	LAY_UNKNOWN = -999
 } PCBLAYER;
 
 typedef enum

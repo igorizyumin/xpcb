@@ -1,66 +1,92 @@
+#include <QXmlStreamReader>
 #include "Area.h"
 #include "Net.h"
 #include "Part.h"
 #include "global.h"
 #include "PCBDoc.h"
+#include "Polygon.h"
 
-
-Area::Area()
+Area::Area(PCBDoc *doc) :
+		mDoc(doc), mNet(NULL), mConnectSMT(true),
+		mPoly(NULL), mLayer(LAY_UNKNOWN), mHatchStyle(NO_HATCH)
 {
 }
 
+Area::~Area()
+{
+	delete mPoly;
+}
 
 void Area::findConnections()
 {
-	if (!this->mNet)
+	if (!this->mNet || !this->mPoly || !this->mDoc)
 		return;
 
 	this->mConnPins.clear();
 
-	// test all pins in net for being inside copper area
-	PCBLAYER layer = GetLayer();	// layer of copper area
+	PCBLAYER layer = this->layer();
 	QSet<PartPin*> pins = mNet->getPins();
+
 	foreach(PartPin* pin, pins)
 	{
 		// see if pin is on the right layer
 		PCBLAYER pin_layer = pin->getLayer();
-		if( pin_layer != LAY_PAD_THRU
-			&& pin_layer != layer )
-			continue;	// SMT pad not on our layer
+		bool isSMT = (pin_layer == LAY_PAD_THRU);
 
-		// check if pin is allowed to connect to areas
-		Part* part = pin->getPart();
-		ASSERT(part); // pin not attached to part? what the hell
+		if( isSMT && pin_layer != layer )
+			continue;	// SMT pad not on our layer
 
 		// get the pad for the appropriate layer
 		Pad pad;
 		if (!pin->getPadOnLayer(layer, pad))
 			continue; // no pad on this layer
 
-		// see if pad allowed to connect
-		Footprint* fp = part->getFootprint();
-		if (!fp)
-			continue; // error?
-		Padstack ps = fp->getPadstack(pin->getName());
-		ASSERT(ps);
-
-		if( pad.connect_flag == PAD_CONNECT_NEVER )
+		if( pad.connFlag() == PAD_CONNECT_NEVER )
 			continue;	// pad never allowed to connect
-		if( pad.connect_flag == PAD_CONNECT_DEFAULT && !ps.hole_size && !mConnectSMT )
-			continue;	// SMT pad, not allowed to connect to this area
-		if( pin_layer != LAY_PAD_THRU && pad.shape == PAD_NONE )
-			continue;	// no SMT pad defined (this should not happen)
 
-		// see if pad is inside copper area
-		QPoint p = pin->getPos();
-		if( TestPointInside( p.x(), p.y() ) )
-		{
-			// pin is inside copper area
+		if( pad.connFlag() == PAD_CONNECT_DEFAULT
+			&& isSMT && !mConnectSMT )
+			continue;	// SMT pad, not allowed to connect to this area
+
+		// add to list if pad is inside copper area
+		if( mPoly->testPointInside(pin->getPos()) )
 			this->mConnPins.append(pin);
-		}
 	}
 
 	// find all vertices within copper area
 	TraceList &tl = this->mDoc->traceList();
-	mConnVtx = *tl.getVerticesInPoly(this);
+	mConnVtx = tl.getVerticesInArea(*this);
+}
+
+bool Area::pointInside(const QPoint &p)
+{
+	if (!mPoly) return false;
+	return mPoly->testPointInside(p);
+}
+
+Area* Area::newFromXML(QXmlStreamReader &reader, PCBDoc &doc)
+{
+	Q_ASSERT(reader.isStartElement() && reader.name() == "area");
+
+	QXmlStreamAttributes attr = reader.attributes();
+	Area* a = new Area(&doc);
+	a->mNet = doc.getNet(attr.value("net"));
+	a->mLayer = (PCBLAYER) attr.value("layer").toString().toInt();
+	switch(attr.value("hatch"))
+	{
+	case "none":
+		a->mHatchStyle = Area::NO_HATCH;
+		break;
+	case "full":
+		a->mHatchStyle = Area::DIAGONAL_FULL;
+		break;
+	case "edge":
+		a->mHatchStyle = Area::DIAGONAL_EDGE;
+		break;
+	}
+	a->mConnectSMT = (attr.value("connectSmt") == "1");
+	reader.readNextStartElement();
+	a->mPoly = Polygon::newFromXML(reader);
+
+	return a;
 }

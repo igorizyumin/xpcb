@@ -4,6 +4,7 @@
 #include <QPoint>
 #include <QRect>
 #include <QList>
+#include <QXmlStreamReader>
 #include "PolygonList.h"
 
 // forward declarations
@@ -30,7 +31,7 @@ public:
 				   };
 
 		Segment(SEG_TYPE t, const QPoint& endPt, const QPoint& arcCtr = QPoint() ) :
-				type(t), end(endPt), arcCenter(arcCtr) {}
+				type(t), end(endPt), arcCenter(arcCtr), mPbDirty(false), mArea(NULL) {}
 
 		/// The type of this segment.
 		SEG_TYPE type;
@@ -58,6 +59,8 @@ public:
 
 	void toPline(PLINE2 ** pline) const;
 
+	static PolyContour newFromXML(QXmlStreamReader &reader);
+
 private:
 	void rebuildPb();
 	QList<Segment> mSegs;
@@ -75,6 +78,7 @@ class Polygon
 {
 public:
 	Polygon();
+	Polygon(PAREA *area);
 	~Polygon();
 
 	// functions for modifying polygon
@@ -121,11 +125,15 @@ public:
 	/// Notifies object that the contours have been modified.
 	void markChanged() { mPbDirty = true; }
 
+	/// Returns a copy of this object's PAREA.  Caller is responsible for
+	/// deleting the PAREA using PAREA::Del.
+	PAREA* getParea();
+
+	static Polygon* newFromXML(QXmlStreamReader &reader);
+
 private:
 	/// Rebuilds the PolyBoolean area, if needed.
 	void rebuildPb() const;
-	/// Converts PAREA to PolygonList
-	static PolygonList pbToPolygons(PAREA * a);
 
 	/// Polygon outer border.
 	PolyContour mOutline;

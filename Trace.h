@@ -17,18 +17,18 @@ class Vertex : public PCBObject
 public:
 	Vertex(TraceList* parent, QPoint pos = QPoint(0, 0));
 
-	QPoint pos() {return myPos;}
+	QPoint pos() const {return myPos;}
 
 	/// Adds a connected segment to the vertex's segment set.
 	void addSegment(Segment* seg);
 	/// Removes a segment from the set of connected segments.
 	void removeSegment(Segment* seg);
 	/// Returns a reference to the segment set.
-	const QSet<Segment*> & segments() { return mySegs; }
+	const QSet<Segment*> & segments() const { return mySegs; }
 	/// Returns true if a vertex is present on the given layer
-	bool onLayer(PCBLAYER layer);
+	bool onLayer(PCBLAYER layer) const;
 	/// Returns true if the vertex is a via (exists on multiple layers)
-	bool isVia();
+	bool isVia() const;
 
 private:
 	TraceList * mParent;
@@ -44,12 +44,12 @@ class Segment : public PCBObject
 public:
 	Segment(TraceList* parent, Vertex* v1, Vertex* v2, PCBLAYER l = LAY_RAT_LINE, int w = 0);
 
-	int width() {return myWidth;}
+	int width() const {return myWidth;}
 	void setWidth(int w) {myWidth = w;}
-	PCBLAYER layer() {return myLayer;}
+	PCBLAYER layer() const {return myLayer;}
 	void setLayer(PCBLAYER layer) {myLayer = layer;}
 
-	Vertex* otherVertex(Vertex* v) {return (v == mV1 ? mV2 : mV1);}
+	Vertex* otherVertex(Vertex* v) const {return (v == mV1 ? mV2 : mV1);}
 	void draw(QPainter *painter, PCBLAYER layer);
 private:
 	PCBLAYER mLayer;
@@ -69,8 +69,8 @@ class TraceList
 public:
 	TraceList();
 
-	QSet<Vertex*> getConnectedVertices(Vertex* vtx);
-	QSet<Vertex*> getVerticesInPoly(Polygon* poly);
+	QSet<Vertex*> getConnectedVertices(Vertex* vtx) const;
+	QSet<Vertex*> getVerticesInArea(const Area& poly) const;
 
 private:
 

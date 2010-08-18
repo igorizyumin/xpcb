@@ -232,3 +232,23 @@ bool PAREA::CheckDomain()
 } // PAREA::CheckDomain
 
 #endif // NDEBUG
+
+void PAREA::JoinLists(PAREA ** list1, PAREA ** list2)
+{
+	if (!list2)
+		return;
+	if (!list1)
+	{
+		*list1 = *list2;
+		*list2 = NULL;
+		return;
+	}
+	// connect list2 to the end of list1
+	PAREA* last1 = (*list1)->b;
+	last1->f = (*list2);
+	(*list2)->b->f = (*list1);
+	(*list1)->b = (*list2)->b;
+	(*list2)->b = last1;
+
+	*list2 = NULL;
+}

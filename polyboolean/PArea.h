@@ -79,6 +79,10 @@ public:
 	/// The PAREA object takes ownership of the plines.
 	static void AddPlinesToList(PAREA ** area, PLINE2 ** holes);
 
+	/// Merges list2 with list1.  list2 will be appended to list1,
+	/// then set to NULL.
+	static void JoinLists(PAREA ** list1, PAREA ** list2);
+
 #ifndef NDEBUG
 	/// Check if coordinates are within 20 bit grid.
 	/// \returns true if coordinates are within grid; false otherwise.
