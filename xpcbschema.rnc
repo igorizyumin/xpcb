@@ -76,7 +76,7 @@ Footprint = element footprint
 	element source { xsd:string }?,
 	element desc { xsd:string }?,
 	element centroid { CoordsAttr, attribute custom {Bool}? },
-	Polyline*,
+	(Line | Arc)*,
 	Pins,
 	RefText,
 	ValueText
@@ -154,11 +154,6 @@ Part = element part {
 Nets = element nets {
 	Net*
 }
-# Reference to a pin
-PinRef = element pinRef {
-	attribute partref { xsd:string },
-	attribute pinname { xsd:string }
-}
 # Net definition
 Net = element net {
 	attribute name { xsd:string },
@@ -183,7 +178,6 @@ Vertex = element vertex {
 	CoordsAttr,
 	attribute forcevia { Bool }?,
 	PSRef?,
-	PinRef?
 }
 
 # Segment definition
@@ -213,11 +207,26 @@ LineTo = element lineTo { CoordsAttr }
 # contour arcTo marker
 ArcTo = element arcTo { CoordsAttr, ArcDirAttr, ArcCtrAttr }
 
-# polyline definition
-Polyline = element polyline {
+# line definition
+Line = element line {
 	attribute width {Dimension},
 	attribute layer {Layer},
-	Contour
+	attribute x1 {Dimension},
+	attribute y1 {Dimension},
+	attribute x2 {Dimension},
+	attribute y2 {Dimension}
+}
+
+# arc definition
+Arc = element arc {
+	attribute width {Dimension},
+	attribute layer {Layer},
+	attribute x1 {Dimension},
+	attribute y1 {Dimension},
+	attribute x2 {Dimension},
+	attribute y2 {Dimension},
+	ArcCtrAttr,
+	ArcDirAttr
 }
 
 

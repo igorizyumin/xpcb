@@ -3,62 +3,105 @@
 #include "smfontutil.h"
 #include "Shape.h"
 #include <math.h> 
-#include "utility.h"
-#include "TextList.h"
 #include "Log.h"
+#include "Line.h"
 
 /////////////////////// PAD /////////////////////////
 // class pad
 Pad::Pad() :
-		shape(PAD_NONE),
-		width(0),
-		height(0)
+		mShape(PAD_NONE),
+		mWidth(0),
+		mHeight(0),
+		mConnFlag(PAD_CONNECT_DEFAULT)
 {
 }
 
-bool Pad::operator==(Pad p)
+bool Pad::operator==(const Pad & p) const
 { 
-	return( shape==p.shape 
-			&& width==p.width
-			&& height==p.height
+	return( mShape==p.mShape
+			&& mWidth==p.mWidth
+			&& mHeight==p.mHeight
 			); 
 }
 
-Pad* Pad::newFromXML(QXmlStreamReader &reader)
+Pad Pad::newFromXML(QXmlStreamReader &reader)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "pad");
 	Pad p;
 	QXmlStreamAttributes attr(reader.attributes());
-	switch(attr.value("shape"))
+	QStringRef t = attr.value("shape");
+	if (t == "round")
 	{
-	case "round":
-		p.shape = PAD_ROUND;
-		p.width = attr.value("width").toString().toInt();
-		break;
-	case "octagon":
-		p.shape = PAD_OCTAGON;
-		p.width = attr.value("width").toString().toInt();
-		break;
-	case "square":
-		p.shape = PAD_SQUARE;
-		p.width = attr.value("width").toString().toInt();
-		break;
-	case "rect":
-		p.shape = PAD_RECT;
-		p.width = attr.value("width").toString().toInt();
-		p.height = attr.value("height").toString().toInt();
-		break;
-	case "obround":
-		p.shape = PAD_OBROUND;
-		p.width = attr.value("width").toString().toInt();
-		p.height = attr.value("height").toString().toInt();
-		break;
+		p.mShape = PAD_ROUND;
+		p.mWidth = attr.value("width").toString().toInt();
+	}
+	else if (t == "octagon")
+	{
+		p.mShape = PAD_OCTAGON;
+		p.mWidth = attr.value("width").toString().toInt();
+	}
+	else if (t == "square")
+	{
+		p.mShape = PAD_SQUARE;
+		p.mWidth = attr.value("width").toString().toInt();
+	}
+	else if (t == "rect")
+	{
+		p.mShape = PAD_RECT;
+		p.mWidth = attr.value("width").toString().toInt();
+		p.mHeight = attr.value("height").toString().toInt();
+	}
+	else if (t == "obround")
+	{
+		p.mShape = PAD_OBROUND;
+		p.mWidth = attr.value("width").toString().toInt();
+		p.mHeight = attr.value("height").toString().toInt();
 	}
 	return p;
 }
 
+bool Pad::testHit( const QPoint& pt )
+{
+	double dist = sqrt(pt.x()*pt.x() + pt.y()*pt.y());
 
+	// check if we hit the pad
+	switch( mShape )
+	{
+	case PAD_NONE:
+		break;
+	case PAD_ROUND:
+	case PAD_OCTAGON:
+		if( dist < (mWidth/2) )
+			return true;
+		break;
+	case PAD_SQUARE:
+	case PAD_RECT:
+	case PAD_OBROUND:
+		if( abs(pt.x()) < (mWidth/2) && abs(pt.y()) < (mHeight/2) )
+			return true;
+		break;
+	}
 
+	// did not hit anything
+	return false;
+}
+
+QRect Pad::bbox() const
+{
+	switch( mShape )
+	{
+	case PAD_NONE:
+	default:
+		return QRect();
+	case PAD_ROUND:
+	case PAD_OCTAGON:
+		return QRect(-mWidth/2, -mWidth/2, mWidth, mWidth);
+	case PAD_SQUARE:
+	case PAD_RECT:
+	case PAD_OBROUND:
+		return QRect(-mWidth/2, -mHeight/2, mWidth, mHeight);
+	}
+}
 
 /////////////////////// PADSTACK /////////////////////////
 
@@ -72,12 +115,12 @@ bool Padstack::operator==(const Padstack &p) const
 { 
 	return( name == p.name
 			&& hole_size==p.hole_size 
-			&& top==p.top
-			&& top_mask==p.top_mask
-			&& top_paste==p.top_paste
-			&& bottom==p.bottom
-			&& bottom_mask==p.bottom_mask
-			&& bottom_paste==p.bottom_paste
+			&& start==p.start
+			&& start_mask==p.start_mask
+			&& start_paste==p.start_paste
+			&& end==p.end
+			&& end_mask==p.end_mask
+			&& end_paste==p.end_paste
 			&& inner==p.inner				
 			); 
 }
@@ -87,54 +130,58 @@ Padstack* Padstack::newFromXML(QXmlStreamReader &reader)
 	Q_ASSERT(reader.isStartElement() && reader.name() == "padstack");
 	Padstack *p = new Padstack();
 	if (reader.attributes().hasAttribute("name"))
-		p->name = reader.attributes().value("name");
+		p->name = reader.attributes().value("name").toString();
 	p->hole_size = reader.attributes().value("holesize").toString().toInt();
 	while(reader.readNextStartElement())
 	{
-		QString padtype = reader.name();
+		QStringRef padtype = reader.name();
 		reader.readNext();
 		if (reader.isEndElement())
 			continue; // no pad
 		// we have a pad.  create it
-		switch(padtype)
-		{
-		case "startpad":
+		if (padtype == "startpad")
 			p->start = Pad::newFromXML(reader);
-			break;
-		case "innerpad":
+		else if (padtype == "innerpad")
 			p->inner = Pad::newFromXML(reader);
-			break;
-		case "endpad":
+		else if (padtype == "endpad")
 			p->end = Pad::newFromXML(reader);
-			break;
-		case "startmask":
+		else if (padtype == "startmask")
 			p->start_mask = Pad::newFromXML(reader);
-			break;
-		case "endmask":
+		else if (padtype == "endmask")
 			p->end_mask = Pad::newFromXML(reader);
-			break;
-		case "startpaste":
+		else if (padtype == "startpaste")
 			p->start_paste = Pad::newFromXML(reader);
-			break;
-		case "endpaste":
+		else if (padtype == "endpaste")
 			p->end_paste = Pad::newFromXML(reader);
-			break;
-		}
 	}
 	return p;
 }
 
+QRect Padstack::bbox() const
+{
+	QRect ret;
+	ret |= start.bbox();
+	ret |= start_mask.bbox();
+	ret |= start_paste.bbox();
+	ret |= inner.bbox();
+	ret |= end.bbox();
+	ret |= end_mask.bbox();
+	ret |= end_paste.bbox();
+	return ret;
+}
+
 /////////////////////// PIN /////////////////////////
 
-static Pin Pin::newFromXML(QXmlStreamReader &reader, QHash<int, Padstack*> & padstacks, Footprint *fp)
+Pin Pin::newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> & padstacks, Footprint *fp)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "pin");
 	QXmlStreamAttributes attr = reader.attributes();
 
 	Pin p(fp);
-	p.mName = attr.value("name");
+	p.mName = attr.value("name").toString();
 	p.mPos = QPoint(attr.value("x").toString().toInt(), attr.value("y").toString().toInt());
-	p.mAngle = QPoint(attr.value("rot").toString().toInt());
+	p.mAngle = attr.value("rot").toString().toInt();
+	p.updateTransform();
 	int psind = attr.value("padstack").toString().toInt();
 	if (padstacks.contains(psind))
 		p.mPadstack = padstacks.value(psind);
@@ -145,297 +192,185 @@ static Pin Pin::newFromXML(QXmlStreamReader &reader, QHash<int, Padstack*> & pad
 	return p;
 }
 
+bool Pin::testHit(const QPoint &pt, PINLAYER layer) const
+{
+	Padstack *ps = padstack();
+	// check if we hit a thru-hole
+	QPoint delta( pt - pos() );
+	double dist = sqrt( delta.x()*delta.x() + delta.y()*delta.y() );
+	if( dist < ps->getHole()/2 )
+		return true;
+
+	Pad pad = getPadOnLayer(layer);
+	if (!pad.isNull())
+		return pad.testHit(pt);
+
+	return false;
+}
+
+Pad Pin::getPadOnLayer(PINLAYER layer) const
+{
+	Padstack *ps = padstack();
+
+	switch(layer)
+	{
+	case LAY_START:
+		return ps->getStartPad();
+	case LAY_END:
+		return ps->getEndPad();
+	case LAY_INNER:
+		return ps->getInnerPad();
+	case LAY_UNKNOWN:
+		return Pad();
+	}
+}
+
+QRect Pin::bbox() const
+{
+	return mPartTransform.mapRect(padstack()->bbox());
+}
+
+void Pin::updateTransform()
+{
+	mPartTransform.reset();
+	mPartTransform.translate(mPos.x(), mPos.y());
+	mPartTransform.rotate(mAngle);
+}
+
+
 
 /////////////////////// FOOTPRINT /////////////////////////
 
 Footprint::Footprint()
+	: mName("EMPTY_SHAPE"), mUnits(MIL), mCustomCentroid(false)
 {
-	m_tl = new CTextList;	
-	Clear();
 } 
 
 // destructor
 //
 Footprint::~Footprint()
 {
-	Clear();
-	delete m_tl;
 }
 
-Footprint* Footprint::newFromXML(QXmlStreamReader &reader, QHash<int, Padstack*> &padstacks)
+void Footprint::draw(QPainter *painter, PCBLAYER layer)
+{
+}
+
+Footprint* Footprint::newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "footprint");
 
 	Footprint *fp = new Footprint();
 	while(reader.readNextStartElement())
 	{
-		switch(reader.name())
+		QStringRef el = reader.name();
+		if (el == "name")
 		{
-		case "name":
 			fp->mName = reader.readElementText();
-			break;
-		case "units":
+		}
+		else if (el == "units")
+		{
 			if (reader.readElementText() == "mm")
 				fp->mUnits = MM;
 			else
 				fp->mUnits = MIL;
-			break;
-		case "author":
+		}
+		else if (el == "author")
+		{
 			fp->mAuthor = reader.readElementText();
-			break;
-		case "desc":
+		}
+		else if (el == "desc")
+		{
 			fp->mDesc = reader.readElementText();
-			break;
-		case "centroid":
+		}
+		else if (el == "centroid")
+		{
 			QXmlStreamAttributes attr = reader.attributes();
 			fp->mCentroid = QPoint(attr.value("x").toString().toInt(),
 								   attr.value("y").toString().toInt());
 			if (attr.hasAttribute("custom"))
 				fp->mCustomCentroid = (attr.value("custom") == "1");
-			break;
-		case "polyline":
-			Polygon *p = Polygon::newFromXML(reader);
-			fp->mOutline.append(p);
-			break;
-		case "pins":
+		}
+		else if (el == "line")
+		{
+			fp->mOutlineLines.append(Line::newFromXml(reader));
+		}
+		else if (el == "arc")
+		{
+			fp->mOutlineArcs.append(Arc::newFromXml(reader));
+		}
+		else if (el == "pins")
+		{
 			while(reader.readNextStartElement())
 			{
 				Pin pin = Pin::newFromXML(reader, padstacks, fp);
 				fp->mPins.append(pin);
 			}
-			break;
-		case "refText":
+		}
+		else if (el == "text")
+		{
+			fp->mTexts.append(Text::newFromXML(reader));
+		}
+		else if (el == "refText")
+		{
 			QXmlStreamAttributes attr = reader.attributes();
 			fp->mRefText.setPos(QPoint(attr.value("x").toString().toInt(),
 									   attr.value("y").toString().toInt()));
 			fp->mRefText.setAngle(attr.value("rot").toString().toInt());
 			fp->mRefText.setFontSize(attr.value("textSize").toString().toInt());
 			fp->mRefText.setStrokeWidth(attr.value("lineWidth").toString().toInt());
-			break;
-		case "valueText":
+		}
+		else if (el == "valueText")
+		{
 			QXmlStreamAttributes attr = reader.attributes();
 			fp->mValueText.setPos(QPoint(attr.value("x").toString().toInt(),
 									   attr.value("y").toString().toInt()));
 			fp->mValueText.setAngle(attr.value("rot").toString().toInt());
 			fp->mValueText.setFontSize(attr.value("textSize").toString().toInt());
 			fp->mValueText.setStrokeWidth(attr.value("lineWidth").toString().toInt());
-			break;
 		}
 	}
 	return fp;
 }
 
-void Footprint::Clear()
+int Footprint::numPins() const
 {
-	m_name = "EMPTY_SHAPE";
-	m_author = "";
-	m_source = "";
-	m_desc = "";
-	m_units = MIL;
-	m_sel_xi = m_sel_yi = 0;
-	m_sel_xf = m_sel_yf = 500*NM_PER_MIL;
-	m_ref_size = 100*NM_PER_MIL;
-	m_ref_xi = 100*NM_PER_MIL;
-	m_ref_yi = 200*NM_PER_MIL;
-	m_ref_angle = 0;
-	m_ref_w = 10*NM_PER_MIL;
-	m_value_size = 100*NM_PER_MIL;		
-	m_value_xi = 100*NM_PER_MIL;
-	m_value_yi = 0;
-	m_value_angle = 0;
-	m_value_w = 10*NM_PER_MIL;
-	m_centroid_type = CENTROID_DEFAULT;
-	m_centroid_x = 0;
-	m_centroid_y = 0;
-	m_centroid_angle = 0;
-	m_padstack.clear();
-	m_outline_poly.clear();
-	m_tl->RemoveAllTexts();
-	m_glue.clear();
+	return mPins.size();
 }
 
-// copy another shape into this shape
-//
-int Footprint::Copy( Footprint * shape )
-{
-	// description
-	m_name = shape->m_name;
-	m_author = shape->m_author;
-	m_source = shape->m_source;
-	m_desc = shape->m_desc;
-	m_units = shape->m_units;
-	// selection box
-	m_sel_xi = shape->m_sel_xi;
-	m_sel_yi = shape->m_sel_yi;
-	m_sel_xf = shape->m_sel_xf;
-	m_sel_yf = shape->m_sel_yf;
-	// reference designator text
-	m_ref_size = shape->m_ref_size;
-	m_ref_w = shape->m_ref_w;
-	m_ref_xi = shape->m_ref_xi;
-	m_ref_yi = shape->m_ref_yi;
-	m_ref_angle = shape->m_ref_angle;
-	// value text
-	m_value_size = shape->m_value_size;
-	m_value_w = shape->m_value_w;
-	m_value_xi = shape->m_value_xi;
-	m_value_yi = shape->m_value_yi;
-	m_value_angle = shape->m_value_angle;
-	// centroid
-	m_centroid_type = shape->m_centroid_type;
-	m_centroid_x = shape->m_centroid_x;
-	m_centroid_y = shape->m_centroid_y;
-	m_centroid_angle = shape->m_centroid_angle;
-	// padstacks
-	m_padstack.RemoveAll();
-	int np = shape->m_padstack.GetSize();
-	m_padstack.SetSize( np );
-	for( int i=0; i<np; i++ )
-		m_padstack[i] = shape->m_padstack[i];
-	// outline polys
-	m_outline_poly.RemoveAll();
-	np = shape->m_outline_poly.GetSize();
-	m_outline_poly.SetSize(np);
-	for( int ip=0; ip<np; ip++ )
-		m_outline_poly[ip].Copy( &shape->m_outline_poly[ip] );
-	// text
-	m_tl->RemoveAllTexts();
-	for( int it=0; it<shape->m_tl->text_ptr.GetSize(); it++ )
-	{
-		Text * t = shape->m_tl->text_ptr[it];
-		m_tl->AddText( t->m_x, t->m_y, t->m_angle, t->m_mirror, t->m_bNegative, 
-			LAY_FP_SILK_TOP, t->m_font_size, t->m_stroke_width, &t->m_str, false );
-	}
-	// glue spots
-	int nd = shape->m_glue.GetSize();
-	m_glue.SetSize( nd );
-	for( int id=0; id<nd; id++ )
-		m_glue[id] = shape->m_glue[id];
-	return PART_NOERR;
-}
-
-bool Footprint::Compare( Footprint * shape )
-{
-	// parameters
-	if( m_name != shape->m_name 
-		|| m_author != shape->m_author 
-		|| m_source != shape->m_source 
-		|| m_desc != shape->m_desc 
-		|| m_sel_xi != shape->m_sel_xi 
-		|| m_sel_yi != shape->m_sel_yi 
-		|| m_sel_xf != shape->m_sel_xf 
-		|| m_sel_yf != shape->m_sel_yf 
-		|| m_ref_size != shape->m_ref_size 
-		|| m_ref_w != shape->m_ref_w 
-		|| m_ref_xi != shape->m_ref_xi 
-		|| m_ref_yi != shape->m_ref_yi 
-		|| m_ref_angle != shape->m_ref_angle 
-		|| m_value_size != shape->m_value_size 
-		|| m_value_w != shape->m_value_w 
-		|| m_value_xi != shape->m_value_xi 
-		|| m_value_yi != shape->m_value_yi 
-		|| m_value_angle != shape->m_value_angle )
-			return false;
-
-	// padstacks
-	int np = m_padstack.size();
-	if( np != shape->m_padstack.size() )
-		return false;
-	for( int i=0; i<np; i++ )
-	{
-		if(  !(m_padstack[i] == shape->m_padstack[i]) )
-			return false;
-	}
-	// outline polys
-	np = m_outline_poly.size();
-	if( np != shape->m_outline_poly.size() )
-		return false;
-	for( int ip=0; ip<np; ip++ )
-	{
-		if (m_outline_poly[ip].GetLayer() != shape->m_outline_poly[ip].GetLayer() ) return false;
-		if (m_outline_poly[ip].GetClosed() != shape->m_outline_poly[ip].GetClosed() ) return false;
-		if (m_outline_poly[ip].GetHatch() != shape->m_outline_poly[ip].GetHatch() ) return false;
-		if (m_outline_poly[ip].GetW() != shape->m_outline_poly[ip].GetW() ) return false;
-//		if (m_outline_poly[ip].GetSelBoxSize() != shape->m_outline_poly[ip].GetSelBoxSize() ) return false;
-		if (m_outline_poly[ip].GetNumCorners() != shape->m_outline_poly[ip].GetNumCorners() ) return false;
-		for( int ic=0; ic<m_outline_poly[ip].GetNumCorners(); ic++ )
-		{
-			if (m_outline_poly[ip].GetX(ic) != shape->m_outline_poly[ip].GetX(ic) ) return false;
-			if (m_outline_poly[ip].GetY(ic) != shape->m_outline_poly[ip].GetY(ic) ) return false;
-			if( ic<(m_outline_poly[ip].GetNumCorners()-1) || m_outline_poly[ip].GetClosed() )
-				if (m_outline_poly[ip].GetSideStyle(ic) != shape->m_outline_poly[ip].GetSideStyle(ic) ) return false;
-		}
-	}
-	// text
-	int nt = m_tl->text_ptr.GetSize();
-	if( nt != shape->m_tl->text_ptr.GetSize() )
-		return false;
-	for( int it=0; it<m_tl->text_ptr.GetSize(); it++ )
-	{
-		Text * t = m_tl->text_ptr[it];
-		Text * st = shape->m_tl->text_ptr[it];
-		if( t->m_x != st->m_x
-			|| t->m_y != st->m_y
-			|| t->m_layer != st->m_layer
-			|| t->m_angle != st->m_angle
-			|| t->m_mirror != st->m_mirror
-			|| t->m_font_size != st->m_font_size
-			|| t->m_stroke_width != st->m_stroke_width
-			|| t->m_str != st->m_str )
-			return false;
-	}
-	return true;
-}
-
-int Footprint::GetNumPins()
-{
-	return m_padstack.size();
-}
-
-int Footprint::GetPinIndexByName( QString name )
+const Pin* Footprint::getPin( const QString & name ) const
 {	
-	for( int ip=0; ip<m_padstack.size(); ip++ )
+	foreach(const Pin& p, mPins)
 	{
-		if( m_padstack[ip].name == name )
-			return ip;
+		if (p.name() == name)
+			return &p;
 	}
-	return -1;		// error
-}
-
-QString Footprint::GetPinNameByIndex( int ip )
-{
-	return m_padstack[ip].name;
+	return NULL;
 }
 
 // Get default centroid
 // if no pads, returns (0,0)
-QPoint Footprint::GetDefaultCentroid()
+QPoint Footprint::getDefaultCentroid()
 {
-	if( m_padstack.size() == 0 )
-		return CPoint(0,0);
-	QRect r = GetAllPadBounds();
-	return r.center();
+	if( numPins() == 0 )
+		return QPoint(0,0);
+	return getPinBounds().center();
 }
 
 // Get bounding rectangle of all pads
-// if no pads, returns with rect.left = INT_MAX:
-QRect Footprint::GetAllPadBounds()
+// if no pads, returns null rectangle
+QRect Footprint::getPinBounds() const
 {
 	QRect r;
-	int left, right, bottom, top;
-	left = bottom = INT_MAX;
-	right = top = INT_MIN;
-	for( int ip=0; ip<m_padstack.size(); ip++ )
+	foreach(const Pin& p, mPins)
 	{
-		QRect pad_r = GetPadBounds( ip );
-		left = min( left, pad_r.left() );
-		bottom = min( bottom, pad_r.bottom()+1 );
-		right = max( right, pad_r.right()+1 );
-		top = max( top, pad_r.top() );
+		r |= p.bbox();
 	}
 	return r;
 }
 
+// move to pin
+#if 0
 // Get bounding rectangle of pad
 //
 QRect Footprint::GetPadBounds( int i )
@@ -475,76 +410,30 @@ QRect Footprint::GetPadBounds( int i )
 	return QRect(ps->x_rel-dx, ps->y_rel-dy, 2*dx, 2*dy);
 
 }
-
-// Get bounding rectangle of row of pads
-//
-QRect Footprint::GetPadRowBounds( int i, int num )
-{
-	QRect r;
-	int left, right, bottom, top;
-	left = bottom = INT_MAX;
-	right = top = INT_MIN;
-	for( int ip=i; ip<(i+num); ip++ )
-	{
-		QRect pad_r = GetPadBounds( ip );
-		left = min( left, pad_r.left() );
-		bottom = min( bottom, pad_r.bottom()+1 );
-		right = max( right, pad_r.right()+1 );
-		top = max( top, pad_r.top() );
-	}
-	return r;
-}
+#endif
 
 // Get bounding rectangle of footprint
 //
-QRect Footprint::GetBounds( bool bIncludeLineWidths )
+QRect Footprint::bbox() const
 {
-	int left, right, bottom, top;
-	left = bottom = INT_MAX;
-	right = top = INT_MIN;
-	for( int ip=0; ip<GetNumPins(); ip++ )
+	QRect r = getPinBounds();
+	foreach(const Line& l, mOutlineLines)
 	{
-		QRect r = GetPadBounds( ip );
-		left = min( left, r.left() );
-		bottom = min( bottom, r.bottom()+1);
-		right = max( right, r.right()+1);
-		top = max( top, r.top());
+		r |= l.bbox();
 	}
-	for( int ip=0; ip<m_outline_poly.GetSize(); ip++ )
+	foreach(const Arc& a, mOutlineArcs)
 	{
-		QRect r;
-		if( bIncludeLineWidths )
-			r = m_outline_poly[ip].GetBounds();
-		else
-			r = m_outline_poly[ip].GetCornerBounds();
-		left = min( left, r.left() );
-		bottom = min( bottom, r.bottom()+1);
-		right = max( right, r.right()+1);
-		top = max( top, r.top());
+		r |= a.bbox();
 	}
-	QRect tr;
-	bool bText = m_tl->GetTextBoundaries( tr );
-	if( bText )
+	foreach(const Text& t, mTexts)
 	{
-		left = min( left, tr.left() );
-		bottom = min( bottom, tr.bottom()+1);
-		right = max( right, tr.right()+1);
-		top = max( top, tr.top());
+		r |= t.bbox();
 	}
-	if(	left == INT_MAX || bottom == INT_MAX || right == INT_MIN || top == INT_MIN )
-	{
-		// no elements, make it a 100 mil square
-		left = 0;
-		right = 100*NM_PER_MIL;
-		bottom = 0;
-		top = 100*NM_PER_MIL;
-	}
-	return QRect(left, bottom, right-left, top-bottom);
+
+	// should this be included?
+	//r |= mRefText.bbox();
+	//r |= mValueText.bbox();
+
+	return r;
 }
 
-// Get bounding rectangle of footprint, not including polyline widths
-//
-QRect Footprint::GetCornerBounds()
-{
-	return GetBounds( false );
-}

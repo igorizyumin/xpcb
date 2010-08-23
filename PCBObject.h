@@ -27,7 +27,7 @@ public:
 	virtual void draw(QPainter *painter, PCBLAYER layer) = 0;
 
 	/// Returns the object's bounding box
-	virtual const QRect& bbox() = 0;
+	virtual QRect bbox() const = 0;
 
 	/// Returns the unique object identifier
 	/// \return object ID

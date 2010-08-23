@@ -6,7 +6,7 @@
 #include "PCBDoc.h"
 #include "Polygon.h"
 
-Area::Area(PCBDoc *doc) :
+Area::Area(const PCBDoc *doc) :
 		mDoc(doc), mNet(NULL), mConnectSMT(true),
 		mPoly(NULL), mLayer(LAY_UNKNOWN), mHatchStyle(NO_HATCH)
 {
@@ -15,6 +15,17 @@ Area::Area(PCBDoc *doc) :
 Area::~Area()
 {
 	delete mPoly;
+}
+
+void Area::draw(QPainter *painter, PCBLAYER layer)
+{
+	// XXX TODO draw via if needed
+}
+
+QRect Area::bbox() const
+{
+	// XXX TODO do something useful here
+	return QRect();
 }
 
 void Area::findConnections()
@@ -30,27 +41,21 @@ void Area::findConnections()
 	foreach(PartPin* pin, pins)
 	{
 		// see if pin is on the right layer
-		PCBLAYER pin_layer = pin->getLayer();
-		bool isSMT = (pin_layer == LAY_PAD_THRU);
+		Pad pad = pin->getPadOnLayer(layer);
 
-		if( isSMT && pin_layer != layer )
-			continue;	// SMT pad not on our layer
-
-		// get the pad for the appropriate layer
-		Pad pad;
-		if (!pin->getPadOnLayer(layer, pad))
+		if (pad.isNull())
 			continue; // no pad on this layer
 
-		if( pad.connFlag() == PAD_CONNECT_NEVER )
+		if( pad.connFlag() == Pad::PAD_CONNECT_NEVER )
 			continue;	// pad never allowed to connect
 
-		if( pad.connFlag() == PAD_CONNECT_DEFAULT
-			&& isSMT && !mConnectSMT )
+		if( pad.connFlag() == Pad::PAD_CONNECT_DEFAULT
+			&& pin->isSmt() && !mConnectSMT )
 			continue;	// SMT pad, not allowed to connect to this area
 
 		// add to list if pad is inside copper area
-		if( mPoly->testPointInside(pin->getPos()) )
-			this->mConnPins.append(pin);
+		if( mPoly->testPointInside(pin->pos()) )
+			this->mConnPins.insert(pin);
 	}
 
 	// find all vertices within copper area
@@ -58,32 +63,27 @@ void Area::findConnections()
 	mConnVtx = tl.getVerticesInArea(*this);
 }
 
-bool Area::pointInside(const QPoint &p)
+bool Area::pointInside(const QPoint &p) const
 {
 	if (!mPoly) return false;
 	return mPoly->testPointInside(p);
 }
 
-Area* Area::newFromXML(QXmlStreamReader &reader, PCBDoc &doc)
+Area* Area::newFromXML(QXmlStreamReader &reader, const PCBDoc &doc)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "area");
 
 	QXmlStreamAttributes attr = reader.attributes();
 	Area* a = new Area(&doc);
-	a->mNet = doc.getNet(attr.value("net"));
+	a->mNet = doc.getNet(attr.value("net").toString());
 	a->mLayer = (PCBLAYER) attr.value("layer").toString().toInt();
-	switch(attr.value("hatch"))
-	{
-	case "none":
+	QStringRef t = attr.value("hatch");
+	if (t == "none")
 		a->mHatchStyle = Area::NO_HATCH;
-		break;
-	case "full":
+	else if (t == "full")
 		a->mHatchStyle = Area::DIAGONAL_FULL;
-		break;
-	case "edge":
+	else if (t == "edge")
 		a->mHatchStyle = Area::DIAGONAL_EDGE;
-		break;
-	}
 	a->mConnectSMT = (attr.value("connectSmt") == "1");
 	reader.readNextStartElement();
 	a->mPoly = Polygon::newFromXML(reader);

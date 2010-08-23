@@ -3,7 +3,7 @@
 
 #include <QMainWindow>
 #include <QLabel>
-#include "ui_MainWindow.h"
+#include "ui_mainwindow.h"
 #include "GridToolbarWidget.h"
 
 class MainWindow : public QMainWindow, private Ui::MainWindowClass

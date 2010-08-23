@@ -1,7 +1,3 @@
-
-//------------------------------------------------------------------
-//+CRi+H  Start of CRi header block
-//------------------------------------------------------------------
 //               Copyright 1996 Coherent Research Inc.
 //      Author:Randy More
 //     Created:11/6/96
@@ -11,9 +7,7 @@
 //
 //				  $Author: Allan $ $Date: 2003/08/03 23:51:52 $
 //                Added this header block and comment blocks
-//------------------------------------------------------------------
-//-CRi-H  End of CRi header block
-//------------------------------------------------------------------
+
 #include <math.h>
 #include "smcharacter.h"
 #include "smfontutil.h"
@@ -22,9 +16,9 @@
 #include <QPainter>
 #include <QList>
 
-QString smfpath;
-QString smffile = "Hershey.smf";
-QString xtbfile = "Hershey.xtb";
+static QString smfpath;
+static QString smffile = "Hershey.smf";
+static QString xtbfile = "Hershey.xtb";
 
 #define BASE_CHARACTER_WIDTH 16.0
 #define BASE_CHARACTER_HEIGHT 22.0
@@ -32,15 +26,15 @@ QString xtbfile = "Hershey.xtb";
 #define WADJUST 1.5
 #define HADJUST 1.0
 
+SMFontUtil* SMFontUtil::mInstance = NULL;
 
-static SMFontUtil & SMFontUtil::instance()
+SMFontUtil & SMFontUtil::instance()
 {
-	if (!this->myInstance)
+	if (!SMFontUtil::mInstance)
 	{
-		myInstance = new SMFontUtil(smffile);
+		SMFontUtil::mInstance = new SMFontUtil(smffile);
 	}
-	else
-		return *myInstance;
+	return *(SMFontUtil::mInstance);
 }
 
 
@@ -62,10 +56,9 @@ static SMFontUtil & SMFontUtil::instance()
 //-CRi-M  End of CRi method block
 //------------------------------------------------------------------
 
-SMFontUtil::SMFontUtil(QString path)
+SMFontUtil::SMFontUtil(const QString & path)
 {
 	smfpath = path;
-	cCharCount = 0;
 	int outer, inner;
 	for(outer = 0; outer < 12; outer++)
 	{
@@ -75,8 +68,7 @@ SMFontUtil::SMFontUtil(QString path)
 		}
 	}
 	int err = LoadFontData();
-	if( err )
-		ASSERT(0);
+	Q_ASSERT(!err);
 	LoadXlationData();
 }
 
@@ -100,12 +92,8 @@ SMFontUtil::SMFontUtil(QString path)
 //------------------------------------------------------------------
 SMFontUtil::~SMFontUtil()
 {
-	unsigned int itter;
-	SMCharacter * chr;
-
-	for(itter=0; itter<cCharCount; itter++)
+	foreach(SMCharacter* chr, SMCharList)
 	{
-		chr = SMCharList[itter];
 		delete chr;
 	}
 }
@@ -139,7 +127,7 @@ int SMFontUtil::LoadFontData(void)
 {
 
 	SMCharacter * chr;
-	quint32 loop;
+	quint32 numChars;
 	QString full_path = smfpath + "/" + smffile;
 	QFile infile(full_path);
 	if(!infile.open(QIODevice::ReadOnly))
@@ -148,19 +136,18 @@ int SMFontUtil::LoadFontData(void)
 		return 1;
 	}
 
-	infile.read((const char*)&loop, 4);
-	if (loop <= 0)
+	infile.read((char*)&numChars, 4);
+	if (numChars <= 0)
 	{
-		ASSERT(0);
+		Q_ASSERT(0);
 		return 1;
 	}
-	for(cCharCount = 0; cCharCount < loop; cCharCount++)
+	for(unsigned int i = 0; i < numChars; i++)
 	{
-		chr = new SMCharacter;
+		chr = new SMCharacter();
 		chr->Read(infile);
 		SMCharList.append(chr);
 	}
-	cCharCount = loop;
 	infile.close();
 	return 0;
 
@@ -210,7 +197,7 @@ int SMFontUtil::LoadXlationData(void)
 			{
 				if(!infile.atEnd())
 				{
-					infile.read((const char*)(&k), 4);
+					infile.read((char*)(&k), 4);
 					cXlationTable[i][j] = k;
 				}
 			}
@@ -221,7 +208,7 @@ int SMFontUtil::LoadXlationData(void)
 			{
 				if(!infile.atEnd())
 				{
-					infile.read((const char*)(&k), 4);
+					infile.read((char*)(&k), 4);
 					cXlationTable[i][j] = k;
 				}
 			}
@@ -307,15 +294,14 @@ void SMFontUtil::SaveXlationData(void)
 //------------------------------------------------------------------
 void SMFontUtil::SaveFontData(void)
 {
-	quint32 loop;
+	quint32 numChars;
 	QFile outfile(smffile);
-	loop = cCharCount;
+	numChars = SMCharList.size();
 	if (!outfile.open(QIODevice::WriteOnly)) return;
-	outfile.write((const char*)(&loop), 4);
-	for(loop = 0; loop < cCharCount; loop++)
+	outfile.write((const char*)(&numChars), 4);
+	for(quint32 i = 0; i < numChars; i++)
 	{
-		SMCharList[loop]->Write(outfile);
-		
+		SMCharList[i]->Write(outfile);
 	}
 	outfile.close();
 
@@ -357,19 +343,19 @@ int SMFontUtil::GetCharID(unsigned char pCharValue,
 	return(cXlationTable[index][charindex]);
 }
 
-
+#if 0
 void SMFontUtil::DrawString(
 	QPainter *painter,				//painter to draw to
-	QPoint pStart,			//starting point
+	const QPoint & pStart,			//starting point
 	double pRotation,		//rotation angle clockwise in radians (0 = 12:00)
 	double pCharWidth,		//width of each character
 	double pCharHeight,		//height of each character
 	FONT_TYPE pFontType,	//the font to use
-	QString pString)		//the string
+	const QString & pString)		//the string
 {
-	int curx = pStart.x;
-	int cury = pStart.y;
-	int length = pString.GetLength();
+	int curx = pStart.x();
+	int cury = pStart.y();
+	int length = pString.length();
 	double x_scale = (pCharWidth / WADJUST) / BASE_CHARACTER_WIDTH;
 	double y_scale = (pCharHeight / HADJUST)  / BASE_CHARACTER_HEIGHT;
 
@@ -420,6 +406,7 @@ void SMFontUtil::DrawString(
 		cury += (int)deltay;
 	}
 }
+#endif
 
 // GetCharStrokes ... get description of font character including array of strokes
 //
@@ -506,10 +493,9 @@ int SMFontUtil::GetCharStrokes( char ch, FONT_TYPE pFont, double * min_x, double
 // returns list of QPainterPaths for character
 // appends things to the paths list, does not clear bbox
 int SMFontUtil::GetCharPath( char ch, FONT_TYPE pFont, QPoint offset, double scale,
-							 QRect &bbox, QList<QPainterPath*> &paths )
+							 QRect &bbox, QList<QPainterPath> &paths )
 {
 	double x, y;
-	QPainterPath* path = NULL;
 
 	int charid = GetCharID( ch, pFont );
 
@@ -522,6 +508,10 @@ int SMFontUtil::GetCharPath( char ch, FONT_TYPE pFont, QPoint offset, double sca
 	int iter;
 	result = chr->GetFirstVertex( chrvertex, iter );
 
+	Q_ASSERT(result == SMCharacter::MOVE_TO);
+	QPainterPath path(QPoint(int(chrvertex.X * scale), int(-chrvertex.Y * scale)));
+	result = chr->GetNextVertex( chrvertex, iter );
+
 	while( result != SMCharacter::TERMINATE )
 	{
 		x = chrvertex.X * scale;
@@ -529,22 +519,18 @@ int SMFontUtil::GetCharPath( char ch, FONT_TYPE pFont, QPoint offset, double sca
 
 		if( result == SMCharacter::MOVE_TO )
 		{
-			if (path)
-			{
-				path->translate(offset);
-				paths.append(path);
-				bbox |= path->boundingRect();
-			}
-			path = new QPainterPath(x, y);
+			path.translate(offset);
+			paths.append(path);
+			bbox |= path.boundingRect().toRect();
+			path = QPainterPath(QPoint(x, y));
 		}
 		else if( result == SMCharacter::DRAW_TO )
-			path->lineTo(x, y);
+			path.lineTo(x, y);
 		result = chr->GetNextVertex( chrvertex, iter );
 	}
-	ASSERT(path);
-	path->translate(offset);
+	path.translate(offset);
 	paths.append(path);
-	bbox |= path->boundingRect();
+	bbox |= path.boundingRect().toRect();
 
 	return paths.size();
 

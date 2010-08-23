@@ -15,35 +15,76 @@ PolygonList::PolygonList(const PAREA *from)
 
 PolygonList::PolygonList(const Polygon &from)
 {
-	this->insert(from);
+	this->insert(new Polygon(from));
 }
 
-PAREA* PolygonList::toPareaList()
+PolygonList::PolygonList(const PolygonList &from)
+	: QSet<Polygon*>::QSet()
+{
+	foreach(const Polygon* p, from)
+	{
+		this->insert(new Polygon(*p));
+	}
+}
+
+PolygonList::~PolygonList()
+{
+	removeAll();
+}
+
+const PolygonList& PolygonList::operator=(const PolygonList& rhs)
+{
+	// check for self-assignment
+	if (&rhs == this)
+		return *this;
+	removeAll();
+	foreach(const Polygon* p, rhs)
+	{
+		this->insert(new Polygon(*p));
+	}
+	return *this;
+}
+
+void PolygonList::removeAll()
+{
+	foreach(Polygon* p, *this)
+	{
+		delete p;
+	}
+	this->clear();
+}
+
+void PolygonList::removeElement(Polygon *p)
+{
+	delete p;
+	this->remove(p);
+}
+
+PAREA* PolygonList::toPareaList() const
 {
 	PAREA* ret = NULL;
-	foreach(Polygon& p, this)
+	foreach(Polygon* p, *this)
 	{
-		PAREA* pa = p.getParea();
+		PAREA* pa = p->getParea();
 		PAREA::JoinLists(&ret, &pa);
 	}
 	return ret;
 }
 
-void PolygonList::rebuildFromParea(PAREA* a)
+
+void PolygonList::rebuildFromParea(const PAREA* a)
 {
-	this->clear();
+	removeAll();
 	// iterate over result polygons
 	if (a == NULL)
 		return;
-	PAREA *curr = a;
+	const PAREA *curr = a;
 	do
 	{
 		if (curr->cntr)
 		{
-			// make new polygon
-			Polygon p(curr);
 			// add to polylist
-			this->insert(p);
+			this->insert(new Polygon(curr));
 		}
 		else
 			Q_ASSERT(false);
@@ -55,19 +96,19 @@ void PolygonList::rebuildFromParea(PAREA* a)
 PolygonList& PolygonList::operator|=(const Polygon& rhs)
 {
 	// check if rhs intersects anything in the list
-	foreach(Polygon& p, this)
+	foreach(Polygon* p, *this)
 	{
-		if (p.intersects(rhs))
+		if (p->intersects(rhs))
 		{
 			// found intersection, combine with another poly
-			this->unite(p.united(rhs));
-			this->remove(p);
+			this->unite(p->united(rhs));
+			this->removeElement(p);
 			return *this;
 		}
 	}
 
 	// does not intersect any of the polygons in list, just add it
-	this->insert(rhs);
+	this->insert(new Polygon(rhs));
 	return *this;
 }
 
@@ -116,36 +157,36 @@ PolygonList& PolygonList::operator-=(const PolygonList& rhs)
 
 PolygonList& PolygonList::operator|(const PolygonList& rhs) const
 {
-	PolygonList p(this);
+	PolygonList p(*this);
 	return p |= rhs;
 }
 
 PolygonList& PolygonList::operator&(const PolygonList& rhs) const
 {
-	PolygonList p(this);
+	PolygonList p(*this);
 	return p &= rhs;
 }
 
 PolygonList& PolygonList::operator-(const PolygonList& rhs) const
 {
-	PolygonList p(this);
+	PolygonList p(*this);
 	return p -= rhs;
 }
 
 PolygonList& PolygonList::operator|(const Polygon& rhs) const
 {
-	PolygonList p(this);
+	PolygonList p(*this);
 	return p |= rhs;
 }
 
 PolygonList& PolygonList::operator&(const Polygon& rhs) const
 {
-	PolygonList p(this);
+	PolygonList p(*this);
 	return p &= rhs;
 }
 
 PolygonList& PolygonList::operator-(const Polygon& rhs) const
 {
-	PolygonList p(this);
+	PolygonList p(*this);
 	return p -= rhs;
 }

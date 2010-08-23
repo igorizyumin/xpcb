@@ -14,7 +14,7 @@ Net* Net::newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
 	Q_ASSERT(reader.isStartElement() && reader.name() == "net");
 
 	QXmlStreamAttributes attr = reader.attributes();
-	Net* n = new Net(doc, attr.value("name"));
+	Net* n = new Net(doc, attr.value("name").toString());
 	if (attr.hasAttribute("visible"))
 	{
 		bool visible = attr.value("visible").toString() == "1";
@@ -37,9 +37,9 @@ Net* Net::newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
 	{
 		Q_ASSERT(reader.isStartElement() && reader.name() == "pinRef");
 		attr = reader.attributes();
-		QString refdes = attr.value("partref");
-		QString pinname = attr.value("pinname");
-		PartPin* pin = doc->getPart(refdes)->GetPin(pinname);
+		QString refdes = attr.value("partref").toString();
+		QString pinname = attr.value("pinname").toString();
+		PartPin* pin = doc->getPart(refdes)->getPin(pinname);
 		Q_ASSERT(pin != NULL);
 		n->mPins.insert(pin);
 	}
@@ -49,136 +49,35 @@ Net* Net::newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
 
 Net::~Net()
 {
-	// remove pointers to net from pins on part
-	for( int ip=0; ip<pin.size(); ip++ )
+	// disconnect pins from net
+	foreach(PartPin* p, mPins)
 	{
-		Part * part = pin.at(ip).part;
-		if( part )
-			part->GetPin(pin.at(ip).pin_name).setNet(NULL);
-	}
-}
-
-void Net::moveOrigin(QPoint delta)
-{
-	// TODO move this to appropriate classes
-	for( int ic=0; ic<connect.size(); ic++ )
-	{
-		Trace * c =  &net->connect[ic];
-		UndrawConnection( net, ic );
-		for( int iv=0; iv<=c->nsegs; iv++ )
-		{
-			cvertex * v = &c->vtx[iv];
-			v->x += x_off;
-			v->y += y_off;
-		}
-		DrawConnection( net, ic );
-	}
-	for( int ia=0; ia<net->area.GetSize(); ia++ )
-	{
-		carea * a = &net->area[ia];
-		a->poly->MoveOrigin( x_off, y_off );
-		SetAreaConnections( net, ia );
+		p->setNet(NULL);
 	}
 }
 
 // Add new pin to net
 //
-void Net::AddPin( PartPin* newpin, bool set_areas )
+void Net::addPin( PartPin* newpin )
 {
-	pin.append(newpin);
+	mPins.insert(newpin);
 	newpin->setNet(this);
-
-	// adjust connections to areas
-	if( net->nareas && set_areas )
-		SetAreaConnections();
 }
 
-void Net::RemovePin(PartPin* p, bool set_areas)
+void Net::removePin(PartPin* p)
 {
-	// Remove all connections to this pin
-	for(int i = 0; i < connect.size(); i++)
-	{
-		if (connect[i].hasPin(p))
-		{
-			RemoveConnect(i, false);
-			i--;
-		}
-	}
 	// Disconnect from net
 	p->setNet(NULL);
 	// Remove from net
-	pin.remove(p);
-
-	// adjust connections to areas
-	if( net->nareas && set_areas )
-		SetAreaConnections();
+	mPins.remove(p);
 }
 
-
-// Add new connection to net, consisting of one unrouted segment
-// start/end are part pins
-// if end is null, a stub is added
-void Net::AddNetConnect(PartPin* start, PartPin* end )
+void Net::draw(QPainter *painter, PCBLAYER layer)
 {
-	Trace c(start, end);
-	connect.append(c);
+
 }
 
-// Remove connection from net
-// Does not remove any orphaned branches that result
-// Leave pins in pin list for net
-//
-void Net::RemoveConnect( int ic, bool set_areas )
+QRect Net::bbox() const
 {
-	Trace * c = &connect[ic];
-	if( c->endPin() == NULL )
-	{
-		// stub
-		if( c->vtx[c->nsegs].tee_ID )
-		{
-			// stub trace ending on tee, remove tee
-			DisconnectBranch( net, ic );
-		}
-	}
-
-	// see if contains tee-vertices
-	for( int iv=1; iv<c->nsegs; iv++ )
-	{
-		int id = c->vtx[iv].tee_ID;
-		if( id )
-			RemoveTee( net, id );	// yes, remove it
-	}
-
-	// remove connection
-	net->connect.RemoveAt( ic );
-	net->nconnects = net->connect.GetSize();
-	RenumberConnections( net );
-	// adjust connections to areas
-	if( net->nareas && set_areas )
-		SetAreaConnections( net );
-	return 0;
-}
-
-// test for hit on any pad on this net
-// returns NULL if not found, otherwise returns pin
-//
-PartPin* Net::TestHitOnPin( QPoint pt, PCBLAYER layer)
-{
-	foreach(PartPin* p, pin)
-		if (p->TestHit(pt, layer))
-			return p;
-	return NULL;
-}
-
-// Clean up connections by removing connections with no segments,
-// removing zero-length segments and combining segments
-//
-void Net::CleanUpConnections()
-{
-	for( int ic=connect.size()-1; ic>=0; ic-- )
-	{
-		connect[ic].cleanup();
-		if (connect[ic].isVoid())
-			RemoveConnect(ic, false);
-	}
+	return QRect();
 }

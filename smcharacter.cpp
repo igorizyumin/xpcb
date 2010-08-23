@@ -11,7 +11,7 @@
 //------------------------------------------------------------------
 //-CRi-H  End of CRi header block
 //------------------------------------------------------------------
-#include "SMCharacter.h"
+#include "smcharacter.h"
 #include <QFile>
 
 
@@ -111,13 +111,13 @@ SMCharacter::~SMCharacter()
 //------------------------------------------------------------------
 void SMCharacter::Read(QFile & infile)
 {
-	infile.read((const char*)(&cVertexCount), 4);
-	ASSERT(cVertexCount > 0);
+	infile.read((char*)(&cVertexCount), 4);
+	Q_ASSERT(cVertexCount > 0);
 	cVertex = new CharVertex[cVertexCount];
-	ASSERT(cVertex);
+	Q_ASSERT(cVertex);
 	if (cVertex)
 	{
-		infile.read((const char*)cVertex,sizeof(CharVertex)*cVertexCount);
+		infile.read((char*)cVertex,sizeof(CharVertex)*cVertexCount);
 	}
 }
 

@@ -4,12 +4,42 @@
 #include <QXmlStreamReader>
 #include <QtXmlPatterns/QXmlSchema>
 #include <QtXmlPatterns/QXmlSchemaValidator>
+#include "Polygon.h"
+#include "Area.h"
 
 PCBDoc::PCBDoc()
 {
 }
 
+Footprint* PCBDoc::getFootprint(const QString &name)
+{
+	foreach(Footprint* fp, mFootprints)
+	{
+		if (fp->name() == name)
+			return fp;
+	}
+	return NULL;
+}
 
+Part* PCBDoc::getPart(const QString &refdes)
+{
+	foreach(Part* p, mParts)
+	{
+		if (p->refdes() == refdes)
+			return p;
+	}
+	return NULL;
+}
+
+Net* PCBDoc::getNet(const QString &name) const
+{
+	foreach(Net* p, mNets)
+	{
+		if (p->name() == name)
+			return p;
+	}
+	return NULL;
+}
 
 
 //////// XML PARSING /////////
@@ -18,10 +48,10 @@ void loadProps(QXmlStreamReader &reader, QString &name, UNIT &units, int &defaul
 void loadPadstacks(QXmlStreamReader &reader, QHash<int, Padstack*> &padstacks);
 void loadFootprints(QXmlStreamReader &reader, QList<Footprint*> &footprints, const QHash<int, Padstack*> &padstacks);
 void loadOutline(QXmlStreamReader &reader, Polygon *& poly);
-void loadParts(QXmlStreamReader &reader, QList<Part*> parts);
-void loadNets(QXmlStreamReader &reader, QList<Net*> nets);
-void loadAreas(QXmlStreamReader &reader, QList<Area*> areas);
-void loadTexts(QXmlStreamReader &reader, QList<Text*> texts);
+void loadParts(QXmlStreamReader &reader, QList<Part*> parts, PCBDoc* doc);
+void loadNets(QXmlStreamReader &reader, QList<Net*> nets, PCBDoc* doc, const QHash<int, Padstack*> &padstacks);
+void loadAreas(QXmlStreamReader &reader, QList<Area*> areas, PCBDoc *doc);
+void loadTexts(QXmlStreamReader &reader, QList<Text> texts);
 
 
 bool validateFile(QIODevice &file)
@@ -46,7 +76,7 @@ bool validateFile(QIODevice &file)
 	return validator.validate(&file);
 }
 
-bool PCBDoc::loadFile(const QString &file)
+bool PCBDoc::loadFromFile(const QString &file)
 {
 	QFile inFile(file);
 	if (!inFile.open(QIODevice::ReadOnly))
@@ -63,47 +93,34 @@ bool PCBDoc::loadFile(const QString &file)
 	}
 
 	inFile.reset();
-	QXmlStreamReader reader(inFile);
+	QXmlStreamReader reader(&inFile);
 
 	// default padstack id
 	int defaultPS;
 
-	while(!reader.atEnd() && !reader.hasError())
+	QHash<int, Padstack*> padstacks;
+
+	while(reader.readNextStartElement())
 	{
-		QXmlStreamReader::TokenType tok = reader.readNext();
-		if (tok == QXmlStreamReader::StartElement)
-		{
-			switch(reader.name())
-			{
-			case "props":
-				loadProps(reader, mName, mUnits, defaultPS );
-				break;
-			case "padstacks":
-				loadPadstacks(reader);
-				break;
-			case "footprints":
-				loadFootprints(reader);
-				break;
-			case "outline":
-				loadOutline(reader);
-				break;
-			case "parts":
-				loadParts(reader);
-				break;
-			case "nets":
-				loadNets(reader);
-				break;
-			case "traces":
-				mTraceList = TraceList::newFromXML(reader);
-				break;
-			case "areas":
-				loadAreas(reader);
-				break;
-			case "texts":
-				loadTexts(reader);
-				break;
-			}
-		}
+		QStringRef t = reader.name();
+		if (t == "props")
+			loadProps(reader, mName, mUnits, defaultPS );
+		else if (t == "padstacks")
+			loadPadstacks(reader, padstacks);
+		else if (t == "footprints")
+			loadFootprints(reader, this->mFootprints, padstacks);
+		else if (t == "outline")
+			loadOutline(reader, this->mBoardOutline);
+		else if (t == "parts")
+			loadParts(reader, this->mParts, this);
+		else if (t == "nets")
+			loadNets(reader, this->mNets, this, padstacks);
+		else if (t == "traces")
+			mTraceList->loadFromXml(reader);
+		else if (t == "areas")
+			loadAreas(reader, this->mAreas, this);
+		else if (t == "texts")
+			loadTexts(reader, this->mTexts);
 	}
 	if (reader.hasError())
 	{
@@ -115,28 +132,24 @@ bool PCBDoc::loadFile(const QString &file)
 
 void loadProps(QXmlStreamReader &reader, QString &name, UNIT &units, int &defaultps)
 {
-	while(!reader.atEnd() && !reader.hasError())
+	while(reader.readNextStartElement())
 	{
-		QXmlStreamReader::TokenType tok = reader.readNext();
-		if (tok == QXmlStreamReader::EndElement)
-			return; // end of properties block
-		if (tok != QXmlStreamReader::StartElement)
-			continue; // comments, etc.
-		switch(reader.name())
+		QStringRef t = reader.name();
+		if (t == "name")
 		{
-		case "name":
 			name = reader.readElementText();
-			break;
-		case "units":
+		}
+		else if (t == "units")
+		{
 			QString unitsStr = reader.readElementText();
 			if (unitsStr == "mm")
 				units = MM;
 			else if (unitsStr == "mils")
 				units = MIL;
-			break;
-		case "defaultPadstack":
+		}
+		else if (t == "defaultPadstack")
+		{
 			defaultps = reader.readElementText().toInt();
-			break;
 		}
 	}
 }
@@ -188,110 +201,62 @@ void loadFootprints(QXmlStreamReader &reader, QList<Footprint*> &footprints, con
 
 void loadOutline(QXmlStreamReader &reader, Polygon *& poly)
 {
-	while(!reader.atEnd() && !reader.hasError())
+	reader.readNextStartElement();
+	poly = Polygon::newFromXML(reader);
+	if (!poly)
 	{
-		QXmlStreamReader::TokenType tok = reader.readNext();
-		if (tok == QXmlStreamReader::EndElement)
-			return; // end of outline block
-		if (tok != QXmlStreamReader::StartElement)
-			continue; // comments, etc.
-		if (reader.name() == "polyline")
-		{
-			poly = Polygon::newFromXML(reader);
-			if (!poly)
-			{
-				Log::instance().error("Error loading board outline");
-			}
-		}
+		Log::instance().error("Error loading board outline");
 	}
 }
 
-void loadParts(QXmlStreamReader &reader, QList<Part*> parts)
+void loadParts(QXmlStreamReader &reader, QList<Part*> parts, PCBDoc *doc)
 {
-	while(!reader.atEnd() && !reader.hasError())
+	while(reader.readNextStartElement())
 	{
-		QXmlStreamReader::TokenType tok = reader.readNext();
-		if (tok == QXmlStreamReader::EndElement)
-			return; // end of parts block
-		if (tok != QXmlStreamReader::StartElement)
-			continue; // comments, etc.
-		if (reader.name() == "part")
+		Part* part = Part::newFromXML(reader, doc);
+		if (!part)
 		{
-			Part* part = Part::newFromXML(reader);
-			if (!part)
-			{
-				Log::instance().error("Error loading part");
-			}
-			else
-				parts.append(part);
+			Log::instance().error("Error loading part");
 		}
+		else
+			parts.append(part);
 	}
 }
 
-void loadNets(QXmlStreamReader &reader, QList<Net*> nets)
+void loadNets(QXmlStreamReader &reader, QList<Net*> nets, PCBDoc *doc, const QHash<int, Padstack*> &padstacks)
 {
-	while(!reader.atEnd() && !reader.hasError())
+	while(reader.readNextStartElement())
 	{
-		QXmlStreamReader::TokenType tok = reader.readNext();
-		if (tok == QXmlStreamReader::EndElement)
-			return; // end of nets block
-		if (tok != QXmlStreamReader::StartElement)
-			continue; // comments, etc.
-		if (reader.name() == "net")
+		Net* net = Net::newFromXML(reader, doc, padstacks);
+		if (!net)
 		{
-			Net* net = Net::newFromXML(reader);
-			if (!net)
-			{
-				Log::instance().error("Error loading net");
-			}
-			else
-				nets.append(net);
+			Log::instance().error("Error loading net");
 		}
+		else
+			nets.append(net);
 	}
 }
 
 
-void loadAreas(QXmlStreamReader &reader, QList<Area*> areas)
+void loadAreas(QXmlStreamReader &reader, QList<Area*> areas, PCBDoc *doc)
 {
-	while(!reader.atEnd() && !reader.hasError())
+	while(reader.readNextStartElement())
 	{
-		QXmlStreamReader::TokenType tok = reader.readNext();
-		if (tok == QXmlStreamReader::EndElement)
-			return; // end of areas block
-		if (tok != QXmlStreamReader::StartElement)
-			continue; // comments, etc.
-		if (reader.name() == "area")
+		Area* area = Area::newFromXML(reader, *doc);
+		if (!area)
 		{
-			Area* area = Area::newFromXML(reader);
-			if (!area)
-			{
-				Log::instance().error("Error loading area");
-			}
-			else
-				areas.append(part);
+			Log::instance().error("Error loading area");
 		}
+		else
+			areas.append(area);
 	}
 }
 
-void loadTexts(QXmlStreamReader &reader, QList<Text*> texts)
+void loadTexts(QXmlStreamReader &reader, QList<Text> texts)
 {
-	while(!reader.atEnd() && !reader.hasError())
+	while(reader.readNextStartElement())
 	{
-		QXmlStreamReader::TokenType tok = reader.readNext();
-		if (tok == QXmlStreamReader::EndElement)
-			return; // end of texts block
-		if (tok != QXmlStreamReader::StartElement)
-			continue; // comments, etc.
-		if (reader.name() == "text")
-		{
-			Text* text = Text::newFromXML(reader);
-			if (!text)
-			{
-				Log::instance().error("Error loading text");
-			}
-			else
-				texts.append(text);
-		}
+		texts.append(Text::newFromXML(reader));
 	}
 }
 

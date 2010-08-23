@@ -19,12 +19,16 @@ public:
 	Net( PCBDoc *doc, const QString &name);
 	~Net();
 
-	QString name() {return name;}
-	void AddPin( PartPin * pin, bool set_areas=true );
-	PartPin* TestHitOnPin( QPoint pt, PCBLAYER layer);
+	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual QRect bbox() const;
+
+	QString name() {return mName;}
+	void addPin( PartPin * pin);
+	void removePin( PartPin * pin);
 	QSet<PartPin*> getPins() { return mPins; }
 
-	static Net* newFromXML(QXmlStreamReader &reader);
+	static Net* newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
+						   const QHash<int, Padstack*> &padstacks);
 private:
 	PCBDoc * mDoc;	// PCB document
 	QString mName;		// net name

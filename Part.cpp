@@ -1,105 +1,72 @@
 #include "Part.h"
-#include "utility.h"
-#include "Netlist.h"
 #include "PCBDoc.h"
 #include "Log.h"
 
-PCBLAYER PartPin::getLayer()
+
+///////////////////// PART PIN /////////////////////
+
+PartPin::~PartPin()
 {
-	Padstack *ps = mPin->getPadstack();
-	if( ps->getHole() )
-		return LAY_PAD_THRU;
-	else if( part->getSide() == SIDE_TOP && !ps->getStartPad().isNull()
-		|| part->getSide() == SIDE_BOTTOM && !ps->getEndPad().isNull() )
-		return LAY_TOP_COPPER;
-	else
-		return LAY_BOTTOM_COPPER;
+	if (mNet)
+		mNet->removePin(this);
 }
 
-bool PartPin::getPadOnLayer(PCBLAYER layer, Pad &pad)
+Pad PartPin::getPadOnLayer(PCBLAYER layer) const
 {
-	if (layer < LAY_PAD_THRU)
-		return false; // non-copper layer
+	return mPin->getPadOnLayer(mapLayer(layer));
+}
 
-	Padstack *ps = mPin->getPadstack();
+Pin::PINLAYER PartPin::mapLayer(PCBLAYER layer) const
+{
+	if (layer <= LAY_PAD_THRU || layer == LAY_UNKNOWN)
+		return Pin::LAY_UNKNOWN;
+
 	PCBSIDE side = mPart->getSide();
-
-	if( ps->getHole() == 0 )
-	{
-		// SMT pad
-		if( layer == LAY_TOP_COPPER && side == SIDE_TOP ||
-			layer == LAY_BOTTOM_COPPER && side == SIDE_BOTTOM)
-			pad = ps->getStartPad();
-		else
-			return false;
-	}
+	if ((layer == LAY_TOP_COPPER && side == SIDE_TOP) ||
+		(layer == LAY_BOTTOM_COPPER && side == SIDE_BOTTOM))
+		return Pin::LAY_START;
+	else if ((layer == LAY_TOP_COPPER && side == SIDE_BOTTOM) ||
+		(layer == LAY_BOTTOM_COPPER && side == SIDE_TOP))
+		return Pin::LAY_END;
 	else
-	{
-		// TH pad
-		if( layer == LAY_TOP_COPPER && side == SIDE_TOP ||
-			layer == LAY_BOTTOM_COPPER && side == SIDE_BOTTOM )
-			pad = ps->getStartPad();
-		else if( layer == LAY_TOP_COPPER && side == SIDE_BOTTOM ||
-				 layer == LAY_BOTTOM_COPPER && side == SIDE_TOP )
-			pad = ps->getEndPad();
-		else
-			pad = ps->getInnerPad();
-	}
-	return true;
+		return Pin::LAY_INNER;
 }
 
-// Test for hit on pad
-//
-bool PartPin::TestHit( QPoint pt, PCBLAYER layer )
+bool PartPin::testHit( const QPoint& pt, PCBLAYER layer ) const
 {
-	Padstack *ps = mPin->getPadstack();
-	// check if we hit a thru-hole
-	QPoint delta( pt - this->getPos() );
-	double dist = sqrt( delta.x()*delta.x() + delta.y()*delta.y() );
-	if( dist < ps.hole_size/2 )
-		return true;
-
-	// otherwise, check if there is a pad on this layer
-	Pad p;
-	if (!getPadOnLayer(layer, p))
-		return false;
-
-	// check if we hit the pad
-	switch( p.shape )
-	{
-	case PAD_NONE:
-		break;
-	case PAD_ROUND:
-		if( dist < (p.size_h/2) )
-			return true;
-		break;
-	case PAD_SQUARE:
-		if( delta.x() < (p.size_h/2) && delta.y() < (p.size_h/2) )
-			return true;
-		break;
-	case PAD_RECT:
-	case PAD_RRECT:
-	case PAD_OVAL:
-		int pad_angle = this->angle + ps.angle;
-		if( pad_angle > 270 )
-			pad_angle -= 360;
-		if( pad_angle == 0 || pad_angle == 180 )
-		{
-			if( delta.x() < (p.size_l) && delta.y() < (p.size_h/2) )
-				return true;
-		}
-		else
-		{
-			if( delta.x() < (p.size_h/2) && delta.y() < (p.size_l) )
-				return true;
-		}
-		break;
-	}
-
-	// did not hit anything
-	return false;
+	return mPin->testHit(mPart->transform().inverted().map(pt), mapLayer(layer));
 }
 
+QPoint PartPin::pos() const
+{
+	return mPart->transform().map(mPin->pos());
+}
+
+bool PartPin::isSmt() const
+{
+	return mPin->padstack()->isSmt();
+}
+
+QRect PartPin::bbox() const
+{
+	return mPart->transform().mapRect(mPin->bbox());
+}
+
+void PartPin::draw(QPainter *painter, PCBLAYER layer)
+{
+
+}
+
+void PartPin::setNet(Net *newnet)
+{
+	if (mNet)
+		mNet->removePin(this);
+	mNet = newnet;
+	mNet->addPin(this);
+}
+
+
+///////////////////// PART /////////////////////
 Part::Part(PCBDoc *doc)
 	: mAngle(0), mSide(SIDE_TOP), mLocked(false), mRefdes(NULL), mValue(NULL), mFp(NULL), mDoc(doc)
 {
@@ -134,7 +101,7 @@ void Part::setFootprint(Footprint *fp)
 	// create new pins
 	for(int i = 0; i < fp->numPins(); i++)
 	{
-		Pin *p = fp->getPin(i);
+		const Pin *p = fp->getPin(i);
 		mPins.append(new PartPin(this, p));
 	}
 
@@ -150,11 +117,11 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 
 	QXmlStreamAttributes attr = reader.attributes();
 
-	Part *pp = new Part(mDoc);
+	Part *pp = new Part(doc);
 
 
 	// find footprint
-	Footprint *fp = doc->getFootprint(attr.value("footprint"));
+	Footprint *fp = doc->getFootprint(attr.value("footprint").toString());
 	if (!fp)
 	{
 		Log::instance().error("Error when creating part: footprint not found");
@@ -165,16 +132,17 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 		pp->setFootprint(fp);
 
 	// reference designator
-	pp->mRefdes->setText(attr.value("refdes"));
+	pp->mRefdes->setText(attr.value("refdes").toString());
 	// value
 	if (attr.hasAttribute("value"))
-		pp->mValue->setText(attr.value("value"));
+		pp->mValue->setText(attr.value("value").toString());
 
 
 	// position/rotation
 	pp->mPos = QPoint(attr.value("x").toString().toInt(),
 					  attr.value("y").toString().toInt());
 	pp->mAngle = attr.value("rot").toString().toInt();
+	pp->updateTransform();
 
 	// side
 	pp->mSide = (attr.value("side") == "top") ? SIDE_TOP : SIDE_BOTTOM;
@@ -186,25 +154,53 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 	// set text properties from part def, if they exist
 	while(reader.readNextStartElement())
 	{
-		switch(reader.name())
+		QStringRef t = reader.name();
+		if (t == "refText")
 		{
-		case "refText":
 			QXmlStreamAttributes attr = reader.attributes();
-			fp->mRefText.setPos(QPoint(attr.value("x").toString().toInt(),
+			pp->mRefdes->setPos(QPoint(attr.value("x").toString().toInt(),
 									   attr.value("y").toString().toInt()));
-			fp->mRefText.setAngle(attr.value("rot").toString().toInt());
-			fp->mRefText.setFontSize(attr.value("textSize").toString().toInt());
-			fp->mRefText.setStrokeWidth(attr.value("lineWidth").toString().toInt());
-			break;
-		case "valueText":
+			pp->mRefdes->setAngle(attr.value("rot").toString().toInt());
+			pp->mRefdes->setFontSize(attr.value("textSize").toString().toInt());
+			pp->mRefdes->setStrokeWidth(attr.value("lineWidth").toString().toInt());
+		}
+		else if (t == "valueText")
+		{
 			QXmlStreamAttributes attr = reader.attributes();
-			fp->mValueText.setPos(QPoint(attr.value("x").toString().toInt(),
+			pp->mValue->setPos(QPoint(attr.value("x").toString().toInt(),
 									   attr.value("y").toString().toInt()));
-			fp->mValueText.setAngle(attr.value("rot").toString().toInt());
-			fp->mValueText.setFontSize(attr.value("textSize").toString().toInt());
-			fp->mValueText.setStrokeWidth(attr.value("lineWidth").toString().toInt());
+			pp->mValue->setAngle(attr.value("rot").toString().toInt());
+			pp->mValue->setFontSize(attr.value("textSize").toString().toInt());
+			pp->mValue->setStrokeWidth(attr.value("lineWidth").toString().toInt());
 			break;
 		}
 	}
-	return fp;
+	return pp;
+}
+
+void Part::updateTransform()
+{
+	mTransform.reset();
+	mTransform.translate(mPos.x(), mPos.y());
+	mTransform.rotate(mAngle);
+	// XXX TODO handle mirroring for bottom side
+}
+
+void Part::draw(QPainter *painter, PCBLAYER layer)
+{
+}
+
+QRect Part::bbox() const
+{
+	return mTransform.mapRect(mFp->bbox());
+}
+
+PartPin* Part::getPin(const QString &name)
+{
+	foreach(PartPin* p, mPins)
+	{
+		if (p->getName() == name)
+			return p;
+	}
+	return NULL;
 }

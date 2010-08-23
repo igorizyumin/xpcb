@@ -26,9 +26,9 @@ PolyContour::PolyContour(PLINE2 *pline)
 		VNODE2* vn = pline->head;
 		do
 		{
-			SEG_TYPE st = LINE;
+			Segment::SEG_TYPE st = Segment::LINE;
 			if (vn == pline->head)
-				st = START;
+				st = Segment::START;
 			this->mSegs.append(Segment(st, ptFromGrid(vn->g)));
 
 			vn = vn->next;
@@ -57,7 +57,7 @@ bool PolyContour::testPointInside(const QPoint &pt) const
 		return false;
 }
 
-void PolyContour::rebuildPb()
+void PolyContour::rebuildPb() const
 {
 	if (!mPbDirty)
 		return;
@@ -112,37 +112,46 @@ PolyContour PolyContour::newFromXML(QXmlStreamReader &reader)
 				attr.value("x").toString().toInt(),
 				attr.value("y").toString().toInt());
 
-		switch(reader.name())
+		QStringRef t = reader.name();
+		if (t == "start")
 		{
-		case "start":
 			pc.mSegs.append(Segment(Segment::START, endPt));
-			break;
-		case "lineTo":
+		}
+		else if (t == "lineTo")
+		{
 			pc.mSegs.append(Segment(Segment::LINE, endPt));
-			break;
-		case "arcTo":
-			SEG_TYPE t = (attr.value("dir") == "cw")
+		}
+		else if (t == "arcTo")
+		{
+			Segment::SEG_TYPE t = (attr.value("dir") == "cw")
 						 ? Segment::ARC_CW : Segment::ARC_CCW;
 			QPoint arcCtr = QPoint(
 					attr.value("ctrX").toString().toInt(),
 					attr.value("ctrY").toString().toInt());
 			pc.mSegs.append(Segment(t, endPt, arcCtr));
-			break;
 		}
 	}
 
 	return pc;
 }
 
+void PolyContour::translate(const QPoint &vec)
+{
+	for(int i = 0; i < mSegs.size(); i++)
+	{
+		mSegs[i].end += vec;
+	}
+	mPbDirty = true;
+}
 
 //// Polygon ////
 Polygon::Polygon()
-	: mArea(NULL), mPbDirty(true)
+	: mPbDirty(true), mArea(NULL)
 {
 }
 
-Polygon::Polygon(PAREA *area)
-	: mArea(NULL), mPbDirty(true)
+Polygon::Polygon(const PAREA *area)
+	:  mPbDirty(true), mArea(NULL)
 {
 	if (area == NULL || area->cntr == NULL)
 		return;
@@ -155,6 +164,12 @@ Polygon::Polygon(PAREA *area)
 		mHoles.append(PolyContour(pl));
 		pl = pl->next;
 	}
+}
+
+Polygon::~Polygon()
+{
+	if (mArea)
+		PAREA::Del(&mArea);
 }
 
 void Polygon::translate( const QPoint& vec )
@@ -206,7 +221,7 @@ PolygonList Polygon::united(const Polygon &other) const
 	if( !bbox().intersects(other.bbox()) )
 	{
 		PolygonList p(*this);
-		p.append(other);
+		p.insert(new Polygon(other));
 		return p;
 	}
 
@@ -266,7 +281,7 @@ void Polygon::rebuildPb() const
 	}
 
 	// add holes to area
-	foreach(PolyContour& pc, mHoles)
+	foreach(const PolyContour& pc, mHoles)
 	{
 		pline = NULL;
 		pc.toPline(&pline);
@@ -281,10 +296,10 @@ void Polygon::rebuildPb() const
 	mPbDirty = false;
 }
 
-PAREA* Polygon::getParea()
+PAREA* Polygon::getParea() const
 {
 	rebuildPb();
-	return mArea.Copy();
+	return mArea->Copy();
 }
 
 Polygon* Polygon::newFromXML(QXmlStreamReader &reader)
@@ -295,18 +310,24 @@ Polygon* Polygon::newFromXML(QXmlStreamReader &reader)
 
 	while(reader.readNextStartElement())
 	{
-		switch(reader.name())
+		QStringRef t = reader.name();
+
+		if (t == "outline")
 		{
-		case "outline":
 			reader.readNextStartElement();
 			poly->mOutline = PolyContour::newFromXML(reader);
-			break;
-		case "hole":
+		}
+		else if(t == "hole")
+		{
 			reader.readNextStartElement();
 			poly->mHoles.append(PolyContour::newFromXML(reader));
-			break;
 		}
 	}
 
 	return poly;
+}
+
+QRect Polygon::bbox() const
+{
+	return mOutline.bbox();
 }

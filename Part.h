@@ -7,9 +7,9 @@
 
 // forward declarations
 class Net;
-class PartList;
 class Vertex;
 class PCBDoc;
+class Part;
 
 /// A PartPin represents an instance of a footprint Pin
 /// that is associated with a specific part.  PartPins store
@@ -17,26 +17,38 @@ class PCBDoc;
 /// footprint pin.
 class PartPin : public PCBObject
 {
-	PartPin(Part* parent, Pin* pin) : mPart(parent), mPin(pin) {}
+public:
+	PartPin(Part* parent, const Pin* pin) : mPin(pin), mPart(parent), mNet(NULL), mVertex(NULL) {}
 	~PartPin();
-	void setNet(Net* newnet);
-	PCBLAYER getLayer();
 
-	Net* getNet() {return net; }
-	bool testHit( QPoint pt, PCBLAYER layer );
+	Pad getPadOnLayer(PCBLAYER layer) const;
+
+	void setNet(Net* newnet);
+	Net* getNet() {return mNet; }
+
 	void setVertex(Vertex* vertex);
-	Part* getPart() { return part; }
-	QString getName() {return mPin->getName(); }
-	bool getPadOnLayer(PCBLAYER layer, Pad &pad);
-	Pin* fpPin() { return mPin; }
+	Part* getPart() { return mPart; }
+	QString getName() {return mPin->name(); }
+	const Pin* fpPin() { return mPin; }
+
+	QPoint pos() const;
+	bool isSmt() const;
+
+	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual QRect bbox() const;
+
+	bool testHit(const QPoint &pt, PCBLAYER layer) const;
 
 private:
+	/// Maps a PCB layer to a pin layer (i.e. top copper -> start for parts on top side)
+	Pin::PINLAYER mapLayer(PCBLAYER layer) const;
+
 	/// Pointer to footprint pin (contains position, etc.)
-	Pin * mPin;
-	/// Pointer to assigned net.  NULL if no assigned net.
-	Net * mNet;
+	const Pin * mPin;
 	/// Pointer to parent part.
 	Part * mPart;
+	/// Pointer to assigned net.  NULL if no assigned net.
+	Net * mNet;
 	/// Pointer to attached vertex. May be NULL.
 	Vertex* mVertex;
 };
@@ -50,8 +62,12 @@ public:
 	Part(PCBDoc* doc);
 	~Part();
 
-	Footprint* getFootprint() { return mFp;}
+	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual QRect bbox() const;
 
+	QString refdes() const { return mRefdes->text(); }
+
+	Footprint* getFootprint() { return mFp;}
 	void setFootprint( Footprint * fp );
 
 	PCBSIDE getSide() { return mSide; }
@@ -59,11 +75,18 @@ public:
 	QPoint getCentroidPoint() { return mPos; }
 	int getAngle() { return mAngle; }
 
+	PartPin* getPin(const QString &name);
+
 	static Part* newFromXML(QXmlStreamReader &reader, PCBDoc* doc);
+
+	const QTransform& transform() const { return mTransform; }
 
 private:
 	void resetFp();
-	QPoint partToWorld(QPoint pt);
+	void updateTransform();
+
+	/// Coordinate transform from part to world coords
+	QTransform mTransform;
 
 	/// Part position on board.  This is the origin of the part's coordinate system.
 	QPoint mPos;

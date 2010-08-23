@@ -11,19 +11,13 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        MainWindow.cpp \
     PCBView.cpp \
     GridToolbarWidget.cpp \
     AboutDialog.cpp \
-    gpc.cpp \
-    utility.cpp \
-    PartList.cpp \
     smcharacter.cpp \
     Shape.cpp \
-    UndoList.cpp \
     smfontutil.cpp \
     Part.cpp \
-    DesignRules.cpp \
     Net.cpp \
     Trace.cpp \
     PCBObject.cpp \
@@ -32,22 +26,18 @@ SOURCES += main.cpp\
     PCBDoc.cpp \
     Log.cpp \
     PolygonList.cpp \
-    Polygon.cpp
+    Polygon.cpp \
+    Line.cpp \
+    mainwindow.cpp
 
-HEADERS  += MainWindow.h \
-    PCBView.h \
+HEADERS  += PCBView.h \
     GridToolbarWidget.h \
     AboutDialog.h \
-    gpc.h \
     global.h \
-    utility.h \
-    PartList.h \
     smcharacter.h \
     Shape.h \
-    UndoList.h \
     smfontutil.h \
     Part.h \
-    DesignRules.h \
     Net.h \
     Trace.h \
     PCBObject.h \
@@ -56,14 +46,16 @@ HEADERS  += MainWindow.h \
     PCBDoc.h \
     Log.h \
     PolygonList.h \
-    Polygon.h
+    Polygon.h \
+    Line.h \
+    mainwindow.h
 
-FORMS    += MainWindow.ui \
-    GridToolbarWidget.ui \
-    AboutDialog.ui
+FORMS    += GridToolbarWidget.ui \
+    AboutDialog.ui \
+    mainwindow.ui
 
 RESOURCES += \
     qtfreepcb.qrc
 
-INCLUDEPATH += ./polyboolean/
-LIBS += -L./polyboolean/ -lpolyboolean
+INCLUDEPATH += ../xpcb/polyboolean/
+LIBS += -L../xpcb/polyboolean/ -lpolyboolean -lQtXml -lQtXmlPatterns

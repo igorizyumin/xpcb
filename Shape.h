@@ -6,35 +6,40 @@
 #include "PCBObject.h"
 #include "Text.h"
 
-class Text;
+class Line;
+class Arc;
+class Footprint;
 
-// pad shapes
-enum PADSHAPE {
-	PAD_NONE = 0,
-	PAD_ROUND,
-	PAD_SQUARE,
-	PAD_RECT,
-	PAD_OBROUND,
-	PAD_OCTAGON,
-	PAD_DEFAULT = 99
-};
 
-/// Describes how to connect a pad to copper areas.
-enum PADCONNTYPE {
-	PAD_CONNECT_DEFAULT = 0,	///< use global setting
-	PAD_CONNECT_NEVER,			///< never connect pad to area
-	PAD_CONNECT_THERMAL,		///< connect pad using a thermal structure
-	PAD_CONNECT_NOTHERMAL		///< flood pad with copper
-};
+
+
 
 /// A pad is a padstack component; it describes the
 /// shape of a pad on a given layer of the padstack.
 class Pad
 {
 public:
+	// pad shapes
+	enum PADSHAPE {
+		PAD_NONE = 0,
+		PAD_ROUND,
+		PAD_SQUARE,
+		PAD_RECT,
+		PAD_OBROUND,
+		PAD_OCTAGON,
+	};
+
+	/// Describes how to connect a pad to copper areas.
+	enum PADCONNTYPE {
+		PAD_CONNECT_DEFAULT = 0,	///< use global setting
+		PAD_CONNECT_NEVER,			///< never connect pad to area
+		PAD_CONNECT_THERMAL,		///< connect pad using a thermal structure
+		PAD_CONNECT_NOTHERMAL		///< flood pad with copper
+	};
+
 	Pad();
 	bool operator==(const Pad &p) const;
-	bool isNull() { return shape == PAD_NONE; }
+	bool isNull() { return mShape == PAD_NONE; }
 
 	static Pad newFromXML(QXmlStreamReader &reader);
 
@@ -42,6 +47,10 @@ public:
 	int width() {return mWidth;}
 	int height() {return mHeight;}
 	PADCONNTYPE connFlag() {return mConnFlag;}
+
+	bool testHit( const QPoint & pt );
+
+	QRect bbox() const;
 
 private:
 	PADSHAPE mShape;
@@ -56,13 +65,16 @@ class Padstack
 {
 public:
 	Padstack();
-	bool operator==(Padstack p);
+	bool operator==(const Padstack &p) const;
 
 	static Padstack* newFromXML(QXmlStreamReader &reader);
-	int getHole() {return hole_size;}
-	Pad getStartPad() {return start;}
-	Pad getEndPad() {return end;}
-	Pad getInnerPad() {return inner;}
+
+	int getHole() const {return hole_size;}
+	Pad getStartPad() const {return start;}
+	Pad getEndPad() const {return end;}
+	Pad getInnerPad() const {return inner;}
+	bool isSmt() const {return hole_size == 0;}
+	QRect bbox() const;
 private:
 	/// Padstack name; optional; only used for library padstacks
 	/// (i.e. VIA_15MIL)
@@ -76,25 +88,37 @@ private:
 /// A pin is an instance of a padstack associated with a footprint.
 /// It stores the name, coordinates, rotation, and the associated padstack
 /// of each pin within a footprint.
-class Pin : public PCBObject
+class Pin
 {
 public:
+	enum PINLAYER { LAY_START, LAY_INNER, LAY_END, LAY_UNKNOWN };
+
 	Pin(Footprint* fp) : mAngle(0), mPadstack(NULL), mFootprint(fp) {}
 
-	int getAngle() const { return mAngle; }
-	QPoint getPos() const { return mPos; }
-	Padstack* getPadstack() { return mPadstack; }
-	QString getName() { return mName; }
+	int angle() const { return mAngle; }
+	QPoint pos() const { return mPos; }
+	Padstack* padstack() const { return mPadstack; }
+	QString name() const { return mName; }
 
+	void draw(QPainter *painter, PINLAYER layer);
+	QRect bbox() const;
 
-	static Pin newFromXML(QXmlStreamReader &reader, QHash<int, Padstack*> &padstacks, Footprint* fp);
+	bool testHit(const QPoint &pt, PINLAYER layer) const;
+
+	static Pin newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks, Footprint* fp);
+
+	Pad getPadOnLayer(PINLAYER layer) const;
+
 private:
+	void updateTransform();
 	/// Pin name (i.e. "1", "B2", "GATE")
 	QString mName;
 	/// Position relative to parent footprint
 	QPoint mPos;
 	/// Rotation angle (CW)
 	int mAngle;
+	/// Transform to part coordinates
+	QTransform mPartTransform;
 	/// Padstack used for this pin
 	Padstack* mPadstack;
 	/// Parent footprint
@@ -107,27 +131,26 @@ class Footprint : public PCBObject
 public:
 	Footprint();
 	~Footprint();
-	void Clear();
 
-	static Footprint* newFromXML(QXmlStreamReader &reader);
+	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual QRect bbox() const;
 
-	int numPins();
-	Pin* getPin( QString name );
-	Pin* getPin(int i) {return mPins[i];}
+	QString name() const { return mName; }
+	QString author() const { return mAuthor; }
+	QString source() const { return mSource; }
+	QString desc() const { return mDesc; }
 
-	QRect getBounds( bool bIncludeLineWidths=true );
-	QRect getCornerBounds();
-	QRect getPadBounds( int i );
-	QRect getPadRowBounds( int i, int num );
-	QRect getAllPadBounds();
+
+	int numPins() const;
+	const Pin* getPin(const QString & pin) const;
+	const Pin* getPin(int i) {return &mPins.at(i);}
+
+	QRect getPinBounds() const;
 
 	Text getRefText() {return mRefText;}
 	Text getValueText() {return mValueText;}
 
-	int Copy( Footprint * shape );	// copy all data from shape
-	bool Compare( Footprint * shape );	// compare shapes, return true if same
-
-	static Footprint* newFromXML(QXmlStreamReader &reader, QHash<int, Padstack*> &padstacks);
+	static Footprint* newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks);
 private:
 	/// Computes the default centroid (center of all pins)
 	QPoint getDefaultCentroid();
@@ -154,8 +177,10 @@ private:
 	/// Footprint pins
 	QList<Pin> mPins;
 	/// Silkscreen lines (used for part outline)
-	QList<Polygon*> mOutline;
+	QList<Line> mOutlineLines;
+	/// Silkscreen lines (used for part outline)
+	QList<Arc> mOutlineArcs;
 	/// Silkscreen text
-	QList<Text*> mTexts;
+	QList<Text> mTexts;
 };
 

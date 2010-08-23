@@ -3,9 +3,12 @@
 
 #include "PCBObject.h"
 
+class QXmlStreamReader;
+
 class Text : public PCBObject
 {
 public:
+	Text();
 	Text( const QPoint &pos, int angle,
 		bool mirror, bool negative, PCBLAYER layer, int font_size,
 		int stroke_width, const QString &text );
@@ -13,36 +16,38 @@ public:
 
 	// overrides
 	virtual void draw(QPainter *painter, PCBLAYER layer);
-	virtual const QRect & bbox();
+	virtual QRect bbox() const;
 
 	// getters / setters
 	const QPoint& pos() {return mPos;}
-	void setPos(const QPoint &newpos) : mPos(newpos), mIsDirty(true) {}
+	void setPos(const QPoint &newpos) { mPos = newpos; mIsDirty = true; }
 
 	const QString & text() {return mText;}
-	void setText(const QString &text) : mText(text), mIsDirty(true) {}
+	void setText(const QString &text) { mText = text; mIsDirty = true; }
 
 	int angle() {return mAngle;}
-	void setAngle(int angle) : mAngle(angle), mIsDirty(true) {}
+	void setAngle(int angle) { mAngle = angle; mIsDirty = true;}
 
 	int fontSize() {return mFontSize;}
-	void setFontSize(int size) : mFontSize(size), mIsDirty(true) {}
+	void setFontSize(int size) {mFontSize = size; mIsDirty = true;}
 
 	int strokeWidth() {return mStrokeWidth;}
-	void setStrokeWidth(int w) : mStrokeWidth(w), mIsDirty(true) {}
+	void setStrokeWidth(int w) { mStrokeWidth = w; mIsDirty = true;}
 
 	bool isMirrored() {return mIsMirrored;}
-	void setMirrored(bool b) : mIsMirrored(b), mIsDirty(true) {}
+	void setMirrored(bool b) { mIsMirrored = b;  mIsDirty = true; }
 
 	bool isNegative() {return mIsNegative;}
-	void setNegative(bool b) : mIsNegative(b) {}
+	void setNegative(bool b) {mIsNegative=b;}
 
 	PCBLAYER layer() {return mLayer;}
-	void setMirrored(PCBLAYER l) : mLayer(l) {}
+	void setMirrored(PCBLAYER l) {mLayer = l;}
+
+	static Text newFromXML(QXmlStreamReader &reader);
 
 protected:
-	void initText();
-	void initTransform();
+	void initText() const;
+	void initTransform() const;
 
 private:
 	// member variables
@@ -57,16 +62,16 @@ private:
 
 	/// mStrokes stores the untransformed font strokes.
 	/// Rotation and scaling are applied during the draw operation.
-	QList<QPainterPath*> mStrokes;
+	mutable QList<QPainterPath> mStrokes;
 	/// Untransformed stroke bounding box
-	QRect mStrokeBBox;
+	mutable QRect mStrokeBBox;
 
 	/// Indicates that the stroke array has not been rebuilt
 	/// after a change.
-	bool mIsDirty;
+	mutable bool mIsDirty;
 
 	/// Coordinate transformation to use
-	QTransform mTransform;
+	mutable QTransform mTransform;
 };
 
 #endif // TEXT_H

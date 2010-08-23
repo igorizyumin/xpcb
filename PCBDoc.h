@@ -12,15 +12,14 @@ class PCBDoc
 public:
     PCBDoc();
 
-	TraceList& traceList() {return mTraceList;}
-	PartList& partList() {return mPartList;}
+	TraceList& traceList() const {return *mTraceList;}
 
 	bool saveToFile(const QString & file);
-	bool loadFromFile(const QString & file, PCBDoc *newdoc);
+	bool loadFromFile(const QString & file);
 
 	Part* getPart(const QString & refdes);
 	Footprint* getFootprint(const QString &name);
-	Net* getNet(const QString &name);
+	Net* getNet(const QString &name) const;
 
 private:
 
@@ -33,7 +32,7 @@ private:
 	TraceList* mTraceList;
 	QList<Net*> mNets;
 	QList<Part*> mParts;
-	QList<Text*> mTexts;
+	QList<Text> mTexts;
 	QList<Area*> mAreas;
 	QList<Footprint*> mFootprints;
 	QList<Padstack*> mPadstacks;

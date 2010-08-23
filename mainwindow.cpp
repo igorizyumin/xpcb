@@ -1,4 +1,4 @@
-#include "MainWindow.h"
+#include "mainwindow.h"
 #include <QLabel>
 #include <QHBoxLayout>
 #include "GridToolbarWidget.h"

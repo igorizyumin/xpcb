@@ -1,6 +1,7 @@
 #ifndef AREA_H
 #define AREA_H
 
+#include <QSet>
 #include "global.h"
 #include "PCBObject.h"
 
@@ -29,8 +30,11 @@ public:
 					   DIAGONAL_EDGE	///< Short diagonal hatch lines are drawn on the inside part of the edges.
 				   };
 
-	Area(PCBDoc *doc);
+	Area(const PCBDoc *doc);
 	~Area();
+
+	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual QRect bbox() const;
 
 	/// Sets the polygon layer.
 	/// \param layer the new layer.
@@ -47,23 +51,16 @@ public:
 
 	/// Check if a point is within the area boundaries.
 	/// \returns true if p is inside area.
-	bool pointInside(const QPoint &p);
+	bool pointInside(const QPoint &p) const;
 
 	static Area* newFromXML(QXmlStreamReader &reader, const PCBDoc &doc);
-
-	// XXX move this to pad class?
-//	Polygon * MakePolylineForPad( int type, int x, int y, int w, int l, int r, int angle );
-
-//	void AddContourForPadClearance( int type, int x, int y, int w,
-//						int l, int r, int angle, int fill_clearance,
-//						int hole_w, int hole_clearance, bool bThermal=false, int spoke_w=0 );
 
 private:
 	/// Compute list of connected pins and vertices
 	void findConnections();
 
 	/// Parent container
-	PCBDoc* mDoc;
+	const PCBDoc* mDoc;
 
 	/// Net assigned to this area
 	Net* mNet;
@@ -74,9 +71,9 @@ private:
 	Polygon *mPoly;
 
 	/// List of connected pins
-	QList<PartPin*> mConnPins;
+	QSet<PartPin*> mConnPins;
 	/// List of connected vias and vertices
-	QList<Vertex*> mConnVtx;
+	QSet<Vertex*> mConnVtx;
 
 	/// Layer this polygon is on.
 	PCBLAYER mLayer;

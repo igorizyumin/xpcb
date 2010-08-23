@@ -6,10 +6,7 @@
 #include <QList>
 #include <QXmlStreamReader>
 #include "PolygonList.h"
-
-// forward declarations
-class PAREA;
-class PLINE2;
+#include "polybool.h"
 
 /// A polygon contour.
 /// Describes a single polygon contour.  A contour can represent either the
@@ -31,7 +28,7 @@ public:
 				   };
 
 		Segment(SEG_TYPE t, const QPoint& endPt, const QPoint& arcCtr = QPoint() ) :
-				type(t), end(endPt), arcCenter(arcCtr), mPbDirty(false), mArea(NULL) {}
+				type(t), end(endPt), arcCenter(arcCtr) {}
 
 		/// The type of this segment.
 		SEG_TYPE type;
@@ -44,7 +41,7 @@ public:
 
 
 
-	PolyContour(PLINE2 * pline = NULL);
+	PolyContour(POLYBOOLEAN::PLINE2 * pline = NULL);
 
 	void appendSegment(const Segment& seg) { mSegs.append(seg); mPbDirty = true;}
 	void insertSegment(int pos, const Segment& seg) { mSegs.insert(pos, seg); mPbDirty = true;}
@@ -57,16 +54,16 @@ public:
 
 	void translate(const QPoint& vec);
 
-	void toPline(PLINE2 ** pline) const;
+	void toPline(POLYBOOLEAN::PLINE2 ** pline) const;
 
 	static PolyContour newFromXML(QXmlStreamReader &reader);
 
 private:
-	void rebuildPb();
+	void rebuildPb() const;
 	QList<Segment> mSegs;
 
 	mutable bool mPbDirty;
-	mutable PLINE2 * mPline;
+	mutable POLYBOOLEAN::PLINE2 * mPline;
 };
 
 /// A polygon object represents a basic polygon type.  A polygon consists of multiple contours,
@@ -78,17 +75,17 @@ class Polygon
 {
 public:
 	Polygon();
-	Polygon(PAREA *area);
+	Polygon(const POLYBOOLEAN::PAREA *area);
 	~Polygon();
 
 	// functions for modifying polygon
-	PolyContour* outline() const {return &mOutline;}
-	PolyContour* hole(int n) const;
+	PolyContour* outline() {return &mOutline;}
+	PolyContour* hole(int n);
 	int numHoles() const {return mHoles.size();}
 	void removeHole(int n);
 
 	/// Returns the bounding box of the polygon.
-	QRect bbox();
+	QRect bbox() const;
 
 	/// Returns true if this polygon intersects the one given.
 	bool intersects( const Polygon &other ) const;
@@ -127,7 +124,7 @@ public:
 
 	/// Returns a copy of this object's PAREA.  Caller is responsible for
 	/// deleting the PAREA using PAREA::Del.
-	PAREA* getParea();
+	POLYBOOLEAN::PAREA* getParea() const;
 
 	static Polygon* newFromXML(QXmlStreamReader &reader);
 
@@ -145,7 +142,7 @@ private:
 	/// need to be rebuilt.
 	mutable bool mPbDirty;
 	/// PolyBoolean area corresponding to this polygon
-	mutable PAREA *mArea;
+	mutable POLYBOOLEAN::PAREA *mArea;
 };
 
 #endif // POLYGON_H
