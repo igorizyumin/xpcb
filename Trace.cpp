@@ -123,7 +123,10 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 		Vertex* v = new Vertex(this, pt, forcevia);
 		this->myVtx.insert(v);
 		vmap.insert(id, v);
-	}
+		do
+				reader.readNext();
+		while(!reader.isEndElement());
+	};
 
 	// read segments
 	reader.readNextStartElement();
@@ -142,6 +145,9 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 								 vmap.value(end, NULL),
 								 layer, width);
 		this->mySeg.insert(s);
+		do
+				reader.readNext();
+		while(!reader.isEndElement());
 	}
 }
 

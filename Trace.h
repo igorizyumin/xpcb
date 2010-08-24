@@ -82,11 +82,13 @@ private:
 class TraceList
 {
 public:
-	TraceList();
+	TraceList() {}
 
 	QSet<Vertex*> getConnectedVertices(Vertex* vtx) const;
 	QSet<Vertex*> getVerticesInArea(const Area& poly) const;
 
+	QSet<Segment*> segments() const {return mySeg;}
+	QSet<Vertex*> vertices() const {return myVtx;}
 	void loadFromXml(QXmlStreamReader &reader);
 private:
 	void clear();

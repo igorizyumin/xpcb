@@ -17,8 +17,8 @@
    <string>About xpcb</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normaloff>:/QtFreePCB/res/FreePcb.ico</normaloff>:/QtFreePCB/res/FreePcb.ico</iconset>
+   <iconset resource="qtfreepcb.qrc">
+    <normaloff>:/QtFreePCB/Resources/xpcb.png</normaloff>:/QtFreePCB/Resources/xpcb.png</iconset>
   </property>
   <property name="modal">
    <bool>true</bool>
@@ -94,7 +94,7 @@ p, li { white-space: pre-wrap; }
       <string/>
      </property>
      <property name="pixmap">
-      <pixmap resource="qtfreepcb.qrc">:/QtFreePCB/xpcb.png</pixmap>
+      <pixmap resource="qtfreepcb.qrc">:/QtFreePCB/Resources/xpcb.png</pixmap>
      </property>
      <property name="alignment">
       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>

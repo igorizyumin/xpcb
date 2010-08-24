@@ -105,7 +105,7 @@ PolyContour PolyContour::newFromXML(QXmlStreamReader &reader)
 
 	PolyContour pc;
 
-	while(reader.readNextStartElement())
+	while(1)
 	{
 		QXmlStreamAttributes attr = reader.attributes();
 		QPoint endPt = QPoint(
@@ -130,7 +130,18 @@ PolyContour PolyContour::newFromXML(QXmlStreamReader &reader)
 					attr.value("ctrY").toString().toInt());
 			pc.mSegs.append(Segment(t, endPt, arcCtr));
 		}
+		do
+				reader.readNext();
+		while(!reader.isEndElement());
+		// at end of current element; find next one or end of this contour
+		do
+				reader.readNext();
+		while(!reader.isEndElement() && !reader.isStartElement());
+		if (reader.isEndElement())
+			break;
 	}
+
+	// parser will be at the end of this contour
 
 	return pc;
 }
@@ -308,20 +319,17 @@ Polygon* Polygon::newFromXML(QXmlStreamReader &reader)
 
 	Polygon *poly = new Polygon();
 
+	reader.readNextStartElement();
+	Q_ASSERT(reader.name() == "outline");
+	reader.readNextStartElement();
+	poly->mOutline = PolyContour::newFromXML(reader);
 	while(reader.readNextStartElement())
 	{
+		Q_ASSERT(reader.name() == "hole");
 		QStringRef t = reader.name();
 
-		if (t == "outline")
-		{
-			reader.readNextStartElement();
-			poly->mOutline = PolyContour::newFromXML(reader);
-		}
-		else if(t == "hole")
-		{
-			reader.readNextStartElement();
-			poly->mHoles.append(PolyContour::newFromXML(reader));
-		}
+		reader.readNextStartElement();
+		poly->mHoles.append(PolyContour::newFromXML(reader));
 	}
 
 	return poly;

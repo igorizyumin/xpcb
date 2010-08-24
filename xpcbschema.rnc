@@ -60,7 +60,11 @@ Padstack = element padstack {
 }
 # Padstack reference
 PSRef = attribute padstack { ObjID }
-
+# pin reference
+PinRef = element pinRef {
+	attribute partref { xsd:string },
+	attribute pinname { xsd:string } 
+}
 
 # Footprints section
 Footprints = element footprints

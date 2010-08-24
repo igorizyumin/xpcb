@@ -69,10 +69,15 @@ public:
 
 	static Padstack* newFromXML(QXmlStreamReader &reader);
 
+	QString getName() const {return name; }
 	int getHole() const {return hole_size;}
 	Pad getStartPad() const {return start;}
 	Pad getEndPad() const {return end;}
 	Pad getInnerPad() const {return inner;}
+	Pad getStartMask() const {return start_mask;}
+	Pad getEndMask() const {return end_mask; }
+	Pad getStartPaste() const {return start_paste;}
+	Pad getEndPaste() const {return end_paste;}
 	bool isSmt() const {return hole_size == 0;}
 	QRect bbox() const;
 private:

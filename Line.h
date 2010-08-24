@@ -13,6 +13,11 @@ public:
 	virtual void draw(QPainter *painter, PCBLAYER layer);
 	virtual QRect bbox() const;
 
+	QPoint start() const { return mStart; }
+	QPoint end() const { return mEnd; }
+	int width() const { return mWidth; }
+	PCBLAYER layer() const { return mLayer; }
+
 	static Line newFromXml(QXmlStreamReader &reader);
 private:
 	QPoint mStart;
@@ -28,6 +33,13 @@ public:
 
 	virtual void draw(QPainter *painter, PCBLAYER layer);
 	virtual QRect bbox() const;
+
+	QPoint start() const { return mStart; }
+	QPoint end() const { return mEnd; }
+	QPoint ctr() const { return mCtr; }
+	int width() const { return mWidth; }
+	bool isCw() const { return mIsCw; }
+	PCBLAYER layer() const { return mLayer; }
 
 	static Arc newFromXml(QXmlStreamReader &reader);
 private:

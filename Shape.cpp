@@ -57,6 +57,10 @@ Pad Pad::newFromXML(QXmlStreamReader &reader)
 		p.mWidth = attr.value("width").toString().toInt();
 		p.mHeight = attr.value("height").toString().toInt();
 	}
+	// read until the end of this element
+	do
+			reader.readNext();
+	while(!reader.isEndElement());
 	return p;
 }
 
@@ -132,11 +136,12 @@ Padstack* Padstack::newFromXML(QXmlStreamReader &reader)
 	if (reader.attributes().hasAttribute("name"))
 		p->name = reader.attributes().value("name").toString();
 	p->hole_size = reader.attributes().value("holesize").toString().toInt();
-	while(reader.readNextStartElement())
+	reader.readNextStartElement();
+	do
 	{
+		// we are at the pad type element
 		QStringRef padtype = reader.name();
-		reader.readNext();
-		if (reader.isEndElement())
+		if (!reader.readNextStartElement())
 			continue; // no pad
 		// we have a pad.  create it
 		if (padtype == "startpad")
@@ -153,7 +158,14 @@ Padstack* Padstack::newFromXML(QXmlStreamReader &reader)
 			p->start_paste = Pad::newFromXML(reader);
 		else if (padtype == "endpaste")
 			p->end_paste = Pad::newFromXML(reader);
+		else
+			Q_ASSERT(false);
+		// read until the end of the pad type element
+		do
+				reader.readNext();
+		while(!reader.isEndElement());
 	}
+	while(reader.readNextStartElement());
 	return p;
 }
 

@@ -57,8 +57,8 @@ Arc Arc::newFromXml(QXmlStreamReader &reader)
 			attr.value("x2").toString().toInt(),
 			attr.value("y2").toString().toInt());
 	a.mCtr = QPoint(
-			attr.value("x2").toString().toInt(),
-			attr.value("y2").toString().toInt());
+			attr.value("ctrX").toString().toInt(),
+			attr.value("ctrY").toString().toInt());
 	a.mIsCw = attr.value("dir") == "cw";
 
 	return a;

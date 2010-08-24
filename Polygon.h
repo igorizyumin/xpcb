@@ -80,7 +80,7 @@ public:
 
 	// functions for modifying polygon
 	PolyContour* outline() {return &mOutline;}
-	PolyContour* hole(int n);
+	PolyContour* hole(int n) {return &(mHoles[n]); }
 	int numHoles() const {return mHoles.size();}
 	void removeHole(int n);
 

@@ -4,14 +4,13 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui xml xmlpatterns
 
 TARGET = xpcb
 TEMPLATE = app
 
 
-SOURCES += main.cpp\
-    PCBView.cpp \
+SOURCES += PCBView.cpp \
     GridToolbarWidget.cpp \
     AboutDialog.cpp \
     smcharacter.cpp \
@@ -28,7 +27,15 @@ SOURCES += main.cpp\
     PolygonList.cpp \
     Polygon.cpp \
     Line.cpp \
-    mainwindow.cpp
+	mainwindow.cpp
+
+CONFIG(unittest) {
+	QT += testlib
+	SOURCES += xpcbtests/tst_XmlLoadTest.cpp \
+				xpcbtests/testmain.cpp
+} else {
+	SOURCES += main.cpp
+}
 
 HEADERS  += PCBView.h \
     GridToolbarWidget.h \
@@ -48,7 +55,8 @@ HEADERS  += PCBView.h \
     PolygonList.h \
     Polygon.h \
     Line.h \
-    mainwindow.h
+    mainwindow.h \
+    xpcbtests/tst_XmlLoadTest.h
 
 FORMS    += GridToolbarWidget.ui \
     AboutDialog.ui \
@@ -58,4 +66,4 @@ RESOURCES += \
     qtfreepcb.qrc
 
 INCLUDEPATH += ../xpcb/polyboolean/
-LIBS += -L../xpcb/polyboolean/ -lpolyboolean -lQtXml -lQtXmlPatterns
+LIBS += -L../xpcb/polyboolean/ -lpolyboolean

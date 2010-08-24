@@ -9,6 +9,7 @@
 
 class PCBDoc
 {
+	friend class XmlLoadTest;
 public:
     PCBDoc();
 
