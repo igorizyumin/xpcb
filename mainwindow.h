@@ -4,8 +4,13 @@
 #include <QMainWindow>
 #include <QLabel>
 #include "ui_mainwindow.h"
-#include "GridToolbarWidget.h"
 
+class GridToolbarWidget;
+class ActionBar;
+class PCBView;
+class PCBDoc;
+
+/// The MainWindow class represents a single open PCB editor window
 class MainWindow : public QMainWindow, private Ui::MainWindowClass
 {
 	Q_OBJECT
@@ -14,14 +19,35 @@ public:
 	MainWindow(QWidget *parent = 0);
 	~MainWindow();
 
-public slots:
+private slots:
 	void on_actionAbout_triggered();
+	void onViewCoords(QPoint pt);
+	void documentWasModified();
+	void on_actionNew_triggered();
+	void on_actionOpen_triggered();
+	bool on_actionSave_triggered();
+	bool on_actionSave_as_triggered();
+	bool on_actionClose_triggered();
 
 protected:
+	void closeEvent(QCloseEvent *event);
+
+private:
+	bool maybeSave();
+	void newDoc();
+	void closeDoc();
+	bool loadFile(const QString &fileName);
+	bool saveFile(const QString &fileName);
+	void setCurrentFile(const QString &fileName);
+	QString strippedName(const QString &fullFileName);
+
 	QLabel* m_statusbar_xc;
 	QLabel* m_statusbar_yc;
 	GridToolbarWidget* m_gridwidget;
-private:
+	ActionBar* m_actionbar;
+	PCBView *m_view;
+	PCBDoc* m_doc;
+	QString m_curFile;
 };
 
 #endif // MAINWINDOW_H

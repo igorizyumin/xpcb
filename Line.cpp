@@ -22,10 +22,14 @@ Line Line::newFromXml(QXmlStreamReader &reader)
 			attr.value("x2").toString().toInt(),
 			attr.value("y2").toString().toInt());
 
+	do
+			reader.readNext();
+	while(!reader.isEndElement());
+
 	return l;
 }
 
-void Line::draw(QPainter *painter, PCBLAYER layer)
+void Line::draw(QPainter *painter, PCBLAYER layer) const
 {
 	// XXX TODO do something useful
 }
@@ -61,10 +65,14 @@ Arc Arc::newFromXml(QXmlStreamReader &reader)
 			attr.value("ctrY").toString().toInt());
 	a.mIsCw = attr.value("dir") == "cw";
 
+	do
+			reader.readNext();
+	while(!reader.isEndElement());
+
 	return a;
 }
 
-void Arc::draw(QPainter *painter, PCBLAYER layer)
+void Arc::draw(QPainter *painter, PCBLAYER layer) const
 {
 	// XXX TODO draw via if needed
 }

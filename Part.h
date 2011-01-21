@@ -34,7 +34,7 @@ public:
 	QPoint pos() const;
 	bool isSmt() const;
 
-	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
 
 	bool testHit(const QPoint &pt, PCBLAYER layer) const;
@@ -62,18 +62,20 @@ public:
 	Part(PCBDoc* doc);
 	~Part();
 
-	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
 
 	QString refdes() const { return mRefdes->text(); }
+	QString value() const { return mValue->text(); }
+	Text refdesText() const { return *mRefdes; }
+	Text valueText() const { return *mValue; }
+	QPoint pos() const { return mPos; }
+	int angle() { return mAngle; }
+	PCBSIDE side() { return mSide; }
+	bool locked() { return mLocked; }
 
-	Footprint* getFootprint() { return mFp;}
+	Footprint* footprint() { return mFp;}
 	void setFootprint( Footprint * fp );
-
-	PCBSIDE getSide() { return mSide; }
-
-	QPoint getCentroidPoint() { return mPos; }
-	int getAngle() { return mAngle; }
 
 	PartPin* getPin(const QString &name);
 

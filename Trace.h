@@ -22,7 +22,7 @@ class Vertex : public PCBObject
 public:
 	Vertex(TraceList* parent, QPoint pos = QPoint(0, 0), bool forcevia = false);
 
-	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
 
 	QPoint pos() const {return mPos;}
@@ -57,7 +57,7 @@ public:
 	Segment(TraceList* parent, Vertex* v1, Vertex* v2, PCBLAYER l = LAY_RAT_LINE, int w = 0);
 	~Segment();
 
-	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
 
 	int width() const {return mWidth;}

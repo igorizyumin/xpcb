@@ -1,0 +1,133 @@
+<xpcbBoard>
+	<props>
+		<units>mm</units>
+		<name>test board</name>
+		<defaultPadstack>101</defaultPadstack>
+	</props>
+
+	<padstacks>
+		<padstack name='pstest' id='100' holesize='1000'>
+			<startpad><pad shape='square' width='10000'/></startpad>
+			<innerpad><pad shape='round' width='15000'/></innerpad>
+			<endpad><pad shape='rect' width='20000' height='5000'/></endpad>
+			<startmask/><endmask/>
+			<startpaste/><endpaste/>
+		</padstack>
+	</padstacks>
+
+	<footprints>
+		<footprint>
+			<name>RES0805</name>
+			<units>mm</units>
+			<author>igor</author>
+			<source>test</source>
+			<desc/>
+			<centroid x='10' y='20' custom='0'/>
+			<line width='600' layer='2' x1='100' y1='200' x2='1000' y2='2000' />
+			<pins>
+			<pin name='1' x='100' y='200' rot='90' padstack='100'/>
+			<pin name='2' x='400' y='600' rot='0' padstack='100'/>
+			</pins>
+			<refText x='1000' y='1100' rot='90' lineWidth='99' textSize='200'/>
+			<valueText x='1200' y='1400' rot='0' lineWidth='102' textSize='220'/>
+		</footprint>
+	</footprints>
+
+	<outline>
+		<polygon>
+			<outline>
+				<start x='0' y='0'/>
+				<lineTo x='0' y='1000'/>
+				<arcTo x='1000' y='0' dir='cw' ctrX='0' ctrY='0'/>
+				<lineTo x='0' y='0'/>
+			</outline>
+
+			<hole>
+				<start x='100' y='100'/>
+				<arcTo x='200' y='200' ctrX='200' ctrY='100' dir='cw'/>
+				<lineTo x='200' y='100'/>
+				<lineTo x='100' y='100'/>
+			</hole>
+		</polygon>
+	</outline>
+
+	<parts>
+		<part refdes='P1' value='val' footprint='RES0805' x='1' y='2' rot='270' side='bot' locked='1'>
+			<refText x='2000' y='2200' rot='270' lineWidth='42' textSize='212'/>
+			<valueText x='3200' y='3400' rot='180' lineWidth='55' textSize='443'/>
+		</part>
+		<part refdes='P2' value='val' footprint='RES0805' x='1' y='2' rot='270' side='bot' locked='1'>
+			<refText x='2000' y='2200' rot='270' lineWidth='42' textSize='212'/>
+			<valueText x='3200' y='3400' rot='180' lineWidth='55' textSize='443'/>
+		</part>
+	</parts>
+
+	<nets>
+		<net name='n1' visible='1' defViaPadstack='100'>
+			<pinRef partref='P1' pinname='1'/>
+			<pinRef partref='P2' pinname='2'/>
+		</net>
+		<net name='n2' visible='1' defViaPadstack='100'>
+			<pinRef partref='P2' pinname='1'/>
+			<pinRef partref='P1' pinname='2'/>
+		</net>
+	</nets>
+
+	<traces>
+		<vertices>
+			<vertex id='101' x='100' y='200'/>
+			<vertex id='102' x='300' y='400'/>
+			<vertex id='103' x='500' y='600'/>
+			<vertex id='104' x='700' y='800'/>
+		</vertices>
+		<segments>
+			<segment start='101' end='102' layer='8' width='1000'/>
+			<segment start='103' end='104' layer='8' width='2000'/>
+			<segment start='102' end='103' layer='8' width='3000'/>
+		</segments>
+	</traces>
+
+	<areas>
+		<area net='n1' layer='5' hatch='full' connectSmt='1'>
+			<polygon>
+				<outline>
+					<start x='0' y='0'/>
+					<lineTo x='0' y='1000'/>
+					<arcTo x='1000' y='0' dir='cw' ctrX='0' ctrY='0'/>
+					<lineTo x='0' y='0'/>
+				</outline>
+				<hole>
+					<start x='100' y='100'/>
+					<arcTo x='200' y='200' ctrX='200' ctrY='100' dir='cw'/>
+					<lineTo x='200' y='100'/>
+					<lineTo x='100' y='100'/>
+				</hole>
+			</polygon>
+		</area>
+		<area net='n2' layer='3' hatch='full' connectSmt='1'>
+			<polygon>
+				<outline>
+					<start x='0' y='0'/>
+					<lineTo x='0' y='1000'/>
+					<arcTo x='1000' y='0' dir='cw' ctrX='0' ctrY='0'/>
+					<lineTo x='0' y='0'/>
+				</outline>
+				<hole>
+					<start x='100' y='100'/>
+					<arcTo x='200' y='200' ctrX='200' ctrY='100' dir='cw'/>
+					<lineTo x='200' y='100'/>
+					<lineTo x='100' y='100'/>
+				</hole>
+			</polygon>
+		</area>
+	</areas>
+
+	<texts>
+		<text layer='2' x='0' y='0' rot='0' lineWidth='1000' textSize='10000'>testing0</text>
+		<text layer='2' x='0' y='10000' rot='0' lineWidth='1000' textSize='15000'>testing90</text>
+		<text layer='2' x='0' y='0' rot='180' lineWidth='1000' textSize='10000'>testing180</text>
+		<text layer='2' x='0' y='0' rot='270' lineWidth='1000' textSize='10000'>testing270</text>
+		<!-- <text layer='2' x='200' y='500' rot='180' lineWidth='300' textSize='400'>testing123</text> -->
+	</texts>
+</xpcbBoard>
+

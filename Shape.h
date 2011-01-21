@@ -137,7 +137,7 @@ public:
 	Footprint();
 	~Footprint();
 
-	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
 
 	QString name() const { return mName; }
@@ -154,6 +154,10 @@ public:
 
 	Text getRefText() {return mRefText;}
 	Text getValueText() {return mValueText;}
+
+	QPoint centroid() {return mCentroid;}
+	bool isCustomCentroid() {return mCustomCentroid;}
+	UNIT units() {return mUnits; }
 
 	static Footprint* newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks);
 private:

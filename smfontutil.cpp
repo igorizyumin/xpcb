@@ -11,14 +11,13 @@
 #include <math.h>
 #include "smcharacter.h"
 #include "smfontutil.h"
-
+#include "Log.h"
 #include <QFile>
 #include <QPainter>
 #include <QList>
 
-static QString smfpath;
-static QString smffile = "Hershey.smf";
-static QString xtbfile = "Hershey.xtb";
+static QString smffile = ":/Hershey.smf";
+static QString xtbfile = ":/Hershey.xtb";
 
 #define BASE_CHARACTER_WIDTH 16.0
 #define BASE_CHARACTER_HEIGHT 22.0
@@ -32,7 +31,7 @@ SMFontUtil & SMFontUtil::instance()
 {
 	if (!SMFontUtil::mInstance)
 	{
-		SMFontUtil::mInstance = new SMFontUtil(smffile);
+		SMFontUtil::mInstance = new SMFontUtil();
 	}
 	return *(SMFontUtil::mInstance);
 }
@@ -56,9 +55,8 @@ SMFontUtil & SMFontUtil::instance()
 //-CRi-M  End of CRi method block
 //------------------------------------------------------------------
 
-SMFontUtil::SMFontUtil(const QString & path)
+SMFontUtil::SMFontUtil()
 {
-	smfpath = path;
 	int outer, inner;
 	for(outer = 0; outer < 12; outer++)
 	{
@@ -128,11 +126,10 @@ int SMFontUtil::LoadFontData(void)
 
 	SMCharacter * chr;
 	quint32 numChars;
-	QString full_path = smfpath + "/" + smffile;
-	QFile infile(full_path);
+	QFile infile(smffile);
 	if(!infile.open(QIODevice::ReadOnly))
 	{
-		// AfxMessageBox( "Font stroke file was not found" );
+		Log::instance().error("Font stroke file was not found" );
 		return 1;
 	}
 
@@ -182,8 +179,7 @@ int SMFontUtil::LoadFontData(void)
 int SMFontUtil::LoadXlationData(void)
 {
 	qint32 i,j,k;
-	QString full_path = smfpath + "/" + xtbfile;
-	QFile infile(full_path);
+	QFile infile(xtbfile);
 	if(!infile.open(QIODevice::ReadOnly))
 	{
 	//	AfxMessageBox( "Font translation file was not found" );
@@ -502,12 +498,16 @@ int SMFontUtil::GetCharPath( char ch, FONT_TYPE pFont, QPoint offset, double sca
 	if( charid<0 )
 		return -1; // illegal charid i.e. unable to find character
 
+	QList<QPainterPath> char_paths;
+	QRect char_bbox;
+
 	CharVertex chrvertex;
 	SMCharacter::CHARVERTEX_TYPE result;
 	SMCharacter * chr = GetCharacter( charid );
 	int iter;
 	result = chr->GetFirstVertex( chrvertex, iter );
 
+	// get the paths for the character, add them to char_paths
 	Q_ASSERT(result == SMCharacter::MOVE_TO);
 	QPainterPath path(QPoint(int(chrvertex.X * scale), int(-chrvertex.Y * scale)));
 	result = chr->GetNextVertex( chrvertex, iter );
@@ -519,18 +519,24 @@ int SMFontUtil::GetCharPath( char ch, FONT_TYPE pFont, QPoint offset, double sca
 
 		if( result == SMCharacter::MOVE_TO )
 		{
-			path.translate(offset);
-			paths.append(path);
-			bbox |= path.boundingRect().toRect();
+			char_paths.append(path);
+			char_bbox |= path.boundingRect().toRect();
 			path = QPainterPath(QPoint(x, y));
 		}
 		else if( result == SMCharacter::DRAW_TO )
 			path.lineTo(x, y);
 		result = chr->GetNextVertex( chrvertex, iter );
 	}
-	path.translate(offset);
-	paths.append(path);
-	bbox |= path.boundingRect().toRect();
+	char_paths.append(path);
+	char_bbox |= path.boundingRect().toRect();
+
+	// now translate each of the paths and add them to the output list
+	offset += QPoint(-char_bbox.left(), 0);
+	bbox |= char_bbox.translated(offset);
+	foreach(const QPainterPath& p, char_paths)
+	{
+		paths.append(p.translated(offset));
+	}
 
 	return paths.size();
 

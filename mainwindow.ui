@@ -10,9 +10,6 @@
     <height>369</height>
    </rect>
   </property>
-  <property name="windowTitle">
-   <string>xpcb</string>
-  </property>
   <widget class="QWidget" name="centralWidget"/>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -195,13 +192,24 @@
     <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
+    <bool>true</bool>
+   </attribute>
+  </widget>
+  <widget class="QToolBar" name="actionToolbar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>BottomToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
   </widget>
   <action name="actionNew">
    <property name="icon">
     <iconset resource="qtfreepcb.qrc">
-     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-new.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-new.png</iconset>
+     <normaloff>:/Resources/tango-icons/22x22/actions/document-new.png</normaloff>:/Resources/tango-icons/22x22/actions/document-new.png</iconset>
    </property>
    <property name="text">
     <string>&amp;New</string>
@@ -210,7 +218,7 @@
   <action name="actionOpen">
    <property name="icon">
     <iconset resource="qtfreepcb.qrc">
-     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-open.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-open.png</iconset>
+     <normaloff>:/Resources/tango-icons/22x22/actions/document-open.png</normaloff>:/Resources/tango-icons/22x22/actions/document-open.png</iconset>
    </property>
    <property name="text">
     <string>&amp;Open...</string>
@@ -219,7 +227,7 @@
   <action name="actionSave">
    <property name="icon">
     <iconset resource="qtfreepcb.qrc">
-     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-save.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-save.png</iconset>
+     <normaloff>:/Resources/tango-icons/22x22/actions/document-save.png</normaloff>:/Resources/tango-icons/22x22/actions/document-save.png</iconset>
    </property>
    <property name="text">
     <string>&amp;Save</string>
@@ -228,7 +236,7 @@
   <action name="actionSave_as">
    <property name="icon">
     <iconset resource="qtfreepcb.qrc">
-     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-save-as.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-save-as.png</iconset>
+     <normaloff>:/Resources/tango-icons/22x22/actions/document-save-as.png</normaloff>:/Resources/tango-icons/22x22/actions/document-save-as.png</iconset>
    </property>
    <property name="text">
     <string>Save &amp;As...</string>
@@ -277,7 +285,7 @@
   <action name="action_Undo">
    <property name="icon">
     <iconset resource="qtfreepcb.qrc">
-     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-undo.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-undo.png</iconset>
+     <normaloff>:/Resources/tango-icons/22x22/actions/edit-undo.png</normaloff>:/Resources/tango-icons/22x22/actions/edit-undo.png</iconset>
    </property>
    <property name="text">
     <string>&amp;Undo</string>
@@ -286,7 +294,7 @@
   <action name="action_Redo">
    <property name="icon">
     <iconset resource="qtfreepcb.qrc">
-     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-redo.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-redo.png</iconset>
+     <normaloff>:/Resources/tango-icons/22x22/actions/edit-redo.png</normaloff>:/Resources/tango-icons/22x22/actions/edit-redo.png</iconset>
    </property>
    <property name="text">
     <string>&amp;Redo</string>
@@ -295,7 +303,7 @@
   <action name="actionCut">
    <property name="icon">
     <iconset resource="qtfreepcb.qrc">
-     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-cut.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-cut.png</iconset>
+     <normaloff>:/Resources/tango-icons/22x22/actions/edit-cut.png</normaloff>:/Resources/tango-icons/22x22/actions/edit-cut.png</iconset>
    </property>
    <property name="text">
     <string>Cut</string>
@@ -304,7 +312,7 @@
   <action name="actionCopy">
    <property name="icon">
     <iconset resource="qtfreepcb.qrc">
-     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-copy.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-copy.png</iconset>
+     <normaloff>:/Resources/tango-icons/22x22/actions/edit-copy.png</normaloff>:/Resources/tango-icons/22x22/actions/edit-copy.png</iconset>
    </property>
    <property name="text">
     <string>Copy</string>
@@ -313,7 +321,7 @@
   <action name="actionPaste">
    <property name="icon">
     <iconset resource="qtfreepcb.qrc">
-     <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-paste.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/edit-paste.png</iconset>
+     <normaloff>:/Resources/tango-icons/22x22/actions/edit-paste.png</normaloff>:/Resources/tango-icons/22x22/actions/edit-paste.png</iconset>
    </property>
    <property name="text">
     <string>Paste</string>
@@ -356,7 +364,7 @@
   </action>
   <action name="actionOptions">
    <property name="icon">
-    <iconset resource="qtfreepcb.qrc">
+    <iconset>
      <normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-properties.png</normaloff>:/QtFreePCB/Resources/tango-icons/22x22/actions/document-properties.png</iconset>
    </property>
    <property name="text">

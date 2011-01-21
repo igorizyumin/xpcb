@@ -9,6 +9,7 @@
 #include "Part.h"
 #include "Trace.h"
 #include "Polygon.h"
+#include "Area.h"
 
 XmlLoadTest::XmlLoadTest()
 {
@@ -23,6 +24,8 @@ void XmlLoadTest::testLine()
 	QCOMPARE(l.layer(), (PCBLAYER)2);
 	QCOMPARE(l.start(), QPoint(100, 200));
 	QCOMPARE(l.end(), QPoint(1000, 2000));
+	QVERIFY(reader.isEndElement());
+
 }
 
 void XmlLoadTest::testArc()
@@ -36,6 +39,8 @@ void XmlLoadTest::testArc()
 	QCOMPARE(a.end(), QPoint(1000, 2000));
 	QCOMPARE(a.ctr(), QPoint(400, 500));
 	QCOMPARE(a.isCw(), true);
+	QVERIFY(reader.isEndElement());
+
 }
 
 void XmlLoadTest::testText()
@@ -51,6 +56,8 @@ void XmlLoadTest::testText()
 	QCOMPARE(t.strokeWidth(), 300);
 	QCOMPARE(t.fontSize(), 400);
 	QCOMPARE(t.text(), QString(" testing 123  "));
+	QVERIFY(reader.isEndElement());
+
 }
 
 #if 0
@@ -99,6 +106,7 @@ void XmlLoadTest::testPadstack()
 	QCOMPARE(ps->getEndMask().isNull(), true);
 	QCOMPARE(ps->getStartPaste().isNull(), true);
 	QCOMPARE(ps->getEndPaste().isNull(), true);
+	QVERIFY(reader.isEndElement());
 	delete ps;
 }
 
@@ -115,7 +123,7 @@ void XmlLoadTest::testTraceList()
 							"<!-- test -->"
 							"<segment start='103' end='104' layer='8' width='2000'/>"
 							"<segment start='102' end='103' layer='8' width='3000'/>"
-							"</segments><!-- asdf --></traces>");
+							"</segments><!-- asdf --></traces><next/>");
 	reader.readNextStartElement();
 	TraceList tl;
 	tl.loadFromXml(reader);
@@ -182,6 +190,7 @@ void XmlLoadTest::testTraceList()
 		else
 			QVERIFY(false);
 	}
+	QVERIFY(reader.isEndElement());
 }
 
 void XmlLoadTest::testPolygon()
@@ -227,6 +236,408 @@ void XmlLoadTest::testPolygon()
 	QCOMPARE(p->hole(0)->segment(2).end, QPoint(200,100));
 	QCOMPARE(p->hole(0)->segment(3).type, PolyContour::Segment::LINE);
 	QCOMPARE(p->hole(0)->segment(3).end, QPoint(100,100));
+	QVERIFY(reader.isEndElement());
+
 
 	delete p;
+}
+
+void XmlLoadTest::testFootprint()
+{
+	QXmlStreamReader reader("<footprint>"
+							"<name>RES0805</name>"
+							"<units>mm</units>"
+							"<author>igor</author>"
+							"<source>test</source>"
+							"<desc/>"
+							"<centroid x='10' y='20' custom='0'/>"
+							"<line width='600' layer='2' x1='100' y1='200' x2='1000' y2='2000' />"
+							"<pins>"
+							"<pin name='1' x='100' y='200' rot='90' padstack='101'/>"
+							"<pin name='2' x='400' y='600' rot='0' padstack='101'/>"
+							"</pins>"
+							"<refText x='1000' y='1100' rot='90' lineWidth='99' textSize='200'/>"
+							"<valueText x='1200' y='1400' rot='0' lineWidth='102' textSize='220'/>"
+							"</footprint>");
+	reader.readNextStartElement();
+
+	QHash<int, Padstack*> padstacks;
+	padstacks.insert(101, new Padstack());
+
+	Footprint* fp = Footprint::newFromXML(reader, padstacks);
+	QCOMPARE(fp->name(), QString("RES0805"));
+	QCOMPARE(fp->author(), QString("igor"));
+	QCOMPARE(fp->source(), QString("test"));
+	QCOMPARE(fp->desc(), QString());
+	QCOMPARE(fp->units(), MM);
+	QCOMPARE(fp->centroid(), QPoint(10,20));
+	QCOMPARE(fp->isCustomCentroid(), false);
+	QCOMPARE(fp->numPins(), 2);
+	QCOMPARE(fp->getPin(0)->padstack(), padstacks.value(101));
+	QCOMPARE(fp->getPin(0)->pos(), QPoint(100,200));
+	QCOMPARE(fp->getPin(0)->angle(), 90);
+	QCOMPARE(fp->getPin(1)->padstack(), padstacks.value(101));
+	QCOMPARE(fp->getPin(1)->pos(), QPoint(400,600));
+	QCOMPARE(fp->getPin(1)->angle(), 0);
+	QCOMPARE(fp->getRefText().pos(), QPoint(1000,1100));
+	QCOMPARE(fp->getRefText().angle(), 90);
+	QCOMPARE(fp->getRefText().strokeWidth(), 99);
+	QCOMPARE(fp->getRefText().fontSize(), 200);
+	QCOMPARE(fp->getValueText().pos(), QPoint(1200,1400));
+	QCOMPARE(fp->getValueText().angle(), 0);
+	QCOMPARE(fp->getValueText().strokeWidth(), 102);
+	QCOMPARE(fp->getValueText().fontSize(), 220);
+	QVERIFY(reader.isEndElement());
+	delete fp;
+}
+
+void XmlLoadTest::testPart()
+{
+	// create test objects
+	PCBDoc doc;
+	Padstack* ps = new Padstack();
+	doc.mPadstacks.append(ps);
+	QHash<int, Padstack*> padstacks;
+	padstacks.insert(101, ps);
+	QXmlStreamReader fpxml("<footprint>"
+							"<name>RES0805</name>"
+							"<units>mm</units>"
+							"<author>igor</author>"
+							"<source>test</source>"
+							"<desc/>"
+							"<centroid x='10' y='20' custom='0'/>"
+							"<line width='600' layer='2' x1='100' y1='200' x2='1000' y2='2000' />"
+							"<pins>"
+							"<pin name='1' x='100' y='200' rot='90' padstack='101'/>"
+							"<pin name='2' x='400' y='600' rot='0' padstack='101'/>"
+							"</pins>"
+							"<refText x='1000' y='1100' rot='90' lineWidth='99' textSize='200'/>"
+							"<valueText x='1200' y='1400' rot='0' lineWidth='102' textSize='220'/>"
+							"</footprint>");
+	fpxml.readNextStartElement();
+	Footprint* fp = Footprint::newFromXML(fpxml, padstacks);
+	doc.mFootprints.append(fp);
+	QXmlStreamReader partxml("<part refdes='P1' value='val' footprint='RES0805' x='1' y='2' rot='270' side='bot' locked='1'>"
+							"<refText x='2000' y='2200' rot='270' lineWidth='42' textSize='212'/>"
+							"<valueText x='3200' y='3400' rot='180' lineWidth='55' textSize='443'/>"
+							"</part>");
+	partxml.readNextStartElement();
+	Part* p = Part::newFromXML(partxml, &doc);
+	QVERIFY(p != NULL);
+	QCOMPARE(p->refdes(), QString("P1"));
+	QCOMPARE(p->value(), QString("val"));
+	QCOMPARE(p->pos(), QPoint(1,2));
+	QCOMPARE(p->angle(), 270);
+	QCOMPARE(p->side(), SIDE_BOTTOM);
+	QCOMPARE(p->locked(), true);
+	QCOMPARE(p->refdesText().pos(), QPoint(2000,2200));
+	QCOMPARE(p->refdesText().angle(), 270);
+	QCOMPARE(p->refdesText().strokeWidth(), 42);
+	QCOMPARE(p->refdesText().fontSize(), 212);
+	QCOMPARE(p->valueText().pos(), QPoint(3200,3400));
+	QCOMPARE(p->valueText().angle(), 180);
+	QCOMPARE(p->valueText().strokeWidth(), 55);
+	QCOMPARE(p->valueText().fontSize(), 443);
+	delete p;
+}
+
+void XmlLoadTest::testNet()
+{
+	// create test objects
+	// we need a document, a padstack, a footprint, 2 part objects
+	PCBDoc doc;
+	Padstack* ps = new Padstack();
+	doc.mPadstacks.append(ps);
+	QHash<int, Padstack*> padstacks;
+	padstacks.insert(101, ps);
+	QXmlStreamReader fpxml("<footprint>"
+							"<name>RES0805</name>"
+							"<units>mm</units>"
+							"<author>igor</author>"
+							"<source>test</source>"
+							"<desc/>"
+							"<centroid x='10' y='20' custom='0'/>"
+							"<line width='600' layer='2' x1='100' y1='200' x2='1000' y2='2000' />"
+							"<pins>"
+							"<pin name='1' x='100' y='200' rot='90' padstack='101'/>"
+							"<pin name='2' x='400' y='600' rot='0' padstack='101'/>"
+							"</pins>"
+							"<refText x='1000' y='1100' rot='90' lineWidth='99' textSize='200'/>"
+							"<valueText x='1200' y='1400' rot='0' lineWidth='102' textSize='220'/>"
+							"</footprint>");
+	fpxml.readNextStartElement();
+	Footprint* fp = Footprint::newFromXML(fpxml, padstacks);
+	doc.mFootprints.append(fp);
+	QXmlStreamReader partxml("<part refdes='P1' value='val' footprint='RES0805' x='1' y='2' rot='270' side='bot' locked='1'>"
+							"<refText x='2000' y='2200' rot='270' lineWidth='42' textSize='212'/>"
+							"<valueText x='3200' y='3400' rot='180' lineWidth='55' textSize='443'/>"
+							"</part>");
+	partxml.readNextStartElement();
+	Part* p = Part::newFromXML(partxml, &doc);
+	doc.mParts.append(p);
+	QXmlStreamReader partxml2("<part refdes='P2' value='val' footprint='RES0805' x='1000' y='2000' rot='270' side='bot' locked='1'>"
+							"<refText x='2000' y='2200' rot='270' lineWidth='42' textSize='212'/>"
+							"<valueText x='3200' y='3400' rot='180' lineWidth='55' textSize='443'/>"
+							"</part>");
+	partxml2.readNextStartElement();
+	Part* p2 = Part::newFromXML(partxml2, &doc);
+	doc.mParts.append(p2);
+
+	// now test the net
+	QXmlStreamReader netxml("<net name='n1' visible='1' defViaPadstack='101'>"
+							"<pinRef partref='P1' pinname='1'/>"
+							"<pinRef partref='P2' pinname='1'/>"
+							"<pinRef partref='P1' pinname='2'/>"
+							"</net>");
+	netxml.readNextStartElement();
+	Net* n = Net::newFromXML(netxml, &doc, padstacks);
+	QVERIFY(n != NULL);
+	QCOMPARE(n->name(), QString("n1"));
+	QCOMPARE(n->visible(), true);
+	QCOMPARE(n->getViaPs(), ps);
+	QSet<PartPin*> pins = n->getPins();
+	QCOMPARE(pins.size(), 3);
+	foreach(PartPin* pin, pins)
+	{
+		QVERIFY( ( (pin->getPart()->refdes() == "P1") && (pin->getName() == "1") ) ||
+				 ( (pin->getPart()->refdes() == "P1") && (pin->getName() == "2") ) ||
+				 ( (pin->getPart()->refdes() == "P2") && (pin->getName() == "1") ) );
+	}
+	delete n;
+}
+
+void XmlLoadTest::testArea()
+{
+	// create test objects
+	// we need a document, a padstack, a footprint, a part object, and a net object
+	PCBDoc doc;
+	Padstack* ps = new Padstack();
+	doc.mPadstacks.append(ps);
+	QHash<int, Padstack*> padstacks;
+	padstacks.insert(101, ps);
+	QXmlStreamReader fpxml("<footprint>"
+							"<name>RES0805</name>"
+							"<units>mm</units>"
+							"<author>igor</author>"
+							"<source>test</source>"
+							"<desc/>"
+							"<centroid x='10' y='20' custom='0'/>"
+							"<line width='600' layer='2' x1='100' y1='200' x2='1000' y2='2000' />"
+							"<pins>"
+							"<pin name='1' x='100' y='200' rot='90' padstack='101'/>"
+							"<pin name='2' x='400' y='600' rot='0' padstack='101'/>"
+							"</pins>"
+							"<refText x='1000' y='1100' rot='90' lineWidth='99' textSize='200'/>"
+							"<valueText x='1200' y='1400' rot='0' lineWidth='102' textSize='220'/>"
+							"</footprint>");
+	fpxml.readNextStartElement();
+	Footprint* fp = Footprint::newFromXML(fpxml, padstacks);
+	doc.mFootprints.append(fp);
+	QXmlStreamReader partxml("<part refdes='P1' value='val' footprint='RES0805' x='1' y='2' rot='270' side='bot' locked='1'>"
+							"<refText x='2000' y='2200' rot='270' lineWidth='42' textSize='212'/>"
+							"<valueText x='3200' y='3400' rot='180' lineWidth='55' textSize='443'/>"
+							"</part>");
+	partxml.readNextStartElement();
+	Part* p = Part::newFromXML(partxml, &doc);
+	doc.mParts.append(p);
+	QXmlStreamReader netxml("<net name='n1' visible='1' defViaPadstack='101'>"
+							"<pinRef partref='P1' pinname='1'/>"
+							"<pinRef partref='P1' pinname='2'/>"
+							"</net>");
+	netxml.readNextStartElement();
+	Net* n = Net::newFromXML(netxml, &doc, padstacks);
+	doc.mNets.append(n);
+
+
+	// now test the area
+	QXmlStreamReader areaxml("<area net='n1' layer='5' hatch='full' connectSmt='1'>"
+							 "<polygon>"
+							 "<outline>"
+							 "<start x='0' y='0'/>"
+							 "<lineTo x='0' y='1000'/>"
+							 "<arcTo x='1000' y='0' dir='cw' ctrX='0' ctrY='0'/>"
+							 "<lineTo x='0' y='0'/>"
+							 "</outline>"
+							 "<!-- more random comments -->"
+							 "<hole>"
+							 "<start x='100' y='100'/>"
+							 "<arcTo x='200' y='200' ctrX='200' ctrY='100' dir='cw'/>"
+							 "<lineTo x='200' y='100'/>"
+							 "<lineTo x='100' y='100'/>"
+							 "<!-- random comment -->"
+							 "</hole>"
+							 "</polygon>"
+							 "</area>");
+	areaxml.readNextStartElement();
+	Area* a = Area::newFromXML(areaxml, doc);
+	QCOMPARE(a->layer(), (PCBLAYER)5);
+	QCOMPARE(a->hatchStyle(), Area::DIAGONAL_FULL);
+	QCOMPARE(a->net(), n);
+	QCOMPARE(a->connSmt(), true);
+	QCOMPARE(a->poly()->numHoles(), 1);
+	QCOMPARE(a->poly()->outline()->numSegs(), 4);
+	QCOMPARE(a->poly()->hole(0)->numSegs(), 4);
+
+	delete a;
+}
+
+void XmlLoadTest::testDoc()
+{
+	QTemporaryFile file;
+	file.open();
+	file.write("<xpcbBoard>"
+				"<props>"
+				"<units>mm</units>"
+				"<name>test board</name>"
+				"<defaultPadstack>101</defaultPadstack>"
+				"</props>"
+
+				"<padstacks>"
+				"<padstack name='pstesid='100' holesize='1000'><!-- fark -->"
+				"<startpad><pad shape='square' width='10000'/></startpad>"
+				"<innerpad><pad shape='round' width='15000'/><!-- asdf --></innerpad>"
+				"<!-- comment -->"
+				"<endpad><!-- another comment --><pad shape='rect' width='20000' height='5000'/><!--more comments --></endpad>"
+				"<startmask/><endmask/><startpaste/><endpaste/>"
+				"</padstack>"
+				"</padstacks>"
+
+				"<footprints>"
+				"<footprint>"
+				"<name>RES0805</name>"
+				"<units>mm</units>"
+				"<author>igor</author>"
+				"<source>test</source>"
+				"<desc/>"
+				"<centroid x='10' y='20' custom='0'/>"
+				"<line width='600' layer='2' x1='100' y1='200' x2='1000' y2='2000' />"
+				"<pins>"
+				"<pin name='1' x='100' y='200' rot='90' padstack='100'/>"
+				"<pin name='2' x='400' y='600' rot='0' padstack='100'/>"
+				"</pins>"
+				"<refText x='1000' y='1100' rot='90' lineWidth='99' textSize='200'/>"
+				"<valueText x='1200' y='1400' rot='0' lineWidth='102' textSize='220'/>"
+				"</footprint>"
+				"</footprints>"
+
+				"<outline>"
+				"<polygon>"
+				"<outline>"
+				"<start x='0' y='0'/>"
+				"<lineTo x='0' y='1000'/>"
+				"<arcTo x='1000' y='0' dir='cw' ctrX='0' ctrY='0'/>"
+				"<lineTo x='0' y='0'/>"
+				"</outline>"
+				"<!-- more random comments -->"
+				"<hole>"
+				"<start x='100' y='100'/>"
+				"<arcTo x='200' y='200' ctrX='200' ctrY='100' dir='cw'/>"
+				"<lineTo x='200' y='100'/>"
+				"<lineTo x='100' y='100'/>"
+				"<!-- random comment -->"
+				"</hole>"
+				"</polygon>"
+				"</outline>"
+
+				"<parts>"
+				"<part refdes='P1' value='val' footprint='RES0805' x='1' y='2' rot='270' side='bot' locked='1'>"
+				"<refText x='2000' y='2200' rot='270' lineWidth='42' textSize='212'/>"
+				"<valueText x='3200' y='3400' rot='180' lineWidth='55' textSize='443'/>"
+				"</part>"
+				"<part refdes='P2' value='val' footprint='RES0805' x='1' y='2' rot='270' side='bot' locked='1'>"
+				"<refText x='2000' y='2200' rot='270' lineWidth='42' textSize='212'/>"
+				"<valueText x='3200' y='3400' rot='180' lineWidth='55' textSize='443'/>"
+				"</part>"
+				"</parts>"
+
+				"<nets>"
+				"<net name='n1' visible='1' defViaPadstack='100'>"
+				"<pinRef partref='P1' pinname='1'/>"
+				"<pinRef partref='P2' pinname='2'/>"
+				"</net>"
+				"<net name='n2' visible='1' defViaPadstack='100'>"
+				"<pinRef partref='P2' pinname='1'/>"
+				"<pinRef partref='P1' pinname='2'/>"
+				"</net>"
+				"</nets>"
+
+				"<traces>"
+				"<!-- asdf --><vertices>"
+				"<vertex id='101' x='100' y='200'/>"
+				"<vertex id='102' x='300' y='400'/>"
+				"<!-- asdf -->"
+				"<vertex id='103' x='500' y='600'/>"
+				"<vertex id='104' x='700' y='800'/>"
+				"</vertices><!-- asdf --><segments>"
+				"<segment start='101' end='102' layer='8' width='1000'/>"
+				"<!-- test -->"
+				"<segment start='103' end='104' layer='8' width='2000'/>"
+				"<segment start='102' end='103' layer='8' width='3000'/>"
+				"</segments><!-- asdf -->"
+				"</traces>"
+
+				"<areas>"
+				"<area net='n1' layer='5' hatch='full' connectSmt='1'>"
+				"<polygon>"
+				"<outline>"
+				"<start x='0' y='0'/>"
+				"<lineTo x='0' y='1000'/>"
+				"<arcTo x='1000' y='0' dir='cw' ctrX='0' ctrY='0'/>"
+				"<lineTo x='0' y='0'/>"
+				"</outline>"
+				"<!-- more random comments -->"
+				"<hole>"
+				"<start x='100' y='100'/>"
+				"<arcTo x='200' y='200' ctrX='200' ctrY='100' dir='cw'/>"
+				"<lineTo x='200' y='100'/>"
+				"<lineTo x='100' y='100'/>"
+				"<!-- random comment -->"
+				"</hole>"
+				"</polygon>"
+				"</area>"
+				"<area net='n2' layer='3' hatch='full' connectSmt='1'>"
+				"<polygon>"
+				"<outline>"
+				"<start x='0' y='0'/>"
+				"<lineTo x='0' y='1000'/>"
+				"<arcTo x='1000' y='0' dir='cw' ctrX='0' ctrY='0'/>"
+				"<lineTo x='0' y='0'/>"
+				"</outline>"
+				"<!-- more random comments -->"
+				"<hole>"
+				"<start x='100' y='100'/>"
+				"<arcTo x='200' y='200' ctrX='200' ctrY='100' dir='cw'/>"
+				"<lineTo x='200' y='100'/>"
+				"<lineTo x='100' y='100'/>"
+				"<!-- random comment -->"
+				"</hole>"
+				"</polygon>"
+				"</area>"
+				"</areas>"
+
+				"<texts>"
+				"<text layer='2' x='100' y='200' rot='180' lineWidth='300' textSize='400'> testing 123  </text>"
+				"<text layer='2' x='200' y='500' rot='180' lineWidth='300' textSize='400'> testing 123  </text>"
+
+				"</texts>"
+
+				"</xpcbBoard>"
+				);
+	file.reset();
+
+
+	PCBDoc d;
+	bool ret = d.loadFromFile(file);
+
+	QCOMPARE(ret, true);
+	QCOMPARE(d.name(), QString("test board"));
+	QCOMPARE(d.units(), MM);
+	QCOMPARE(d.mTraceList->segments().size(), 3);
+	QCOMPARE(d.mTraceList->vertices().size(), 4);
+	QCOMPARE(d.mAreas.size(), 2);
+	QCOMPARE(d.mTexts.size(), 2);
+	QCOMPARE(d.mNets.size(), 2);
+	QCOMPARE(d.mParts.size(), 2);
+
+	file.close();
 }

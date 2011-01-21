@@ -15,7 +15,7 @@ public:
 	~Text();
 
 	// overrides
-	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
 
 	// getters / setters

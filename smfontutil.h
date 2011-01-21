@@ -71,7 +71,7 @@ private:
 	void SaveFontData(void);
 	int LoadXlationData(void);
 	void SaveXlationData(void);
-	SMFontUtil(const QString & path);
+	SMFontUtil();
 	~SMFontUtil();
 
 	static SMFontUtil* mInstance;

@@ -19,13 +19,14 @@ public:
 	Net( PCBDoc *doc, const QString &name);
 	~Net();
 
-	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
 
 	QString name() {return mName;}
 	void addPin( PartPin * pin);
 	void removePin( PartPin * pin);
 	QSet<PartPin*> getPins() { return mPins; }
+	Padstack* getViaPs() { return mViaPS; }
 
 	static Net* newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
 						   const QHash<int, Padstack*> &padstacks);

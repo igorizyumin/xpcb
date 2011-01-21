@@ -1,5 +1,6 @@
 #include <QXmlStreamReader>
 #include "Text.h"
+#include "Log.h"
 #include "smfontutil.h"
 
 Text::Text()
@@ -32,7 +33,7 @@ void Text::initText() const
 	// get new strokes for all characters
 	for (int i = 0; i < mText.size(); i++)
 	{
-		fu.GetCharPath(mText[i].toAscii(), SIMPLEX, QPoint(newBbox.right()+1, 0), scale, newBbox, mStrokes);
+		fu.GetCharPath(mText[i].toAscii(), SIMPLEX, QPoint(newBbox.right() + 1.5*mStrokeWidth, 0), scale, newBbox, mStrokes);
 	}
 	mStrokeBBox = newBbox;
 }
@@ -59,7 +60,7 @@ QRect Text::bbox() const
 	return mTransform.mapRect(this->mStrokeBBox);
 }
 
-void Text::draw(QPainter *painter, PCBLAYER layer)
+void Text::draw(QPainter *painter, PCBLAYER layer) const
 {
 	if (layer != mLayer)
 		return;

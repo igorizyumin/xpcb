@@ -24,7 +24,7 @@ public:
 	/// called multiple times during a single redraw operation, once for each layer.
 	/// \param painter the painter to use
 	/// \param layer the PCB layer to draw
-	virtual void draw(QPainter *painter, PCBLAYER layer) = 0;
+	virtual void draw(QPainter *painter, PCBLAYER layer) const = 0;
 
 	/// Returns the object's bounding box
 	virtual QRect bbox() const = 0;

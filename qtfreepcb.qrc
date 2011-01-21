@@ -1,12 +1,17 @@
 <RCC>
-    <qresource prefix="/QtFreePCB">
+    <qresource prefix="/">
+        <file>xpcbschema.xsd</file>
         <file>Resources/tango-icons/22x22/actions/document-new.png</file>
         <file>Resources/tango-icons/22x22/actions/document-open.png</file>
+        <file>Resources/tango-icons/22x22/actions/document-open-recent.png</file>
+        <file>Resources/tango-icons/22x22/actions/document-page-setup.png</file>
         <file>Resources/tango-icons/22x22/actions/document-print.png</file>
         <file>Resources/tango-icons/22x22/actions/document-print-preview.png</file>
         <file>Resources/tango-icons/22x22/actions/document-properties.png</file>
+        <file>Resources/tango-icons/22x22/actions/document-revert.png</file>
         <file>Resources/tango-icons/22x22/actions/document-save.png</file>
         <file>Resources/tango-icons/22x22/actions/document-save-as.png</file>
+        <file>Resources/tango-icons/22x22/actions/document-send.png</file>
         <file>Resources/tango-icons/22x22/actions/edit-clear.png</file>
         <file>Resources/tango-icons/22x22/actions/edit-copy.png</file>
         <file>Resources/tango-icons/22x22/actions/edit-cut.png</file>
@@ -17,7 +22,17 @@
         <file>Resources/tango-icons/22x22/actions/edit-redo.png</file>
         <file>Resources/tango-icons/22x22/actions/edit-select-all.png</file>
         <file>Resources/tango-icons/22x22/actions/edit-undo.png</file>
-        <file>xpcbschema.xsd</file>
+        <file alias="Hershey.smf">Resources/Hershey.smf</file>
+        <file alias="Hershey.xtb">Resources/Hershey.xtb</file>
         <file>Resources/xpcb.png</file>
+        <file>Resources/f2.png</file>
+        <file>Resources/f3.png</file>
+        <file>Resources/f4.png</file>
+        <file>Resources/f5.png</file>
+        <file>Resources/f6.png</file>
+        <file>Resources/f7.png</file>
+        <file>Resources/f8.png</file>
+        <file>Resources/f9.png</file>
+        <file>Resources/f1.png</file>
     </qresource>
 </RCC>

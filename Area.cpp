@@ -17,7 +17,7 @@ Area::~Area()
 	delete mPoly;
 }
 
-void Area::draw(QPainter *painter, PCBLAYER layer)
+void Area::draw(QPainter *painter, PCBLAYER layer) const
 {
 	// XXX TODO draw via if needed
 }

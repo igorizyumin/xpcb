@@ -39,9 +39,15 @@ Net* Net::newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
 		attr = reader.attributes();
 		QString refdes = attr.value("partref").toString();
 		QString pinname = attr.value("pinname").toString();
-		PartPin* pin = doc->getPart(refdes)->getPin(pinname);
+		Part* part = doc->getPart(refdes);
+		Q_ASSERT(part != NULL);
+		PartPin* pin = part->getPin(pinname);
 		Q_ASSERT(pin != NULL);
 		n->mPins.insert(pin);
+
+		do
+				reader.readNext();
+		while(!reader.isEndElement());
 	}
 	Q_ASSERT(reader.isEndElement() && reader.name() == "net");
 	return n;
@@ -72,7 +78,7 @@ void Net::removePin(PartPin* p)
 	mPins.remove(p);
 }
 
-void Net::draw(QPainter *painter, PCBLAYER layer)
+void Net::draw(QPainter *painter, PCBLAYER layer) const
 {
 
 }

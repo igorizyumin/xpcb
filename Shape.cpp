@@ -201,6 +201,9 @@ Pin Pin::newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> & pads
 	{
 		Log::instance().error("Error creating pin: missing padstack");
 	}
+	do
+			reader.readNext();
+	while(!reader.isEndElement());
 	return p;
 }
 
@@ -264,7 +267,7 @@ Footprint::~Footprint()
 {
 }
 
-void Footprint::draw(QPainter *painter, PCBLAYER layer)
+void Footprint::draw(QPainter *painter, PCBLAYER layer) const
 {
 }
 
@@ -291,6 +294,10 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader, const QHash<int, Pads
 		{
 			fp->mAuthor = reader.readElementText();
 		}
+		else if (el == "source")
+		{
+			fp->mSource = reader.readElementText();
+		}
 		else if (el == "desc")
 		{
 			fp->mDesc = reader.readElementText();
@@ -302,6 +309,9 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader, const QHash<int, Pads
 								   attr.value("y").toString().toInt());
 			if (attr.hasAttribute("custom"))
 				fp->mCustomCentroid = (attr.value("custom") == "1");
+			do
+					reader.readNext();
+			while(!reader.isEndElement());
 		}
 		else if (el == "line")
 		{
@@ -331,6 +341,9 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader, const QHash<int, Pads
 			fp->mRefText.setAngle(attr.value("rot").toString().toInt());
 			fp->mRefText.setFontSize(attr.value("textSize").toString().toInt());
 			fp->mRefText.setStrokeWidth(attr.value("lineWidth").toString().toInt());
+			do
+					reader.readNext();
+			while(!reader.isEndElement());
 		}
 		else if (el == "valueText")
 		{
@@ -340,6 +353,9 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader, const QHash<int, Pads
 			fp->mValueText.setAngle(attr.value("rot").toString().toInt());
 			fp->mValueText.setFontSize(attr.value("textSize").toString().toInt());
 			fp->mValueText.setStrokeWidth(attr.value("lineWidth").toString().toInt());
+			do
+					reader.readNext();
+			while(!reader.isEndElement());
 		}
 	}
 	return fp;

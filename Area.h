@@ -33,7 +33,7 @@ public:
 	Area(const PCBDoc *doc);
 	~Area();
 
-	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
 
 	/// Sets the polygon layer.
@@ -48,6 +48,10 @@ public:
 	/// Sets the hatch style.
 	/// \param hatch the new hatch style.
 	void setHatchStyle( HATCH_STYLE hatch ) { mHatchStyle = hatch; }
+
+	bool connSmt() { return mConnectSMT; }
+	Net* net() { return mNet; }
+	Polygon* poly() { return mPoly; }
 
 	/// Check if a point is within the area boundaries.
 	/// \returns true if p is inside area.

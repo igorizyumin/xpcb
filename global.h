@@ -14,8 +14,8 @@ enum UNIT
 };
 
 // conversion factors
-#define NM_PER_MIL 25400
-#define NM_PER_MM 1000000
+const int NM_PER_MIL = 25400;
+const int NM_PER_MM = 1000000;
 
 // there are four coordinate systems:
 //	WU = window coords
@@ -24,10 +24,15 @@ enum UNIT
 //	DU = display coords (mils)
 //
 // conversion factors
-#define PCBU_PER_MIL	NM_PER_MIL
-#define PCBU_PER_MM		NM_PER_MM
+const int PCBU_PER_MIL = NM_PER_MIL;
+const int PCBU_PER_MM = NM_PER_MM;
 
-#define PCB_BOUND	32000*PCBU_PER_MIL	// boundary
+const int PCB_BOUND	= 32000*PCBU_PER_MIL;	// boundary
+
+inline int IN2PCB(double x) { return x * 1000 * PCBU_PER_MIL; }
+inline int MM2PCB(double x) {return x * PCBU_PER_MM; }
+inline double PCB2IN(int x) { return double(x) / (1000 * PCBU_PER_MIL); }
+inline double PCB2MM(int x) {return double(x) / PCBU_PER_MM; }
 
 typedef enum
 {
@@ -38,7 +43,7 @@ typedef enum
 // define standard drawing layers
 //
 
-#define MAX_LAYERS 32
+const int MAX_LAYERS = 32;
 
 typedef enum
 {

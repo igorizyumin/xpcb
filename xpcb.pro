@@ -27,12 +27,14 @@ SOURCES += PCBView.cpp \
     PolygonList.cpp \
     Polygon.cpp \
     Line.cpp \
-	mainwindow.cpp
+	mainwindow.cpp \
+    ActionBar.cpp
 
 CONFIG(unittest) {
 	QT += testlib
 	SOURCES += xpcbtests/tst_XmlLoadTest.cpp \
 				xpcbtests/testmain.cpp
+	HEADERS += xpcbtests/tst_XmlLoadTest.h
 } else {
 	SOURCES += main.cpp
 }
@@ -55,12 +57,14 @@ HEADERS  += PCBView.h \
     PolygonList.h \
     Polygon.h \
     Line.h \
-    mainwindow.h \
-    xpcbtests/tst_XmlLoadTest.h
+	mainwindow.h \
+    ActionBar.h
+
 
 FORMS    += GridToolbarWidget.ui \
     AboutDialog.ui \
-    mainwindow.ui
+    mainwindow.ui \
+    ActionBar.ui
 
 RESOURCES += \
     qtfreepcb.qrc

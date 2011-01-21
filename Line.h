@@ -10,7 +10,7 @@ class Line : public PCBObject
 public:
     Line();
 
-	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
 
 	QPoint start() const { return mStart; }
@@ -31,7 +31,7 @@ class Arc : public PCBObject
 public:
 	Arc();
 
-	virtual void draw(QPainter *painter, PCBLAYER layer);
+	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
 
 	QPoint start() const { return mStart; }

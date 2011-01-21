@@ -181,7 +181,7 @@ Vertex = element vertex {
 	attribute id { ObjID },
 	CoordsAttr,
 	attribute forcevia { Bool }?,
-	PSRef?,
+	PSRef?
 }
 
 # Segment definition

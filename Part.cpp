@@ -21,7 +21,7 @@ Pin::PINLAYER PartPin::mapLayer(PCBLAYER layer) const
 	if (layer <= LAY_PAD_THRU || layer == LAY_UNKNOWN)
 		return Pin::LAY_UNKNOWN;
 
-	PCBSIDE side = mPart->getSide();
+	PCBSIDE side = mPart->side();
 	if ((layer == LAY_TOP_COPPER && side == SIDE_TOP) ||
 		(layer == LAY_BOTTOM_COPPER && side == SIDE_BOTTOM))
 		return Pin::LAY_START;
@@ -52,7 +52,7 @@ QRect PartPin::bbox() const
 	return mPart->transform().mapRect(mPin->bbox());
 }
 
-void PartPin::draw(QPainter *painter, PCBLAYER layer)
+void PartPin::draw(QPainter *painter, PCBLAYER layer) const
 {
 
 }
@@ -62,7 +62,8 @@ void PartPin::setNet(Net *newnet)
 	if (mNet)
 		mNet->removePin(this);
 	mNet = newnet;
-	mNet->addPin(this);
+	if (newnet)
+		mNet->addPin(this);
 }
 
 
@@ -163,6 +164,9 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 			pp->mRefdes->setAngle(attr.value("rot").toString().toInt());
 			pp->mRefdes->setFontSize(attr.value("textSize").toString().toInt());
 			pp->mRefdes->setStrokeWidth(attr.value("lineWidth").toString().toInt());
+			do
+					reader.readNext();
+			while(!reader.isEndElement());
 		}
 		else if (t == "valueText")
 		{
@@ -172,7 +176,9 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 			pp->mValue->setAngle(attr.value("rot").toString().toInt());
 			pp->mValue->setFontSize(attr.value("textSize").toString().toInt());
 			pp->mValue->setStrokeWidth(attr.value("lineWidth").toString().toInt());
-			break;
+			do
+					reader.readNext();
+			while(!reader.isEndElement());
 		}
 	}
 	return pp;
@@ -186,7 +192,7 @@ void Part::updateTransform()
 	// XXX TODO handle mirroring for bottom side
 }
 
-void Part::draw(QPainter *painter, PCBLAYER layer)
+void Part::draw(QPainter *painter, PCBLAYER layer) const
 {
 }
 

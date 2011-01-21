@@ -11,7 +11,7 @@ Vertex::Vertex(TraceList* parent, QPoint pos, bool forcevia)
 
 }
 
-void Vertex::draw(QPainter *painter, PCBLAYER layer)
+void Vertex::draw(QPainter *painter, PCBLAYER layer) const
 {
 	// XXX TODO draw via if needed
 }
@@ -166,7 +166,7 @@ Segment::~Segment()
 	mV2->removeSegment(this);
 }
 
-void Segment::draw(QPainter *painter, PCBLAYER layer)
+void Segment::draw(QPainter *painter, PCBLAYER layer) const
 {
 	// XXX TODO draw via if needed
 }
