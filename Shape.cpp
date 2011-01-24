@@ -64,6 +64,39 @@ Pad Pad::newFromXML(QXmlStreamReader &reader)
 	return p;
 }
 
+void Pad::toXML(QXmlStreamWriter &writer) const
+{
+	writer.writeStartElement("pad");
+	switch(mShape)
+	{
+	case PAD_ROUND:
+		writer.writeAttribute("shape", "round");
+		writer.writeAttribute("width", QString::number(mWidth));
+		break;
+	case PAD_OCTAGON:
+		writer.writeAttribute("shape", "octagon");
+		writer.writeAttribute("width", QString::number(mWidth));
+		break;
+	case PAD_SQUARE:
+		writer.writeAttribute("shape", "square");
+		writer.writeAttribute("width", QString::number(mWidth));
+		break;
+	case PAD_RECT:
+		writer.writeAttribute("shape", "rect");
+		writer.writeAttribute("width", QString::number(mWidth));
+		writer.writeAttribute("height", QString::number(mHeight));
+		break;
+	case PAD_OBROUND:
+		writer.writeAttribute("shape", "obround");
+		writer.writeAttribute("width", QString::number(mWidth));
+		writer.writeAttribute("height", QString::number(mHeight));
+		break;
+	default:
+		break;
+	}
+	writer.writeEndElement();
+}
+
 bool Pad::testHit( const QPoint& pt )
 {
 	double dist = sqrt(pt.x()*pt.x() + pt.y()*pt.y());
@@ -169,6 +202,55 @@ Padstack* Padstack::newFromXML(QXmlStreamReader &reader)
 	return p;
 }
 
+void Padstack::draw(QPainter *painter, PCBLAYER layer) const
+{
+}
+
+void Padstack::toXML(QXmlStreamWriter &writer) const
+{
+	writer.writeStartElement("padstack");
+	writer.writeAttribute("name", name);
+	writer.writeAttribute("id", QString::number(getid()));
+	writer.writeAttribute("holesize", QString::number(hole_size));
+
+	writer.writeStartElement("startpad");
+	if (!start.isNull())
+		start.toXML(writer);
+	writer.writeEndElement();
+
+	writer.writeStartElement("innerpad");
+	if (!inner.isNull())
+		inner.toXML(writer);
+	writer.writeEndElement();
+
+	writer.writeStartElement("endpad");
+	if (!end.isNull())
+		end.toXML(writer);
+	writer.writeEndElement();
+
+	writer.writeStartElement("startmask");
+	if (!start_mask.isNull())
+		start_mask.toXML(writer);
+	writer.writeEndElement();
+
+	writer.writeStartElement("endmask");
+	if (!end_mask.isNull())
+		end_mask.toXML(writer);
+	writer.writeEndElement();
+
+	writer.writeStartElement("startpaste");
+	if (!start_paste.isNull())
+		start_paste.toXML(writer);
+	writer.writeEndElement();
+
+	writer.writeStartElement("endpaste");
+	if (!end_paste.isNull())
+		end_paste.toXML(writer);
+	writer.writeEndElement();
+
+	writer.writeEndElement();
+}
+
 QRect Padstack::bbox() const
 {
 	QRect ret;
@@ -180,6 +262,11 @@ QRect Padstack::bbox() const
 	ret |= end_mask.bbox();
 	ret |= end_paste.bbox();
 	return ret;
+}
+
+void Padstack::accept(PCBObjectVisitor *v)
+{
+	v->visit(this);
 }
 
 /////////////////////// PIN /////////////////////////
@@ -205,6 +292,17 @@ Pin Pin::newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> & pads
 			reader.readNext();
 	while(!reader.isEndElement());
 	return p;
+}
+
+void Pin::toXML(QXmlStreamWriter &writer) const
+{
+	writer.writeStartElement("pin");
+	writer.writeAttribute("name", mName);
+	writer.writeAttribute("x", QString::number(mPos.x()));
+	writer.writeAttribute("y", QString::number(mPos.y()));
+	writer.writeAttribute("rot", QString::number(mAngle));
+	writer.writeAttribute("padstack", QString::number(mPadstack->getid()));
+	writer.writeEndElement();
 }
 
 bool Pin::testHit(const QPoint &pt, PINLAYER layer) const
@@ -359,6 +457,51 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader, const QHash<int, Pads
 		}
 	}
 	return fp;
+}
+
+void Footprint::toXML(QXmlStreamWriter &writer) const
+{
+	writer.writeStartElement("footprint");
+
+	writer.writeTextElement("name", mName);
+	writer.writeTextElement("units", mUnits == MM ? "mm" : "mils");
+	writer.writeTextElement("author", mAuthor);
+	writer.writeTextElement("source", mSource);
+	writer.writeTextElement("desc", mDesc);
+
+	writer.writeStartElement("centroid");
+	writer.writeAttribute("x", QString::number(mCentroid.x()));
+	writer.writeAttribute("y", QString::number(mCentroid.y()));
+	writer.writeAttribute("custom", mCustomCentroid ? "1" : "0");
+	writer.writeEndElement();
+
+	foreach(const Line& l, mOutlineLines)
+		l.toXML(writer);
+	foreach(const Arc& a, mOutlineArcs)
+		a.toXML(writer);
+
+	writer.writeStartElement("pins");
+	foreach(const Pin& p, mPins)
+		p.toXML(writer);
+	writer.writeEndElement();
+
+	writer.writeStartElement("refText");
+	writer.writeAttribute("x", QString::number(mRefText.pos().x()));
+	writer.writeAttribute("y", QString::number(mRefText.pos().y()));
+	writer.writeAttribute("rot", QString::number(mRefText.angle()));
+	writer.writeAttribute("textSize", QString::number(mRefText.fontSize()));
+	writer.writeAttribute("lineWidth", QString::number(mRefText.strokeWidth()));
+	writer.writeEndElement();
+
+	writer.writeStartElement("valueText");
+	writer.writeAttribute("x", QString::number(mValueText.pos().x()));
+	writer.writeAttribute("y", QString::number(mValueText.pos().y()));
+	writer.writeAttribute("rot", QString::number(mValueText.angle()));
+	writer.writeAttribute("textSize", QString::number(mValueText.fontSize()));
+	writer.writeAttribute("lineWidth", QString::number(mValueText.strokeWidth()));
+	writer.writeEndElement();
+
+	writer.writeEndElement(); // footprint
 }
 
 int Footprint::numPins() const

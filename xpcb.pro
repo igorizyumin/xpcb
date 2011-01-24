@@ -28,7 +28,9 @@ SOURCES += PCBView.cpp \
     Polygon.cpp \
     Line.cpp \
 	mainwindow.cpp \
-    ActionBar.cpp
+    ActionBar.cpp \
+    Controller.cpp \
+    Editor.cpp
 
 CONFIG(unittest) {
 	QT += testlib
@@ -58,7 +60,9 @@ HEADERS  += PCBView.h \
     Polygon.h \
     Line.h \
 	mainwindow.h \
-    ActionBar.h
+    ActionBar.h \
+    Controller.h \
+    Editor.h
 
 
 FORMS    += GridToolbarWidget.ui \

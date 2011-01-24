@@ -1,17 +1,8 @@
 #include "PCBObject.h"
+#include "PCBDoc.h"
 
-int PCBObject::nextObjID = 0;
+int PCBObject::nextObjID = 1000;
 
-PCBObject::PCBObject() : isSelected(false), isVisible(true), objID(nextObjID++)
+PCBObject::PCBObject() : objID(nextObjID++)
 {
-}
-
-void PCBObject::setSelected(bool selected)
-{
-	isSelected  = selected;
-}
-
-void  PCBObject::setVisible(bool visible)
-{
-	isVisible = visible;
 }

@@ -5,6 +5,7 @@
 #include <QList>
 #include <QSet>
 #include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 #include "global.h"
 #include "Part.h"
 #include "Trace.h"
@@ -21,16 +22,21 @@ public:
 
 	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
+	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	QString name() {return mName;}
 	void addPin( PartPin * pin);
 	void removePin( PartPin * pin);
 	QSet<PartPin*> getPins() { return mPins; }
 	Padstack* getViaPs() { return mViaPS; }
+	bool visible() { return mIsVisible; }
+	void setVisible(bool v) { mIsVisible = v; }
 
 	static Net* newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
 						   const QHash<int, Padstack*> &padstacks);
+	void toXML(QXmlStreamWriter &writer) const;
 private:
+	bool mIsVisible;
 	PCBDoc * mDoc;	// PCB document
 	QString mName;		// net name
 	QSet<PartPin*> mPins;	// pointers to part pins that are in this net

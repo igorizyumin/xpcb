@@ -2,6 +2,7 @@
 #include "Log.h"
 #include <QFile>
 #include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 #include <QtXmlPatterns/QXmlSchema>
 #include <QtXmlPatterns/QXmlSchemaValidator>
 #include "Polygon.h"
@@ -9,36 +10,25 @@
 #include "Trace.h"
 
 PCBDoc::PCBDoc()
-		: QObject(), mModified(false), mUnits(MM), mTraceList(NULL), mBoardOutline(NULL)
+		: QObject(), mUnits(MM), mTraceList(NULL), mBoardOutline(NULL), mDefaultPadstack(NULL)
 {
+	mUndoStack = new QUndoStack(this);
+	connect(mUndoStack, SIGNAL(canUndoChanged(bool)), this, SIGNAL(canUndoChanged(bool)));
+	connect(mUndoStack, SIGNAL(canRedoChanged(bool)), this, SIGNAL(canRedoChanged(bool)));
+	connect(mUndoStack, SIGNAL(cleanChanged(bool)), this, SIGNAL(cleanChanged(bool)));
 	mTraceList = new TraceList();
+	mDefaultPadstack = new Padstack();
+	mPadstacks.append(mDefaultPadstack);
 }
 
 PCBDoc::~PCBDoc()
 {
-	delete mTraceList;
-	delete mBoardOutline;
-	foreach(Net* n, mNets)
-	{
-		delete n;
-	}
-	foreach(Part* n, mParts)
-	{
-		delete n;
-	}
-	foreach(Area* n, mAreas)
-	{
-		delete n;
-	}
-	foreach(Footprint* n, mFootprints)
-	{
-		delete n;
-	}
-	foreach(Padstack* n, mPadstacks)
-	{
-		delete n;
-	}
+	clearDoc();
+}
 
+bool PCBDoc::isModified()
+{
+	return !mUndoStack->isClean();
 }
 
 Footprint* PCBDoc::getFootprint(const QString &name)
@@ -71,32 +61,105 @@ Net* PCBDoc::getNet(const QString &name) const
 	return NULL;
 }
 
-void PCBDoc::draw(QPainter *painter, QRect rect, PCBLAYER layer)
+QList<PCBObject*> PCBDoc::findObjs(QRect &rect)
 {
+	QList<PCBObject*> out;
+
 	foreach(Segment* s, mTraceList->segments())
 	{
 		if (rect.intersects(s->bbox()))
-			s->draw(painter, layer);
+			out.append(s);
 	}
 
 	foreach(Part* p, mParts)
 	{
 		if (rect.intersects(p->bbox()))
-			p->draw(painter, layer);
+			out.append(p);
 	}
 
-	foreach(const Text& t, mTexts)
+	for(QList<Text>::iterator i = mTexts.begin(); i != mTexts.end(); i++)
 	{
-	//	if (rect.intersects(t.bbox()))
-			t.draw(painter, layer);
+		if (rect.intersects((*i).bbox()))
+			out.append(&(*i));
 	}
 
 	foreach(Area* a, mAreas)
 	{
 		if (rect.intersects(a->bbox()))
-			a->draw(painter, layer);
+			out.append(a);
 	}
 
+	return out;
+}
+
+QList<PCBObject*> PCBDoc::findObjs(QPoint &pt)
+{
+	QList<PCBObject*> out;
+	for(QList<Text>::iterator i = mTexts.begin(); i != mTexts.end(); i++)
+	{
+		if((*i).bbox().contains(pt))
+		{
+			out.append(&(*i));
+		}
+	}
+	return out;
+}
+
+void PCBDoc::clearDoc()
+{
+	mUndoStack->clear();
+	delete mTraceList;
+	mTraceList = NULL;
+	delete mBoardOutline;
+	mBoardOutline = NULL;
+	foreach(Net* n, mNets)
+	{
+		delete n;
+	}
+	mNets.clear();
+	foreach(Part* n, mParts)
+	{
+		delete n;
+	}
+	mParts.clear();
+	mTexts.clear();
+	foreach(Area* n, mAreas)
+	{
+		delete n;
+	}
+	mAreas.clear();
+	foreach(Footprint* n, mFootprints)
+	{
+		delete n;
+	}
+	mFootprints.clear();
+	foreach(Padstack* n, mPadstacks)
+	{
+		delete n;
+	}
+	mPadstacks.clear();
+	delete mBoardOutline;
+	mBoardOutline = NULL;
+	mDefaultPadstack = NULL;
+}
+
+void PCBDoc::doCommand(QUndoCommand *cmd)
+{
+	cmd->redo();
+	mUndoStack->push(cmd);
+	emit changed();
+}
+
+void PCBDoc::undo()
+{
+	mUndoStack->undo();
+	emit changed();
+}
+
+void PCBDoc::redo()
+{
+	mUndoStack->redo();
+	emit changed();
 }
 
 //////// XML PARSING /////////
@@ -138,7 +201,7 @@ bool PCBDoc::loadFromFile(const QString& path)
 	QFile inFile(path);
 	if (!inFile.open(QIODevice::ReadOnly))
 	{
-		Log::instance().error(QString("Unable to open file %1").arg(path));
+		Log::instance().error(QString("Unable to open file %1 for reading").arg(path));
 		return false;
 	}
 	bool ret = loadFromFile(inFile);
@@ -148,8 +211,75 @@ bool PCBDoc::loadFromFile(const QString& path)
 
 bool PCBDoc::saveToFile(const QString &file)
 {
-	Log::instance().error(QString("Not implemented"));
-	return false;
+	QFile outFile(file);
+	if (!outFile.open(QIODevice::WriteOnly))
+	{
+		Log::instance().error(QString("Unable to open file %1 for writing").arg(file));
+		return false;
+	}
+
+	QXmlStreamWriter writer(&outFile);
+
+	bool ret = saveToXML(writer);
+
+	outFile.close();
+	return ret;
+}
+
+bool PCBDoc::saveToXML(QXmlStreamWriter &writer)
+{
+	writer.setAutoFormatting(true);
+	writer.writeStartDocument();
+	writer.writeStartElement("xpcbBoard");
+
+	writer.writeStartElement("props");
+	writer.writeTextElement("units", this->mUnits == MM ? "mm" : "mils");
+	writer.writeTextElement("name", this->mName);
+	writer.writeTextElement("defaultPadstack", QString::number(this->mDefaultPadstack->getid()));
+	writer.writeEndElement();
+
+	writer.writeStartElement("padstacks");
+	foreach(Padstack* ps, mPadstacks)
+		ps->toXML(writer);
+	writer.writeEndElement();
+
+	writer.writeStartElement("footprints");
+	foreach(Footprint* fp, mFootprints)
+		fp->toXML(writer);
+	writer.writeEndElement();
+
+	writer.writeStartElement("outline");
+	if (mBoardOutline)
+		this->mBoardOutline->toXML(writer);
+	writer.writeEndElement();
+
+	writer.writeStartElement("parts");
+	foreach(Part* p, mParts)
+		p->toXML(writer);
+	writer.writeEndElement();
+
+	writer.writeStartElement("nets");
+	foreach(Net* n, mNets)
+		n->toXML(writer);
+	writer.writeEndElement();
+
+	mTraceList->toXML(writer);
+
+	writer.writeStartElement("areas");
+	foreach(Area* a, mAreas)
+		a->toXML(writer);
+	writer.writeEndElement();
+
+	writer.writeStartElement("texts");
+	foreach(const Text& t, mTexts)
+		t.toXML(writer);
+	writer.writeEndElement();
+
+	writer.writeEndElement();
+	writer.writeEndDocument();
+
+	mUndoStack->setClean();
+	return true;
 }
 
 bool PCBDoc::loadFromFile(QFile &inFile)
@@ -169,6 +299,9 @@ bool PCBDoc::loadFromFile(QFile &inFile)
 
 bool PCBDoc::loadFromXml(QXmlStreamReader &reader)
 {
+	clearDoc();
+	mTraceList = new TraceList();
+
 	// default padstack id
 	int defaultPS;
 
@@ -180,7 +313,19 @@ bool PCBDoc::loadFromXml(QXmlStreamReader &reader)
 		if (t == "props")
 			loadProps(reader, mName, mUnits, defaultPS );
 		else if (t == "padstacks")
+		{
 			loadPadstacks(reader, padstacks);
+			mPadstacks.append(padstacks.values());
+			if (padstacks.contains(defaultPS))
+				mDefaultPadstack = padstacks.value(defaultPS);
+			else
+			{
+				Log::instance().error("Invalid default padstack specified.");
+				mDefaultPadstack = new Padstack();
+				mPadstacks.append(mDefaultPadstack);
+
+			}
+		}
 		else if (t == "footprints")
 			loadFootprints(reader, this->mFootprints, padstacks);
 		else if (t == "outline")
@@ -207,9 +352,7 @@ bool PCBDoc::loadFromXml(QXmlStreamReader &reader)
 		Log::instance().error(QString("Unable to load file: %1").arg(reader.errorString()));
 		return false;
 	}
-		mModified = false;
 	return true;
-
 }
 
 void loadProps(QXmlStreamReader &reader, QString &name, UNIT &units, int &defaultps)
@@ -298,7 +441,8 @@ void loadFootprints(QXmlStreamReader &reader, QList<Footprint*> &footprints, con
 void loadOutline(QXmlStreamReader &reader, Polygon *& poly)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "outline");
-	reader.readNextStartElement();
+	if (!reader.readNextStartElement())
+		return;
 	poly = Polygon::newFromXML(reader);
 	if (!poly)
 	{

@@ -146,6 +146,38 @@ PolyContour PolyContour::newFromXML(QXmlStreamReader &reader)
 	return pc;
 }
 
+void PolyContour::toXML(QXmlStreamWriter &writer) const
+{
+	foreach(const Segment& seg, mSegs)
+	{
+		switch(seg.type)
+		{
+		case Segment::START:
+			writer.writeStartElement("start");
+			writer.writeAttribute("x", QString::number(seg.end.x()));
+			writer.writeAttribute("y", QString::number(seg.end.y()));
+			writer.writeEndElement();
+			break;
+		case Segment::LINE:
+			writer.writeStartElement("lineTo");
+			writer.writeAttribute("x", QString::number(seg.end.x()));
+			writer.writeAttribute("y", QString::number(seg.end.y()));
+			writer.writeEndElement();
+			break;
+		case Segment::ARC_CW:
+		case Segment::ARC_CCW:
+			writer.writeStartElement("arcTo");
+			writer.writeAttribute("dir", seg.type == Segment::ARC_CW ? "cw" : "ccw");
+			writer.writeAttribute("x", QString::number(seg.end.x()));
+			writer.writeAttribute("y", QString::number(seg.end.y()));
+			writer.writeAttribute("ctrX", QString::number(seg.arcCenter.x()));
+			writer.writeAttribute("ctrY", QString::number(seg.arcCenter.y()));
+			writer.writeEndElement();
+			break;
+		}
+	}
+}
+
 void PolyContour::translate(const QPoint &vec)
 {
 	for(int i = 0; i < mSegs.size(); i++)
@@ -333,6 +365,21 @@ Polygon* Polygon::newFromXML(QXmlStreamReader &reader)
 	}
 
 	return poly;
+}
+
+void Polygon::toXML(QXmlStreamWriter &writer) const
+{
+	writer.writeStartElement("polygon");
+	writer.writeStartElement("outline");
+	mOutline.toXML(writer);
+	writer.writeEndElement();
+	foreach(const PolyContour &hole, mHoles)
+	{
+		writer.writeStartElement("hole");
+		hole.toXML(writer);
+		writer.writeEndElement();
+	}
+	writer.writeEndElement();
 }
 
 QRect Polygon::bbox() const

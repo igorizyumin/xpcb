@@ -53,6 +53,22 @@ Net* Net::newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
 	return n;
 }
 
+void Net::toXML(QXmlStreamWriter &writer) const
+{
+	writer.writeStartElement("net");
+	writer.writeAttribute("name", mName);
+	writer.writeAttribute("visible", mIsVisible ? "1" : "0");
+	writer.writeAttribute("defViaPadstack", QString::number(mViaPS->getid()));
+	foreach(PartPin* p, mPins)
+	{
+		writer.writeStartElement("pinRef");
+		writer.writeAttribute("partref", p->getPart()->refdes());
+		writer.writeAttribute("pinname", p->getName());
+		writer.writeEndElement();
+	}
+	writer.writeEndElement();
+}
+
 Net::~Net()
 {
 	// disconnect pins from net

@@ -9,6 +9,7 @@ class GridToolbarWidget;
 class ActionBar;
 class PCBView;
 class PCBDoc;
+class Controller;
 
 /// The MainWindow class represents a single open PCB editor window
 class MainWindow : public QMainWindow, private Ui::MainWindowClass
@@ -28,6 +29,8 @@ private slots:
 	bool on_actionSave_triggered();
 	bool on_actionSave_as_triggered();
 	bool on_actionClose_triggered();
+	void onUndoAvailableChanged(bool enabled);
+	void onRedoAvailableChanged(bool enabled);
 
 protected:
 	void closeEvent(QCloseEvent *event);
@@ -47,6 +50,7 @@ private:
 	ActionBar* m_actionbar;
 	PCBView *m_view;
 	PCBDoc* m_doc;
+	Controller *m_ctrl;
 	QString m_curFile;
 };
 

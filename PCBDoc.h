@@ -3,6 +3,7 @@
 
 #include <QList>
 #include <QFile>
+#include <QUndoStack>
 #include "Trace.h"
 #include "Part.h"
 #include "Net.h"
@@ -25,7 +26,10 @@ public:
 	bool loadFromFile(QFile & file);
 	bool loadFromXml(QXmlStreamReader &reader);
 
-	bool isModified() { return mModified; }
+	bool saveToXML(const QString &file);
+	bool saveToXML(QXmlStreamWriter &writer);
+
+	bool isModified();
 
 	Part* getPart(const QString & refdes);
 	Footprint* getFootprint(const QString &name);
@@ -34,16 +38,27 @@ public:
 	QString name() { return mName; }
 	UNIT units() { return mUnits; }
 
-	/// Draw the document using the provided painter
-	/// \param rect the bounding rectangle (in pcb coordinates)
-	void draw(QPainter* painter, QRect rect, PCBLAYER layer);
+	/// Returns a list of all objects that are hit
+	QList<PCBObject*> findObjs(QPoint &pt);
+	/// Returns list of all objects touching rect
+	QList<PCBObject*> findObjs(QRect &rect);
+
+	void doCommand(QUndoCommand *cmd);
 
 signals:
 	void changed();
+	void cleanChanged(bool clean);
+	void canUndoChanged(bool e);
+	void canRedoChanged(bool e);
+
+public slots:
+	void undo();
+	void redo();
 
 private:
-	/// Document has been modified since last load/save
-	bool mModified;
+	void clearDoc();
+
+	QUndoStack *mUndoStack;
 
 	/// Project name
 	QString mName;
@@ -58,6 +73,8 @@ private:
 	QList<Footprint*> mFootprints;
 	QList<Padstack*> mPadstacks;
 	Polygon * mBoardOutline;
+
+	Padstack* mDefaultPadstack;
 
 };
 

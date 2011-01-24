@@ -2,6 +2,7 @@
 #define ACTIONBAR_H
 
 #include <QWidget>
+#include <QPushButton>
 #include "ui_ActionBar.h"
 
 class ActionBar : public QWidget, private Ui::ActionBar
@@ -10,8 +11,14 @@ class ActionBar : public QWidget, private Ui::ActionBar
 
 public:
     explicit ActionBar(QWidget *parent = 0);
+	QList<QAction*> getActions() { return mActions; }
+
+private slots:
+	void onActionChanged();
 
 private:
+	QList<QAction*> mActions;
+	QString wrapText(QString text);
 
 };
 

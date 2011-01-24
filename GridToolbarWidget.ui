@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>723</width>
-    <height>101</height>
+    <width>788</width>
+    <height>27</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -56,7 +56,73 @@
     </widget>
    </item>
    <item>
-    <widget class="QComboBox" name="visGridBox"/>
+    <widget class="QComboBox" name="visGridBox">
+     <item>
+      <property name="text">
+       <string>100</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>200</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>250</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>400</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>500</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>1000</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>1 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>2 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>2.5 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>4 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>5 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>10 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>25 mm</string>
+      </property>
+     </item>
+    </widget>
    </item>
    <item>
     <spacer name="horizontalSpacer_2">
@@ -82,7 +148,121 @@
     </widget>
    </item>
    <item>
-    <widget class="QComboBox" name="placeGridBox"/>
+    <widget class="QComboBox" name="placeGridBox">
+     <property name="currentIndex">
+      <number>4</number>
+     </property>
+     <item>
+      <property name="text">
+       <string>10</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>20</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>25</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>40</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>50</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>100</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>125</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>200</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>250</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>400</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>500</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>1000</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>0.1 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>0.2 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>0.25 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>0.5 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>1 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>2 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>2.5 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>4 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>5 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>10 mm</string>
+      </property>
+     </item>
+    </widget>
    </item>
    <item>
     <spacer name="horizontalSpacer_3">
@@ -108,7 +288,164 @@
     </widget>
    </item>
    <item>
-    <widget class="QComboBox" name="routGridBox"/>
+    <widget class="QComboBox" name="routGridBox">
+     <property name="editable">
+      <bool>false</bool>
+     </property>
+     <property name="currentIndex">
+      <number>1</number>
+     </property>
+     <item>
+      <property name="text">
+       <string>0.5</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>1</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>2</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>2.5</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>3.333</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>4</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>5</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>6.666</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>10</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>12.5</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>16.666</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>20</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>25</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>40</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>50</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>0.01 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>0.02 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>0.04 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>0.05 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>0.1 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>0.2 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>0.25 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>0.4 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>0.5 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>1 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>2 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>2.5 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>4 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>5 mm</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>10 mm</string>
+      </property>
+     </item>
+    </widget>
    </item>
    <item>
     <widget class="Line" name="line_2">

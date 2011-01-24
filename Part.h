@@ -36,6 +36,7 @@ public:
 
 	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
+	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	bool testHit(const QPoint &pt, PCBLAYER layer) const;
 
@@ -64,6 +65,7 @@ public:
 
 	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
+	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	QString refdes() const { return mRefdes->text(); }
 	QString value() const { return mValue->text(); }
@@ -80,6 +82,7 @@ public:
 	PartPin* getPin(const QString &name);
 
 	static Part* newFromXML(QXmlStreamReader &reader, PCBDoc* doc);
+	void toXML(QXmlStreamWriter &writer) const;
 
 	const QTransform& transform() const { return mTransform; }
 

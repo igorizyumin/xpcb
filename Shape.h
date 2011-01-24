@@ -3,16 +3,13 @@
 #pragma once
 #include <QHash>
 #include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 #include "PCBObject.h"
 #include "Text.h"
 
 class Line;
 class Arc;
 class Footprint;
-
-
-
-
 
 /// A pad is a padstack component; it describes the
 /// shape of a pad on a given layer of the padstack.
@@ -39,9 +36,11 @@ public:
 
 	Pad();
 	bool operator==(const Pad &p) const;
-	bool isNull() { return mShape == PAD_NONE; }
+	bool isNull() const { return mShape == PAD_NONE; }
 
 	static Pad newFromXML(QXmlStreamReader &reader);
+	void toXML(QXmlStreamWriter &writer) const;
+
 
 	PADSHAPE shape() {return mShape;}
 	int width() {return mWidth;}
@@ -61,13 +60,14 @@ private:
 /// A padstack is a collection of pads and a hole.
 /// Padstacks are used for component pins as well as vias.
 /// A padstack is shared between all physically identical pins.
-class Padstack
+class Padstack : public PCBObject
 {
 public:
 	Padstack();
 	bool operator==(const Padstack &p) const;
 
 	static Padstack* newFromXML(QXmlStreamReader &reader);
+	void toXML(QXmlStreamWriter &writer) const;
 
 	QString getName() const {return name; }
 	int getHole() const {return hole_size;}
@@ -79,7 +79,9 @@ public:
 	Pad getStartPaste() const {return start_paste;}
 	Pad getEndPaste() const {return end_paste;}
 	bool isSmt() const {return hole_size == 0;}
-	QRect bbox() const;
+	virtual QRect bbox() const;
+	virtual void draw(QPainter *painter, PCBLAYER layer) const;
+	virtual void accept(PCBObjectVisitor *v);
 private:
 	/// Padstack name; optional; only used for library padstacks
 	/// (i.e. VIA_15MIL)
@@ -111,6 +113,7 @@ public:
 	bool testHit(const QPoint &pt, PINLAYER layer) const;
 
 	static Pin newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks, Footprint* fp);
+	void toXML(QXmlStreamWriter &writer) const;
 
 	Pad getPadOnLayer(PINLAYER layer) const;
 
@@ -139,6 +142,7 @@ public:
 
 	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
+	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	QString name() const { return mName; }
 	QString author() const { return mAuthor; }
@@ -160,6 +164,8 @@ public:
 	UNIT units() {return mUnits; }
 
 	static Footprint* newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks);
+	void toXML(QXmlStreamWriter &writer) const;
+
 private:
 	/// Computes the default centroid (center of all pins)
 	QPoint getDefaultCentroid();

@@ -1,4 +1,5 @@
 #include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 #include "Trace.h"
 #include "Area.h"
 
@@ -149,6 +150,36 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 				reader.readNext();
 		while(!reader.isEndElement());
 	}
+}
+
+void TraceList::toXML(QXmlStreamWriter &writer) const
+{
+	writer.writeStartElement("traces");
+	writer.writeStartElement("vertices");
+	foreach(Vertex* v, myVtx)
+	{
+		writer.writeStartElement("vertex");
+		writer.writeAttribute("id", QString::number(v->getid()));
+		writer.writeAttribute("x", QString::number(v->pos().x()));
+		writer.writeAttribute("y", QString::number(v->pos().y()));
+		writer.writeAttribute("forcevia", v->isForcedVia() ? "1" : "0");
+		writer.writeEndElement();
+	}
+	writer.writeEndElement();
+
+	writer.writeStartElement("segments");
+	foreach(Segment* s, mySeg)
+	{
+		writer.writeStartElement("segment");
+		writer.writeAttribute("start", QString::number(s->v1()->getid()));
+		writer.writeAttribute("end", QString::number(s->v2()->getid()));
+		writer.writeAttribute("layer", QString::number(s->layer()));
+		writer.writeAttribute("width", QString::number(s->width()));
+		writer.writeEndElement();
+	}
+	writer.writeEndElement();
+
+	writer.writeEndElement();
 }
 
 /////////////////////// SEGMENT ///////////////////////

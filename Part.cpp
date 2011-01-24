@@ -184,6 +184,34 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 	return pp;
 }
 
+void Part::toXML(QXmlStreamWriter &writer) const
+{
+	writer.writeStartElement("part");
+	writer.writeAttribute("footprint", mFp->name());
+	writer.writeAttribute("refdes", this->mRefdes->text());
+	writer.writeAttribute("value", this->mValue->text());
+	writer.writeAttribute("x", QString::number(mPos.x()));
+	writer.writeAttribute("y", QString::number(mPos.y()));
+	writer.writeAttribute("rot", QString::number(mAngle));
+	writer.writeAttribute("side", mSide == SIDE_TOP ? "top" : "bot");
+	writer.writeAttribute("locked", mLocked ? "1" : "0");
+	writer.writeStartElement("refText");
+	writer.writeAttribute("x", QString::number(mRefdes->pos().x()));
+	writer.writeAttribute("y", QString::number(mRefdes->pos().y()));
+	writer.writeAttribute("rot", QString::number(mRefdes->angle()));
+	writer.writeAttribute("textSize", QString::number(mRefdes->fontSize()));
+	writer.writeAttribute("lineWidth", QString::number(mRefdes->strokeWidth()));
+	writer.writeEndElement();
+	writer.writeStartElement("valueText");
+	writer.writeAttribute("x", QString::number(mValue->pos().x()));
+	writer.writeAttribute("y", QString::number(mValue->pos().y()));
+	writer.writeAttribute("rot", QString::number(mValue->angle()));
+	writer.writeAttribute("textSize", QString::number(mValue->fontSize()));
+	writer.writeAttribute("lineWidth", QString::number(mValue->strokeWidth()));
+	writer.writeEndElement();
+	writer.writeEndElement();
+}
+
 void Part::updateTransform()
 {
 	mTransform.reset();

@@ -5,6 +5,8 @@
 #include <QTransform>
 
 class PCBDoc;
+class PCBObject;
+class Controller;
 
 class PCBView : public QWidget
 {
@@ -16,17 +18,27 @@ public:
 
 
 	virtual QSize sizeHint() const;
-	void setDoc(PCBDoc* doc);
+
+	/// This gets called by the controller when the view is registered.
+	void setCtrl(Controller* ctrl);
+
+	const QTransform& transform() const { return mTransform; }
 
 signals:
 	void mouseMoved(QPoint pt);
 
+public slots:
+	void visGridChanged(int grid);
+
 private slots:
 	void docChanged();
+	void selChanged();
 
 protected:
 	virtual void paintEvent(QPaintEvent *e);
 	virtual void mouseMoveEvent(QMouseEvent *event);
+	virtual void mousePressEvent(QMouseEvent *event);
+	virtual void mouseReleaseEvent(QMouseEvent *event);
 	virtual void keyPressEvent(QKeyEvent * event);
 	virtual void enterEvent(QEvent *event);
 	virtual void leaveEvent(QEvent *event);
@@ -38,8 +50,8 @@ private:
 	void recenter(QPoint pt, bool world=false);
 	void zoom(double factor, QPoint pos);
 
-	/// Document
-	PCBDoc* mDoc;
+	/// Controller
+	Controller* mCtrl;
 
 	/// Transform from world coordinates to window coordinates
 	QTransform mTransform;

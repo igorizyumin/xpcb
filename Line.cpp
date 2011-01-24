@@ -1,5 +1,6 @@
 #include "Line.h"
 #include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 
 Line::Line()
 	: mWidth(0), mLayer(LAY_UNKNOWN)
@@ -27,6 +28,19 @@ Line Line::newFromXml(QXmlStreamReader &reader)
 	while(!reader.isEndElement());
 
 	return l;
+}
+
+void Line::toXML(QXmlStreamWriter &writer) const
+{
+	writer.writeStartElement("line");
+	writer.writeAttribute("width", QString::number(mWidth));
+	writer.writeAttribute("layer", QString::number(mLayer));
+	writer.writeAttribute("x1", QString::number(mStart.x()));
+	writer.writeAttribute("y1", QString::number(mStart.y()));
+	writer.writeAttribute("x2", QString::number(mEnd.x()));
+	writer.writeAttribute("y2", QString::number(mEnd.y()));
+	writer.writeEndElement();
+
 }
 
 void Line::draw(QPainter *painter, PCBLAYER layer) const
@@ -70,6 +84,22 @@ Arc Arc::newFromXml(QXmlStreamReader &reader)
 	while(!reader.isEndElement());
 
 	return a;
+}
+
+void Arc::toXML(QXmlStreamWriter &writer) const
+{
+	writer.writeStartElement("arc");
+	writer.writeAttribute("width", QString::number(mWidth));
+	writer.writeAttribute("layer", QString::number(mLayer));
+	writer.writeAttribute("x1", QString::number(mStart.x()));
+	writer.writeAttribute("y1", QString::number(mStart.y()));
+	writer.writeAttribute("x2", QString::number(mEnd.x()));
+	writer.writeAttribute("y2", QString::number(mEnd.y()));
+	writer.writeAttribute("ctrX", QString::number(mCtr.x()));
+	writer.writeAttribute("ctrY", QString::number(mCtr.y()));
+	writer.writeAttribute("dir", mIsCw ? "cw" : "ccw");
+	writer.writeEndElement();
+
 }
 
 void Arc::draw(QPainter *painter, PCBLAYER layer) const

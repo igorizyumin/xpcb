@@ -5,6 +5,7 @@
 #include <QRect>
 #include <QList>
 #include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 #include "PolygonList.h"
 #include "polybool.h"
 
@@ -57,6 +58,7 @@ public:
 	void toPline(POLYBOOLEAN::PLINE2 ** pline) const;
 
 	static PolyContour newFromXML(QXmlStreamReader &reader);
+	void toXML(QXmlStreamWriter &writer) const;
 
 private:
 	void rebuildPb() const;
@@ -127,6 +129,7 @@ public:
 	POLYBOOLEAN::PAREA* getParea() const;
 
 	static Polygon* newFromXML(QXmlStreamReader &reader);
+	void toXML(QXmlStreamWriter &writer) const;
 
 private:
 	/// Rebuilds the PolyBoolean area, if needed.

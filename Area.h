@@ -12,6 +12,8 @@ class TraceList;
 class PCBDoc;
 class Polygon;
 class QXmlStreamReader;
+class QXmlStreamWriter;
+
 
 /// A copper area.
 
@@ -35,6 +37,7 @@ public:
 
 	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
+	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	/// Sets the polygon layer.
 	/// \param layer the new layer.
@@ -58,6 +61,7 @@ public:
 	bool pointInside(const QPoint &p) const;
 
 	static Area* newFromXML(QXmlStreamReader &reader, const PCBDoc &doc);
+	void toXML(QXmlStreamWriter &writer);
 
 private:
 	/// Compute list of connected pins and vertices

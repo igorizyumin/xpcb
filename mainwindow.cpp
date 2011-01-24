@@ -9,6 +9,7 @@
 #include "AboutDialog.h"
 #include "PCBView.h"
 #include "PCBDoc.h"
+#include "Controller.h"
 #include "global.h"
 
 MainWindow::MainWindow(QWidget *parent)
@@ -26,10 +27,19 @@ MainWindow::MainWindow(QWidget *parent)
 	m_actionbar = new ActionBar();
 	this->actionToolbar->addWidget(m_actionbar);
 	this->gridToolbar->addWidget(m_gridwidget);
-	this->m_view = new PCBView(NULL);
+	this->m_view = new PCBView(this);
+	this->m_ctrl = new Controller(this);
+	this->m_ctrl->registerView(m_view);
+	this->m_ctrl->registerActions(m_actionbar->getActions());
 	this->m_doc = NULL;
-	QObject::connect(this->m_view, SIGNAL(mouseMoved(QPoint)),
+	connect(this->m_view, SIGNAL(mouseMoved(QPoint)),
 					 this, SLOT(onViewCoords(QPoint)));
+	connect(this->m_gridwidget, SIGNAL(viewGridChanged(int)),
+			m_view, SLOT(visGridChanged(int)));
+	connect(this->m_gridwidget, SIGNAL(placeGridChanged(int)),
+			m_ctrl, SLOT(onPlaceGridChanged(int)));
+	connect(this->m_gridwidget, SIGNAL(routeGridChanged(int)),
+			m_ctrl, SLOT(onRouteGridChanged(int)));
 	this->setCentralWidget(this->m_view);
 	setCurrentFile("");
 }
@@ -55,7 +65,11 @@ void MainWindow::newDoc()
 {
 	m_doc = new PCBDoc();
 	connect(this->m_doc, SIGNAL(changed()), this, SLOT(documentWasModified()));
-	this->m_view->setDoc(m_doc);
+	connect(this->m_doc, SIGNAL(canUndoChanged(bool)), this, SLOT(onUndoAvailableChanged(bool)));
+	connect(this->m_doc, SIGNAL(canRedoChanged(bool)), this, SLOT(onRedoAvailableChanged(bool)));
+	connect(this->action_Undo, SIGNAL(triggered()), m_doc, SLOT(undo()));
+	connect(this->action_Redo, SIGNAL(triggered()), m_doc, SLOT(redo()));
+	this->m_ctrl->registerDoc(m_doc);
 	setCurrentFile("");
 }
 
@@ -63,10 +77,10 @@ void MainWindow::closeDoc()
 {
 	if (m_doc)
 	{
+		m_ctrl->registerDoc(NULL);
 		delete m_doc;
 		m_doc = NULL;
 	}
-	this->m_view->setDoc(NULL);
 	setCurrentFile("");
 }
 
@@ -192,8 +206,8 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::onViewCoords(QPoint pt)
 {
-	m_statusbar_xc->setText(QString("X: %1").arg(PCB2IN(pt.x()), -6, 'f', 3));
-	m_statusbar_yc->setText(QString("Y: %1").arg(PCB2IN(pt.y()), -6, 'f', 3));
+	m_statusbar_xc->setText(QString("X: %1").arg(PCB2IN(pt.x())*1000.0, -6, 'f', 1));
+	m_statusbar_yc->setText(QString("Y: %1").arg(PCB2IN(pt.y())*1000.0, -6, 'f', 1));
 }
 
 void MainWindow::documentWasModified()
@@ -203,3 +217,14 @@ void MainWindow::documentWasModified()
 	else
 		setWindowModified(false);
 }
+
+void MainWindow::onUndoAvailableChanged(bool enabled)
+{
+	this->action_Undo->setEnabled(enabled);
+}
+
+void MainWindow::onRedoAvailableChanged(bool enabled)
+{
+	this->action_Redo->setEnabled(enabled);
+}
+

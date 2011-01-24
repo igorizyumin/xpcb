@@ -283,6 +283,9 @@
    </property>
   </action>
   <action name="action_Undo">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset resource="qtfreepcb.qrc">
      <normaloff>:/Resources/tango-icons/22x22/actions/edit-undo.png</normaloff>:/Resources/tango-icons/22x22/actions/edit-undo.png</iconset>
@@ -290,14 +293,23 @@
    <property name="text">
     <string>&amp;Undo</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+Z</string>
+   </property>
   </action>
   <action name="action_Redo">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset resource="qtfreepcb.qrc">
      <normaloff>:/Resources/tango-icons/22x22/actions/edit-redo.png</normaloff>:/Resources/tango-icons/22x22/actions/edit-redo.png</iconset>
    </property>
    <property name="text">
     <string>&amp;Redo</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
    </property>
   </action>
   <action name="actionCut">

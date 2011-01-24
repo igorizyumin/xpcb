@@ -1,15 +1,18 @@
 #ifndef TEXT_H
 #define TEXT_H
 
+#include <QUndoCommand>
 #include "PCBObject.h"
+#include "Editor.h"
 
 class QXmlStreamReader;
+class QXmlStreamWriter;
 
 class Text : public PCBObject
 {
 public:
 	Text();
-	Text( const QPoint &pos, int angle,
+	Text(const QPoint &pos, int angle,
 		bool mirror, bool negative, PCBLAYER layer, int font_size,
 		int stroke_width, const QString &text );
 	~Text();
@@ -17,35 +20,38 @@ public:
 	// overrides
 	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
+	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	// getters / setters
-	const QPoint& pos() {return mPos;}
-	void setPos(const QPoint &newpos) { mPos = newpos; mIsDirty = true; }
+	const QPoint& pos() const {return mPos;}
+	void setPos(const QPoint &newpos) { mPos = newpos; changed(); }
 
-	const QString & text() {return mText;}
-	void setText(const QString &text) { mText = text; mIsDirty = true; }
+	const QString & text() const {return mText;}
+	void setText(const QString &text) { mText = text; changed(); }
 
-	int angle() {return mAngle;}
-	void setAngle(int angle) { mAngle = angle; mIsDirty = true;}
+	int angle() const {return mAngle;}
+	void setAngle(int angle) { mAngle = angle; changed();}
 
-	int fontSize() {return mFontSize;}
-	void setFontSize(int size) {mFontSize = size; mIsDirty = true;}
+	int fontSize() const {return mFontSize;}
+	void setFontSize(int size) {mFontSize = size; changed();}
 
-	int strokeWidth() {return mStrokeWidth;}
-	void setStrokeWidth(int w) { mStrokeWidth = w; mIsDirty = true;}
+	int strokeWidth() const {return mStrokeWidth;}
+	void setStrokeWidth(int w) { mStrokeWidth = w; changed();}
 
-	bool isMirrored() {return mIsMirrored;}
-	void setMirrored(bool b) { mIsMirrored = b;  mIsDirty = true; }
+	bool isMirrored() const {return mIsMirrored;}
+	void setMirrored(bool b) { mIsMirrored = b;  changed(); }
 
-	bool isNegative() {return mIsNegative;}
-	void setNegative(bool b) {mIsNegative=b;}
+	bool isNegative() const {return mIsNegative;}
+	void setNegative(bool b) {mIsNegative=b; changed();}
 
-	PCBLAYER layer() {return mLayer;}
-	void setMirrored(PCBLAYER l) {mLayer = l;}
+	PCBLAYER layer() const {return mLayer;}
+	void setLayer(PCBLAYER l) {mLayer = l; changed();}
 
 	static Text newFromXML(QXmlStreamReader &reader);
+	void toXML(QXmlStreamWriter &writer) const;
 
 protected:
+	void changed() { mIsDirty = true; }
 	void initText() const;
 	void initTransform() const;
 
@@ -72,6 +78,53 @@ private:
 
 	/// Coordinate transformation to use
 	mutable QTransform mTransform;
+};
+
+class TextEditor : public AbstractEditor
+{
+	Q_OBJECT
+public:
+	TextEditor(Controller *ctrl, QList<QAction*> actions, Text *text);
+
+	virtual void drawOverlay(QPainter* painter);
+
+protected:
+	virtual bool eventFilter(QObject *watched, QEvent *event);
+
+private slots:
+	void actionEdit();
+	void actionDelete();
+	void actionMove();
+	void actionRotate();
+
+private:
+	void mouseMoveEvent(QMouseEvent* event);
+	void mousePressEvent(QMouseEvent* event);
+	void mouseReleaseEvent(QMouseEvent* event);
+	void keyPressEvent(QKeyEvent *event);
+	void updateActions();
+
+	bool mIsMoving;
+	Text* mText;
+	QPoint mPos;
+	QRect mBox;
+	int mAngleDelta;
+};
+
+class TextMoveCmd : public QUndoCommand
+{
+public:
+	TextMoveCmd(QUndoCommand *parent, Text* obj, QPoint newPos, int angleDelta);
+
+	virtual void undo();
+	virtual void redo();
+
+private:
+	Text* mText;
+	QPoint mNewPos;
+	QPoint mPrevPos;
+	int mNewAngle;
+	int mPrevAngle;
 };
 
 #endif // TEXT_H

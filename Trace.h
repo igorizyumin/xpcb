@@ -6,6 +6,7 @@
 #include "PCBObject.h"
 
 class QXmlStreamReader;
+class QXmlStreamWriter;
 class Area;
 class Polygon;
 class PartPin;
@@ -24,6 +25,7 @@ public:
 
 	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
+	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	QPoint pos() const {return mPos;}
 
@@ -37,6 +39,8 @@ public:
 	bool onLayer(PCBLAYER layer) const;
 	/// Returns true if the vertex is a via (exists on multiple layers)
 	bool isVia() const;
+
+	bool isForcedVia() const {return mForceVia; }
 
 private:
 	TraceList * mParent;
@@ -59,12 +63,15 @@ public:
 
 	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
+	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	int width() const {return mWidth;}
 	void setWidth(int w) {mWidth = w;}
 	PCBLAYER layer() const {return mLayer;}
 	void setLayer(PCBLAYER layer) {mLayer = layer;}
 
+	const Vertex* v1() const { return mV1; }
+	const Vertex* v2() const { return mV2; }
 	Vertex* otherVertex(Vertex* v) const {return (v == mV1 ? mV2 : mV1);}
 private:
 	PCBLAYER mLayer;
@@ -90,6 +97,7 @@ public:
 	QSet<Segment*> segments() const {return mySeg;}
 	QSet<Vertex*> vertices() const {return myVtx;}
 	void loadFromXml(QXmlStreamReader &reader);
+	void toXML(QXmlStreamWriter &writer) const;
 private:
 	void clear();
 	void rebuildConnectionList();

@@ -1,4 +1,5 @@
 #include <QXmlStreamReader>
+#include <QXmlStreamWriter>
 #include "Area.h"
 #include "Net.h"
 #include "Part.h"
@@ -89,4 +90,26 @@ Area* Area::newFromXML(QXmlStreamReader &reader, const PCBDoc &doc)
 	a->mPoly = Polygon::newFromXML(reader);
 
 	return a;
+}
+
+void Area::toXML(QXmlStreamWriter &writer)
+{
+	writer.writeStartElement("area");
+	writer.writeAttribute("net", mNet->name());
+	writer.writeAttribute("layer", QString::number(mLayer));
+	switch(mHatchStyle)
+	{
+	case Area::NO_HATCH:
+		writer.writeAttribute("hatch", "none");
+		break;
+	case Area::DIAGONAL_FULL:
+		writer.writeAttribute("hatch", "full");
+		break;
+	case Area::DIAGONAL_EDGE:
+		writer.writeAttribute("hatch", "edge");
+		break;
+	}
+	writer.writeAttribute("connectSmt", mConnectSMT ? "1" : "0");
+	mPoly->toXML(writer);
+	writer.writeEndElement();
 }

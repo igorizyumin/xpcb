@@ -4,6 +4,7 @@
 #include "PCBObject.h"
 
 class QXmlStreamReader;
+class QXmlStreamWriter;
 
 class Line : public PCBObject
 {
@@ -12,6 +13,7 @@ public:
 
 	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
+	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	QPoint start() const { return mStart; }
 	QPoint end() const { return mEnd; }
@@ -19,6 +21,7 @@ public:
 	PCBLAYER layer() const { return mLayer; }
 
 	static Line newFromXml(QXmlStreamReader &reader);
+	void toXML(QXmlStreamWriter &writer) const;
 private:
 	QPoint mStart;
 	QPoint mEnd;
@@ -33,6 +36,7 @@ public:
 
 	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
+	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	QPoint start() const { return mStart; }
 	QPoint end() const { return mEnd; }
@@ -42,6 +46,7 @@ public:
 	PCBLAYER layer() const { return mLayer; }
 
 	static Arc newFromXml(QXmlStreamReader &reader);
+	void toXML(QXmlStreamWriter &writer) const;
 private:
 	QPoint mStart;
 	QPoint mEnd;
