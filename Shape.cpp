@@ -363,6 +363,8 @@ Footprint::Footprint()
 //
 Footprint::~Footprint()
 {
+	foreach(Text* t, mTexts)
+		delete t;
 }
 
 void Footprint::draw(QPainter *painter, PCBLAYER layer) const
@@ -596,9 +598,9 @@ QRect Footprint::bbox() const
 	{
 		r |= a.bbox();
 	}
-	foreach(const Text& t, mTexts)
+	foreach(Text* t, mTexts)
 	{
-		r |= t.bbox();
+		r |= t->bbox();
 	}
 
 	// should this be included?

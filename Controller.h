@@ -62,6 +62,7 @@ public slots:
 private slots:
 	void onDocChanged();
 	void onEditorOverlayChanged();
+	void onEditorFinished();
 
 private:
 	virtual bool eventFilter(QObject *watched, QEvent *event);

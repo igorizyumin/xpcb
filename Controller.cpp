@@ -177,6 +177,7 @@ void Controller::updateEditor()
 		mEditor = EditorFactory::instance().newEditor(mSelectedObjs[0], this, mActions);
 		mView->installEventFilter(mEditor);
 		connect(mEditor, SIGNAL(overlayChanged()), this, SLOT(onEditorOverlayChanged()));
+		connect(mEditor, SIGNAL(editorFinished()), this, SLOT(onEditorFinished()));
 	}
 }
 
@@ -188,6 +189,12 @@ void Controller::hideObj(PCBObject *obj)
 void Controller::onEditorOverlayChanged()
 {
 	emit selectionChanged();
+}
+
+void Controller::onEditorFinished()
+{
+	mSelectedObjs.clear();
+	updateEditor();
 }
 
 QPoint Controller::snapToPlaceGrid(QPoint p)

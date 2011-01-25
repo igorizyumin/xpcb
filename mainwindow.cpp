@@ -11,6 +11,7 @@
 #include "PCBDoc.h"
 #include "Controller.h"
 #include "global.h"
+#include "EditTextDialog.h"
 
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)

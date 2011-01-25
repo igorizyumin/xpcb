@@ -31,8 +31,10 @@ const int PCB_BOUND	= 32000*PCBU_PER_MIL;	// boundary
 
 inline int IN2PCB(double x) { return x * 1000 * PCBU_PER_MIL; }
 inline int MM2PCB(double x) {return x * PCBU_PER_MM; }
+inline int MIL2PCB(double x) { return x * PCBU_PER_MIL; }
 inline double PCB2IN(int x) { return double(x) / (1000 * PCBU_PER_MIL); }
 inline double PCB2MM(int x) {return double(x) / PCBU_PER_MM; }
+inline double PCB2MIL(int x) { return double(x) / PCBU_PER_MIL; }
 
 typedef enum
 {

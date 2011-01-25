@@ -7,6 +7,7 @@
 
 class QXmlStreamReader;
 class QXmlStreamWriter;
+class EditTextDialog;
 
 class Text : public PCBObject
 {
@@ -47,7 +48,7 @@ public:
 	PCBLAYER layer() const {return mLayer;}
 	void setLayer(PCBLAYER l) {mLayer = l; changed();}
 
-	static Text newFromXML(QXmlStreamReader &reader);
+	static Text* newFromXML(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 
 protected:
@@ -85,6 +86,7 @@ class TextEditor : public AbstractEditor
 	Q_OBJECT
 public:
 	TextEditor(Controller *ctrl, QList<QAction*> actions, Text *text);
+	virtual ~TextEditor();
 
 	virtual void drawOverlay(QPainter* painter);
 
@@ -98,14 +100,18 @@ private slots:
 	void actionRotate();
 
 private:
+	enum State {SELECTED, MOVE, ADD_MOVE, EDIT_MOVE};
 	void mouseMoveEvent(QMouseEvent* event);
 	void mousePressEvent(QMouseEvent* event);
 	void mouseReleaseEvent(QMouseEvent* event);
 	void keyPressEvent(QKeyEvent *event);
 	void updateActions();
+	void startMove();
+	void finishEdit();
 
-	bool mIsMoving;
+	State mState;
 	Text* mText;
+	EditTextDialog *mDialog;
 	QPoint mPos;
 	QRect mBox;
 	int mAngleDelta;
@@ -126,5 +132,68 @@ private:
 	int mNewAngle;
 	int mPrevAngle;
 };
+
+class TextNewCmd : public QUndoCommand
+{
+public:
+	TextNewCmd(QUndoCommand *parent, Text* obj, PCBDoc* doc);
+	virtual ~TextNewCmd();
+
+	virtual void undo();
+	virtual void redo();
+
+private:
+	Text* mText;
+	PCBDoc* mDoc;
+	bool mInDoc;
+};
+
+class TextDeleteCmd : public QUndoCommand
+{
+public:
+	TextDeleteCmd(QUndoCommand *parent, Text* obj, PCBDoc* doc);
+	virtual ~TextDeleteCmd();
+
+	virtual void undo();
+	virtual void redo();
+
+private:
+	Text* mText;
+	PCBDoc* mDoc;
+	bool mInDoc;
+};
+
+class TextEditCmd : public QUndoCommand
+{
+public:
+	TextEditCmd(QUndoCommand *parent, Text* obj, QPoint newPos, PCBLAYER newLayer,
+				int newAngle, bool isMirrored, bool isNegative, int newSize,
+				int newWidth, QString newText );
+
+	virtual void undo();
+	virtual void redo();
+
+private:
+	Text* mText;
+	// old
+	QPoint mOldPos;
+	PCBLAYER mOldLayer;
+	int mOldAngle;
+	bool mOldIsMirrored;
+	bool mOldIsNegative;
+	int mOldFontSize;
+	int mOldStrokeWidth;
+	QString mOldText;
+	// new
+	QPoint mNewPos;
+	PCBLAYER mNewLayer;
+	int mNewAngle;
+	bool mNewIsMirrored;
+	bool mNewIsNegative;
+	int mNewFontSize;
+	int mNewStrokeWidth;
+	QString mNewText;
+};
+
 
 #endif // TEXT_H

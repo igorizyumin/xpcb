@@ -61,6 +61,25 @@ Net* PCBDoc::getNet(const QString &name) const
 	return NULL;
 }
 
+void PCBDoc::addText(Text *t)
+{
+	if (!mTexts.contains(t))
+		mTexts.append(t);
+	else
+		Log::instance().error("Text object already in document");
+}
+
+void PCBDoc::removeText(Text *t)
+{
+	if (mTexts.contains(t))
+	{
+		mTexts.removeOne(t);
+		Log::instance().message("Text object deleted");
+	}
+	else
+		Log::instance().error("Text object does not exist in document");
+}
+
 QList<PCBObject*> PCBDoc::findObjs(QRect &rect)
 {
 	QList<PCBObject*> out;
@@ -77,10 +96,10 @@ QList<PCBObject*> PCBDoc::findObjs(QRect &rect)
 			out.append(p);
 	}
 
-	for(QList<Text>::iterator i = mTexts.begin(); i != mTexts.end(); i++)
+	foreach(Text* t, mTexts)
 	{
-		if (rect.intersects((*i).bbox()))
-			out.append(&(*i));
+		if (rect.intersects(t->bbox()))
+			out.append(t);
 	}
 
 	foreach(Area* a, mAreas)
@@ -95,11 +114,11 @@ QList<PCBObject*> PCBDoc::findObjs(QRect &rect)
 QList<PCBObject*> PCBDoc::findObjs(QPoint &pt)
 {
 	QList<PCBObject*> out;
-	for(QList<Text>::iterator i = mTexts.begin(); i != mTexts.end(); i++)
+	foreach(Text* t, mTexts)
 	{
-		if((*i).bbox().contains(pt))
+		if(t->bbox().contains(pt))
 		{
-			out.append(&(*i));
+			out.append(t);
 		}
 	}
 	return out;
@@ -108,44 +127,45 @@ QList<PCBObject*> PCBDoc::findObjs(QPoint &pt)
 void PCBDoc::clearDoc()
 {
 	mUndoStack->clear();
+
 	delete mTraceList;
 	mTraceList = NULL;
+
 	delete mBoardOutline;
 	mBoardOutline = NULL;
+
 	foreach(Net* n, mNets)
-	{
 		delete n;
-	}
 	mNets.clear();
+
 	foreach(Part* n, mParts)
-	{
 		delete n;
-	}
 	mParts.clear();
+
+	foreach(Text* t, mTexts)
+		delete t;
 	mTexts.clear();
+
 	foreach(Area* n, mAreas)
-	{
 		delete n;
-	}
 	mAreas.clear();
+
 	foreach(Footprint* n, mFootprints)
-	{
 		delete n;
-	}
 	mFootprints.clear();
+
 	foreach(Padstack* n, mPadstacks)
-	{
 		delete n;
-	}
 	mPadstacks.clear();
+
 	delete mBoardOutline;
 	mBoardOutline = NULL;
+
 	mDefaultPadstack = NULL;
 }
 
 void PCBDoc::doCommand(QUndoCommand *cmd)
 {
-	cmd->redo();
 	mUndoStack->push(cmd);
 	emit changed();
 }
@@ -171,7 +191,7 @@ void loadOutline(QXmlStreamReader &reader, Polygon *& poly);
 void loadParts(QXmlStreamReader &reader, QList<Part*>& parts, PCBDoc* doc);
 void loadNets(QXmlStreamReader &reader, QList<Net*>& nets, PCBDoc* doc, const QHash<int, Padstack*> &padstacks);
 void loadAreas(QXmlStreamReader &reader, QList<Area*>& areas, PCBDoc *doc);
-void loadTexts(QXmlStreamReader &reader, QList<Text>& texts);
+void loadTexts(QXmlStreamReader &reader, QList<Text*>& texts);
 
 
 bool validateFile(QIODevice &file)
@@ -271,8 +291,8 @@ bool PCBDoc::saveToXML(QXmlStreamWriter &writer)
 	writer.writeEndElement();
 
 	writer.writeStartElement("texts");
-	foreach(const Text& t, mTexts)
-		t.toXML(writer);
+	foreach(Text* t, mTexts)
+		t->toXML(writer);
 	writer.writeEndElement();
 
 	writer.writeEndElement();
@@ -511,7 +531,7 @@ void loadAreas(QXmlStreamReader &reader, QList<Area*> &areas, PCBDoc *doc)
 
 }
 
-void loadTexts(QXmlStreamReader &reader, QList<Text> &texts)
+void loadTexts(QXmlStreamReader &reader, QList<Text*> &texts)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "texts");
 	while(reader.readNextStartElement())

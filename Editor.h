@@ -34,6 +34,7 @@ public:
 
 signals:
 	void overlayChanged();
+	void editorFinished();
 
 public slots:
 

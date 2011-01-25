@@ -196,6 +196,6 @@ private:
 	/// Silkscreen lines (used for part outline)
 	QList<Arc> mOutlineArcs;
 	/// Silkscreen text
-	QList<Text> mTexts;
+	QList<Text*> mTexts;
 };
 

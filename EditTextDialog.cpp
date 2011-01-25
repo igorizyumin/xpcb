@@ -1,0 +1,133 @@
+/*
+	This file is part of xpcb.
+
+	xpcb is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	xpcb is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with xpcb.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include "EditTextDialog.h"
+#include "Text.h"
+
+EditTextDialog::EditTextDialog(QWidget *parent) :
+	QDialog(parent), mInMM(false), mLayer(LAY_SELECTION)
+{
+	setupUi(this);
+}
+
+void EditTextDialog::init(Text *t)
+{
+	if (t)
+	{
+		mInMM = false;
+		updateUnits();
+		textEdit->setText(t->text());
+		// layerBox->
+		mirrorImageBox->setChecked(t->isMirrored());
+		negativeTextBox->setChecked(t->isNegative());
+		setWidthRadio->setChecked(true);
+		widthBox->setValue(PCB2MIL(t->strokeWidth()));
+		heightBox->setValue(PCB2MIL(t->fontSize()));
+		setPosRadio->setChecked(true);
+		xPos->setValue(PCB2MIL(t->pos().x()));
+		yPos->setValue(PCB2MIL(t->pos().y()));
+		angleBox->setCurrentIndex(t->angle() / 90);
+		mLayer = t->layer();
+	}
+	else
+	{
+		// reset to defaults
+		mInMM = false;
+		updateUnits();
+		textEdit->setText("");
+		// layerBox
+		mirrorImageBox->setChecked(false);
+		negativeTextBox->setChecked(false);
+		negativeTextBox->setEnabled(false);
+		this->defaultWidthRadio->setChecked(true);
+		widthBox->setValue(10);
+		this->setPosRadio->setChecked(false);
+		xPos->setValue(0);
+		yPos->setValue(0);
+		angleBox->setCurrentIndex(0);
+	}
+}
+
+void EditTextDialog::on_unitsBox_currentIndexChanged(const QString &s)
+{
+	mInMM = (s == "mm");
+	updateUnits();
+}
+
+void EditTextDialog::on_setPosRadio_toggled(bool checked)
+{
+	if (checked)
+	{
+		xPos->setEnabled(true);
+		yPos->setEnabled(true);
+		angleBox->setEnabled(true);
+	}
+	else
+	{
+		xPos->setEnabled(false);
+		yPos->setEnabled(false);
+		angleBox->setEnabled(false);
+	}
+
+}
+
+void EditTextDialog::on_setWidthRadio_toggled(bool checked)
+{
+	if (checked)
+		widthBox->setEnabled(true);
+	else
+		widthBox->setEnabled(false);
+}
+
+void EditTextDialog::updateUnits()
+{
+	if (!mInMM)
+	{
+		widthBox->setValue(PCB2MIL(MM2PCB(widthBox->value())));
+		heightBox->setValue(PCB2MIL(MM2PCB(heightBox->value())));
+		xPos->setValue(PCB2MIL(MM2PCB(xPos->value())));
+		yPos->setValue(PCB2MIL(MM2PCB(yPos->value())));
+
+		widthBox->setDecimals(0);
+		heightBox->setDecimals(0);
+		xPos->setDecimals(0);
+		yPos->setDecimals(0);
+
+		widthBox->setSuffix(" mil");
+		heightBox->setSuffix(" mil");
+		xPos->setSuffix(" mil");
+		yPos->setSuffix(" mil");
+	}
+	else
+	{
+		widthBox->setDecimals(3);
+		heightBox->setDecimals(3);
+		xPos->setDecimals(3);
+		yPos->setDecimals(3);
+
+		widthBox->setValue(PCB2MM(MIL2PCB(widthBox->value())));
+		heightBox->setValue(PCB2MM(MIL2PCB(heightBox->value())));
+		xPos->setValue(PCB2MM(MIL2PCB(xPos->value())));
+		yPos->setValue(PCB2MM(MIL2PCB(yPos->value())));
+
+		widthBox->setSuffix(" mm");
+		heightBox->setSuffix(" mm");
+		xPos->setSuffix(" mm");
+		yPos->setSuffix(" mm");
+	}
+}
+

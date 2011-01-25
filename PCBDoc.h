@@ -43,6 +43,9 @@ public:
 	/// Returns list of all objects touching rect
 	QList<PCBObject*> findObjs(QRect &rect);
 
+	void addText(Text* t);
+	void removeText(Text* t);
+
 	void doCommand(QUndoCommand *cmd);
 
 signals:
@@ -68,7 +71,7 @@ private:
 	TraceList* mTraceList;
 	QList<Net*> mNets;
 	QList<Part*> mParts;
-	QList<Text> mTexts;
+	QList<Text*> mTexts;
 	QList<Area*> mAreas;
 	QList<Footprint*> mFootprints;
 	QList<Padstack*> mPadstacks;

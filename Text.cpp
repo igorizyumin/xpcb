@@ -7,6 +7,7 @@
 #include "Controller.h"
 #include "PCBView.h"
 #include "PCBDoc.h"
+#include "EditTextDialog.h"
 
 Text::Text()
 	: PCBObject(), mLayer(LAY_UNKNOWN), mAngle(0), mIsMirrored(false), mIsNegative(false),
@@ -48,12 +49,12 @@ void Text::initText() const
 
 void Text::initTransform() const
 {
-	double scale = (double)mFontSize/22.0;
-	double yoffset = 9.0*scale;
+//	double scale = (double)mFontSize/22.0;
+	double yoffset = 9.0*mFontSize/22.0;
 	mTransform.reset();
 	mTransform.translate(mPos.x(), mPos.y());
 	mTransform.rotate(mAngle);
-	mTransform.scale(scale, scale);
+//	mTransform.scale(scale, scale);
 	mTransform.translate(0, yoffset);
 
 }
@@ -104,21 +105,21 @@ void Text::draw(QPainter *painter, PCBLAYER layer) const
 	painter->restore();
 }
 
-Text Text::newFromXML(QXmlStreamReader &reader)
+Text* Text::newFromXML(QXmlStreamReader &reader)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "text");
 
 	QXmlStreamAttributes attr = reader.attributes();
-	Text t;
-	t.mLayer = (PCBLAYER) attr.value("layer").toString().toInt();
-	t.mPos = QPoint(
+	Text *t = new Text();
+	t->mLayer = (PCBLAYER) attr.value("layer").toString().toInt();
+	t->mPos = QPoint(
 			attr.value("x").toString().toInt(),
 			attr.value("y").toString().toInt());
-	t.mAngle = attr.value("rot").toString().toInt();
-	t.mStrokeWidth = attr.value("lineWidth").toString().toInt();
-	t.mFontSize = attr.value("textSize").toString().toInt();
-	t.mText = reader.readElementText();
-	t.mIsDirty = true;
+	t->mAngle = attr.value("rot").toString().toInt();
+	t->mStrokeWidth = attr.value("lineWidth").toString().toInt();
+	t->mFontSize = attr.value("textSize").toString().toInt();
+	t->mText = reader.readElementText();
+	t->mIsDirty = true;
 
 	return t;
 }
@@ -140,10 +141,16 @@ void Text::toXML(QXmlStreamWriter &writer) const
 // EDITOR
 
 TextEditor::TextEditor(Controller *ctrl, QList<QAction*> actions, Text *text)
-	: AbstractEditor(ctrl, actions), mIsMoving(false), mText(text), mAngleDelta(0)
+	: AbstractEditor(ctrl, actions), mState(SELECTED), mText(text), mDialog(NULL), mAngleDelta(0)
 {
 	ctrl->hideObj(text);
 	updateActions();
+}
+
+TextEditor::~TextEditor()
+{
+	if (mDialog)
+		delete mDialog;
 }
 
 void TextEditor::updateActions()
@@ -156,15 +163,17 @@ void TextEditor::updateActions()
 	{
 		mActions[i]->setVisible(false);
 	}
-	if (mIsMoving)
+	switch(mState)
 	{
+	case MOVE:
+	case ADD_MOVE:
+	case EDIT_MOVE:
 		mActions[2]->setText("Rotate Text");
 		mActions[2]->setVisible(true);
 		mActions[2]->setEnabled(true);
 		connect(mActions[2], SIGNAL(triggered()), this, SLOT(actionRotate()));
-	}
-	else
-	{
+		break;
+	case SELECTED:
 		mActions[0]->setText("Edit Text");
 		mActions[0]->setVisible(true);
 		mActions[0]->setEnabled(true);
@@ -177,6 +186,7 @@ void TextEditor::updateActions()
 		mActions[7]->setVisible(true);
 		mActions[7]->setEnabled(true);
 		connect(mActions[7], SIGNAL(triggered()), this, SLOT(actionDelete()));
+		break;
 	}
 }
 
@@ -209,11 +219,10 @@ bool TextEditor::eventFilter(QObject *watched, QEvent *event)
 
 void TextEditor::mouseMoveEvent(QMouseEvent *event)
 {
-	if (mIsMoving)
+	if (mState == MOVE || mState == EDIT_MOVE || mState == ADD_MOVE)
 	{
 		mPos = mCtrl->snapToPlaceGrid(mCtrl->view()->transform().inverted().map(event->pos()));
 		emit overlayChanged();
-
 	}
 
 	// we don't want to eat mouse events
@@ -222,7 +231,7 @@ void TextEditor::mouseMoveEvent(QMouseEvent *event)
 
 void TextEditor::mousePressEvent(QMouseEvent *event)
 {
-	if (mIsMoving)
+	if (mState != SELECTED)
 		event->accept();
 	else
 		event->ignore();
@@ -230,14 +239,21 @@ void TextEditor::mousePressEvent(QMouseEvent *event)
 
 void TextEditor::mouseReleaseEvent(QMouseEvent *event)
 {
-	if (mIsMoving)
+	if (mState == MOVE)
 	{
 		event->accept();
-		mIsMoving = false;
+		mState = SELECTED;
 		updateActions();
 		TextMoveCmd* cmd = new TextMoveCmd(NULL, mText, mPos, mAngleDelta);
 		mCtrl->doc()->doCommand(cmd);
 		emit overlayChanged();
+	}
+	else if (mState == EDIT_MOVE)
+	{
+		event->accept();
+		mState = SELECTED;
+		updateActions();
+		finishEdit();
 	}
 	else
 		event->ignore();
@@ -245,9 +261,9 @@ void TextEditor::mouseReleaseEvent(QMouseEvent *event)
 
 void TextEditor::keyPressEvent(QKeyEvent *event)
 {
-	if (event->key() == Qt::Key_Escape && mIsMoving)
+	if (event->key() == Qt::Key_Escape && mState != SELECTED)
 	{
-		mIsMoving = false;
+		mState = SELECTED;
 		updateActions();
 		emit overlayChanged();
 		event->accept();
@@ -258,17 +274,26 @@ void TextEditor::keyPressEvent(QKeyEvent *event)
 
 void TextEditor::actionMove()
 {
-	mIsMoving = true;
-	mPos = mText->pos();
+
+	mState = MOVE;
+	startMove();
 	QCursor::setPos(mCtrl->view()->mapToGlobal(mCtrl->view()->transform().map(mPos)));
-	mAngleDelta = 0;
-	mBox = mText->bbox().translated(-mPos);
 	updateActions();
 	emit overlayChanged();
 }
 
+void TextEditor::startMove()
+{
+	mPos = mText->pos();
+	mAngleDelta = 0;
+	mBox = mText->bbox().translated(-mPos);
+}
+
 void TextEditor::actionDelete()
 {
+	TextDeleteCmd* cmd = new TextDeleteCmd(NULL, mText, mCtrl->doc());
+	mCtrl->doc()->doCommand(cmd);
+	emit editorFinished();
 }
 
 void TextEditor::actionRotate()
@@ -280,11 +305,40 @@ void TextEditor::actionRotate()
 
 void TextEditor::actionEdit()
 {
+	if (!mDialog)
+		mDialog = new EditTextDialog();
+	mDialog->init(mText);
+	if (mDialog->exec() == QDialog::Accepted)
+	{
+		if (mDialog->isPosSet())
+		{
+			mPos = mDialog->pos();
+			mAngleDelta = mDialog->angle() - mText->angle();
+			while(mAngleDelta < 0) mAngleDelta += 360;
+			finishEdit();
+		}
+		else // drag to position
+		{
+			mState = EDIT_MOVE;
+			startMove();
+			updateActions();
+			emit overlayChanged();
+		}
+	}
+}
+
+void TextEditor::finishEdit()
+{
+	TextEditCmd *cmd = new TextEditCmd(NULL, mText, mPos, mDialog->layer(),
+									   (mText->angle() + mAngleDelta) % 360, mDialog->isMirrored(), mDialog->isNegative(),
+									   mDialog->textHeight(), mDialog->textWidth(), mDialog->text());
+	mCtrl->doc()->doCommand(cmd);
+	emit overlayChanged();
 }
 
 void TextEditor::drawOverlay(QPainter *painter)
 {
-	if (!mIsMoving)
+	if (mState == SELECTED)
 	{
 		mText->draw(painter, LAY_SELECTION);
 		painter->save();
@@ -324,4 +378,89 @@ void TextMoveCmd::redo()
 {
 	mText->setPos(mNewPos);
 	mText->setAngle(mNewAngle);
+}
+
+TextNewCmd::TextNewCmd(QUndoCommand *parent, Text *obj, PCBDoc *doc)
+	:QUndoCommand(parent), mText(obj), mDoc(doc), mInDoc(false)
+{
+	setText("add text");
+}
+
+TextNewCmd::~TextNewCmd()
+{
+	if(!mInDoc)
+		delete mText;
+}
+
+void TextNewCmd::redo()
+{
+	mInDoc = true;
+	mDoc->addText(mText);
+}
+
+void TextNewCmd::undo()
+{
+	mInDoc = false;
+	mDoc->removeText(mText);
+}
+
+TextDeleteCmd::TextDeleteCmd(QUndoCommand *parent, Text *obj, PCBDoc *doc)
+	:QUndoCommand(parent), mText(obj), mDoc(doc), mInDoc(true)
+{
+	setText("delete text");
+}
+
+TextDeleteCmd::~TextDeleteCmd()
+{
+	if(!mInDoc)
+		delete mText;
+}
+
+void TextDeleteCmd::redo()
+{
+	mInDoc = false;
+	mDoc->removeText(mText);
+}
+
+void TextDeleteCmd::undo()
+{
+	mInDoc = true;
+	mDoc->addText(mText);
+}
+
+TextEditCmd::TextEditCmd(QUndoCommand *parent, Text* obj, QPoint newPos, PCBLAYER newLayer,
+			int newAngle, bool isMirrored, bool isNegative, int newSize,
+			int newWidth, QString newText )
+				: QUndoCommand(parent), mText(obj), mOldPos(obj->pos()), mOldLayer(obj->layer()),
+				mOldAngle(obj->angle()), mOldIsMirrored(obj->isMirrored()),
+				mOldIsNegative(obj->isNegative()), mOldFontSize(obj->fontSize()),
+				mOldStrokeWidth(obj->strokeWidth()), mOldText(obj->text()),
+				mNewPos(newPos), mNewLayer(newLayer), mNewAngle(newAngle), mNewIsMirrored(isMirrored),
+				mNewIsNegative(isNegative), mNewFontSize(newSize), mNewStrokeWidth(newWidth), mNewText(newText)
+{
+	setText("edit text");
+}
+
+void TextEditCmd::undo()
+{
+	mText->setPos(mOldPos);
+	mText->setLayer(mOldLayer);
+	mText->setAngle(mOldAngle);
+	mText->setMirrored(mOldIsMirrored);
+	mText->setNegative(mOldIsNegative);
+	mText->setFontSize(mOldFontSize);
+	mText->setStrokeWidth(mOldStrokeWidth);
+	mText->setText(mOldText);
+}
+
+void TextEditCmd::redo()
+{
+	mText->setPos(mNewPos);
+	mText->setLayer(mNewLayer);
+	mText->setAngle(mNewAngle);
+	mText->setMirrored(mNewIsMirrored);
+	mText->setNegative(mNewIsNegative);
+	mText->setFontSize(mNewFontSize);
+	mText->setStrokeWidth(mNewStrokeWidth);
+	mText->setText(mNewText);
 }

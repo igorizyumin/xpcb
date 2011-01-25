@@ -30,7 +30,8 @@ SOURCES += PCBView.cpp \
 	mainwindow.cpp \
     ActionBar.cpp \
     Controller.cpp \
-    Editor.cpp
+    Editor.cpp \
+    EditTextDialog.cpp
 
 CONFIG(unittest) {
 	QT += testlib
@@ -62,13 +63,15 @@ HEADERS  += PCBView.h \
 	mainwindow.h \
     ActionBar.h \
     Controller.h \
-    Editor.h
+    Editor.h \
+    EditTextDialog.h
 
 
 FORMS    += GridToolbarWidget.ui \
     AboutDialog.ui \
     mainwindow.ui \
-    ActionBar.ui
+    ActionBar.ui \
+    EditTextDialog.ui
 
 RESOURCES += \
     qtfreepcb.qrc
