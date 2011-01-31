@@ -18,7 +18,7 @@ Pad PartPin::getPadOnLayer(PCBLAYER layer) const
 
 Pin::PINLAYER PartPin::mapLayer(PCBLAYER layer) const
 {
-	if (layer <= LAY_PAD_THRU || layer == LAY_UNKNOWN)
+	if (layer <= LAY_HOLE || layer == LAY_UNKNOWN)
 		return Pin::LAY_UNKNOWN;
 
 	PCBSIDE side = mPart->side();

@@ -12,19 +12,25 @@
 #include "Controller.h"
 #include "global.h"
 #include "EditTextDialog.h"
+#include "SelFilterWidget.h"
+#include "LayerWidget.h"
 
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
 {
 	setupUi(this);
 	m_statusbar_xc = new QLabel("X: 0");
-	m_statusbar_xc->setFixedWidth(60);
+	m_statusbar_xc->setFixedWidth(80);
 	m_statusbar_yc = new QLabel("Y: 0");
-	m_statusbar_yc->setFixedWidth(60);
+	m_statusbar_yc->setFixedWidth(80);
 	this->statusbar->addPermanentWidget(m_statusbar_xc);
 	this->statusbar->addPermanentWidget(m_statusbar_yc);
 
 	m_gridwidget = new GridToolbarWidget();
+	m_selmask = new SelFilterWidget();
+	m_layers = new LayerWidget();
+	this->selMaskScrollArea->setWidget(m_selmask);
+	this->layerScrollArea->setWidget(m_layers);
 	m_actionbar = new ActionBar();
 	this->actionToolbar->addWidget(m_actionbar);
 	this->gridToolbar->addWidget(m_gridwidget);
@@ -43,11 +49,6 @@ MainWindow::MainWindow(QWidget *parent)
 			m_ctrl, SLOT(onRouteGridChanged(int)));
 	this->setCentralWidget(this->m_view);
 	setCurrentFile("");
-}
-
-MainWindow::~MainWindow()
-{
-
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)

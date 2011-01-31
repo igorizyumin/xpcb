@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SelFilterWidget</class>
+ <widget class="QWidget" name="SelFilterWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>143</width>
+    <height>265</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QCheckBox" name="partsBox">
+     <property name="focusPolicy">
+      <enum>Qt::NoFocus</enum>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QCheckBox::indicator { width: 12px; height: 12px; border: 1px solid black; }
+QCheckBox::indicator:unchecked { background: rgb(255, 0, 0); }
+QCheckBox::indicator:checked { background: rgb(0, 255, 0); }
+</string>
+     </property>
+     <property name="text">
+      <string>parts</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="refdesBox">
+     <property name="focusPolicy">
+      <enum>Qt::NoFocus</enum>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QCheckBox::indicator { width: 12px; height: 12px; border: 1px solid black; }
+QCheckBox::indicator:unchecked { background: rgb(255, 0, 0); }
+QCheckBox::indicator:checked { background: rgb(0, 255, 0); }
+</string>
+     </property>
+     <property name="text">
+      <string>ref des</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="valueBox">
+     <property name="focusPolicy">
+      <enum>Qt::NoFocus</enum>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QCheckBox::indicator { width: 12px; height: 12px; border: 1px solid black; }
+QCheckBox::indicator:unchecked { background: rgb(255, 0, 0); }
+QCheckBox::indicator:checked { background: rgb(0, 255, 0); }
+</string>
+     </property>
+     <property name="text">
+      <string>value</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="pinsBox">
+     <property name="focusPolicy">
+      <enum>Qt::NoFocus</enum>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QCheckBox::indicator { width: 12px; height: 12px; border: 1px solid black; }
+QCheckBox::indicator:unchecked { background: rgb(255, 0, 0); }
+QCheckBox::indicator:checked { background: rgb(0, 255, 0); }
+</string>
+     </property>
+     <property name="text">
+      <string>pins</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="tracesBox">
+     <property name="focusPolicy">
+      <enum>Qt::NoFocus</enum>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QCheckBox::indicator { width: 12px; height: 12px; border: 1px solid black; }
+QCheckBox::indicator:unchecked { background: rgb(255, 0, 0); }
+QCheckBox::indicator:checked { background: rgb(0, 255, 0); }
+</string>
+     </property>
+     <property name="text">
+      <string>traces / ratlines</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="verticesBox">
+     <property name="focusPolicy">
+      <enum>Qt::NoFocus</enum>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QCheckBox::indicator { width: 12px; height: 12px; border: 1px solid black; }
+QCheckBox::indicator:unchecked { background: rgb(255, 0, 0); }
+QCheckBox::indicator:checked { background: rgb(0, 255, 0); }
+</string>
+     </property>
+     <property name="text">
+      <string>vertices / vias</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="areasBox">
+     <property name="focusPolicy">
+      <enum>Qt::NoFocus</enum>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QCheckBox::indicator { width: 12px; height: 12px; border: 1px solid black; }
+QCheckBox::indicator:unchecked { background: rgb(255, 0, 0); }
+QCheckBox::indicator:checked { background: rgb(0, 255, 0); }
+</string>
+     </property>
+     <property name="text">
+      <string>copper areas</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="textsBox">
+     <property name="focusPolicy">
+      <enum>Qt::NoFocus</enum>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QCheckBox::indicator { width: 12px; height: 12px; border: 1px solid black; }
+QCheckBox::indicator:unchecked { background: rgb(255, 0, 0); }
+QCheckBox::indicator:checked { background: rgb(0, 255, 0); }
+</string>
+     </property>
+     <property name="text">
+      <string>text</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="cutoutsBox">
+     <property name="focusPolicy">
+      <enum>Qt::NoFocus</enum>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QCheckBox::indicator { width: 12px; height: 12px; border: 1px solid black; }
+QCheckBox::indicator:unchecked { background: rgb(255, 0, 0); }
+QCheckBox::indicator:checked { background: rgb(0, 255, 0); }
+</string>
+     </property>
+     <property name="text">
+      <string>sm cutouts</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="outlineBox">
+     <property name="focusPolicy">
+      <enum>Qt::NoFocus</enum>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QCheckBox::indicator { width: 12px; height: 12px; border: 1px solid black; }
+QCheckBox::indicator:unchecked { background: rgb(255, 0, 0); }
+QCheckBox::indicator:checked { background: rgb(0, 255, 0); }
+</string>
+     </property>
+     <property name="text">
+      <string>board outline</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="drcBox">
+     <property name="focusPolicy">
+      <enum>Qt::NoFocus</enum>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QCheckBox::indicator { width: 12px; height: 12px; border: 1px solid black; }
+QCheckBox::indicator:unchecked { background: rgb(255, 0, 0); }
+QCheckBox::indicator:checked { background: rgb(0, 255, 0); }
+</string>
+     </property>
+     <property name="text">
+      <string>DRC errors</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

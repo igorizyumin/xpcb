@@ -34,5 +34,6 @@
         <file>Resources/f8.png</file>
         <file>Resources/f9.png</file>
         <file>Resources/f1.png</file>
+        <file alias="bg-disabled.png">Resources/bg-layer-disabled.png</file>
     </qresource>
 </RCC>

@@ -29,6 +29,7 @@ signals:
 
 public slots:
 	void visGridChanged(int grid);
+//	void layerVisChanged();
 
 private slots:
 	void docChanged();

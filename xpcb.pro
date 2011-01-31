@@ -31,7 +31,9 @@ SOURCES += PCBView.cpp \
     ActionBar.cpp \
     Controller.cpp \
     Editor.cpp \
-    EditTextDialog.cpp
+    EditTextDialog.cpp \
+    SelFilterWidget.cpp \
+    LayerWidget.cpp
 
 CONFIG(unittest) {
 	QT += testlib
@@ -64,14 +66,17 @@ HEADERS  += PCBView.h \
     ActionBar.h \
     Controller.h \
     Editor.h \
-    EditTextDialog.h
+    EditTextDialog.h \
+    SelFilterWidget.h \
+    LayerWidget.h
 
 
 FORMS    += GridToolbarWidget.ui \
     AboutDialog.ui \
     mainwindow.ui \
     ActionBar.ui \
-    EditTextDialog.ui
+    EditTextDialog.ui \
+    SelFilterWidget.ui
 
 RESOURCES += \
     qtfreepcb.qrc

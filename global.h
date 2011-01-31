@@ -45,7 +45,7 @@ typedef enum
 // define standard drawing layers
 //
 
-const int MAX_LAYERS = 32;
+const int MAX_LAYERS = 30;
 
 typedef enum
 {
@@ -61,9 +61,25 @@ typedef enum
 	LAY_SILK_BOTTOM,
 	LAY_SM_TOP,
 	LAY_SM_BOTTOM,
-	LAY_PAD_THRU,
+	LAY_HOLE,
 	LAY_TOP_COPPER,
 	LAY_BOTTOM_COPPER,
+	LAY_INNER1,
+	LAY_INNER2,
+	LAY_INNER3,
+	LAY_INNER4,
+	LAY_INNER5,
+	LAY_INNER6,
+	LAY_INNER7,
+	LAY_INNER8,
+	LAY_INNER9,
+	LAY_INNER10,
+	LAY_INNER11,
+	LAY_INNER12,
+	LAY_INNER13,
+	LAY_INNER14,
+	LAY_INNER15,
+	LAY_INNER16,
 	// invisible layers
 	LAY_MASK_TOP = -100,	
 	LAY_MASK_BOTTOM = -101,
@@ -93,7 +109,7 @@ typedef enum
 	NUM_FP_LAYERS
 } FPLAYER;
 
-static char layer_str[32][64] = 
+static char layer_str[30][64] =
 { 
 	"selection",
 	"background",
@@ -106,7 +122,7 @@ static char layer_str[32][64] =
 	"bottom silk",
 	"top sm cutout",
 	"bot sm cutout",
-	"thru pad",
+	"drilled hole",
 	"top copper",
 	"bottom copper",
 	"inner 1",
@@ -124,9 +140,7 @@ static char layer_str[32][64] =
 	"inner 13",
 	"inner 14",
 	"inner 15",
-	"inner 16",
-	"undefined",
-	"undefined"
+	"inner 16"
 };
 
 static char fp_layer_str[NUM_FP_LAYERS][64] = 

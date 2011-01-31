@@ -35,6 +35,9 @@ class Controller : public QObject
 {
     Q_OBJECT
 public:
+
+	enum SelectionMaskT { SM_PARTS, SM_REFDES, SM_VALUE, SM_PINS, SM_TRACES, SM_VERTICES, SM_AREAS, SM_TEXT, SM_CUTOUTS, SM_OUTLINE, SM_DRC };
+
 	explicit Controller(QObject *parent = 0);
 
 	void registerDoc(PCBDoc* doc);

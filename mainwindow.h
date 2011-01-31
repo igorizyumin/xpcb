@@ -10,6 +10,8 @@ class ActionBar;
 class PCBView;
 class PCBDoc;
 class Controller;
+class SelFilterWidget;
+class LayerWidget;
 
 /// The MainWindow class represents a single open PCB editor window
 class MainWindow : public QMainWindow, private Ui::MainWindowClass
@@ -18,7 +20,6 @@ class MainWindow : public QMainWindow, private Ui::MainWindowClass
 
 public:
 	MainWindow(QWidget *parent = 0);
-	~MainWindow();
 
 private slots:
 	void on_actionAbout_triggered();
@@ -52,6 +53,8 @@ private:
 	PCBDoc* m_doc;
 	Controller *m_ctrl;
 	QString m_curFile;
+	SelFilterWidget *m_selmask;
+	LayerWidget *m_layers;
 };
 
 #endif // MAINWINDOW_H
