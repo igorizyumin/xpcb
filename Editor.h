@@ -21,18 +21,22 @@
 #include <QObject>
 #include <QAction>
 #include "PCBObject.h"
+#include "Controller.h"
 
 class PCBDoc;
-class Controller;
 
 class AbstractEditor : public QObject
 {
     Q_OBJECT
 public:
-	explicit AbstractEditor(Controller *ctrl, QList<QAction*> actions);
+	explicit AbstractEditor(Controller *ctrl);
+	virtual void init() {}
 	virtual void drawOverlay(QPainter* painter) = 0;
+	virtual QList<CtrlAction> actions() const { return QList<CtrlAction>(); }
+	virtual void action(int key) {}
 
 signals:
+	void actionsChanged();
 	void overlayChanged();
 	void editorFinished();
 
@@ -40,7 +44,6 @@ public slots:
 
 protected:
 	Controller *mCtrl;
-	QList<QAction*> mActions;
 };
 
 class EditorFactory : public PCBObjectVisitor
@@ -48,7 +51,9 @@ class EditorFactory : public PCBObjectVisitor
 public:
 	static EditorFactory& instance();
 
-	AbstractEditor* newEditor(PCBObject* obj, Controller *ctrl, QList<QAction*> actions);
+	AbstractEditor* newEditor(PCBObject* obj, Controller *ctrl);
+	AbstractEditor* newTextEditor(Controller *ctrl);
+
 
 	virtual void visit(Area* a);
 	virtual void visit(Arc* a);
@@ -70,7 +75,6 @@ private:
 	AbstractEditor* mEditor;
 	// parameters for visit function
 	Controller *mCtrl;
-	QList<QAction*> mActions;
 	PCBObject *mObj;
 };
 

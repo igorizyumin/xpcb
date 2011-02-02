@@ -99,11 +99,19 @@
       <xs:choice minOccurs="0" maxOccurs="unbounded">
         <xs:element ref="name"/>
         <xs:element ref="units"/>
+        <xs:element ref="numLayers"/>
         <xs:element ref="defaultPadstack"/>
       </xs:choice>
     </xs:complexType>
   </xs:element>
   <xs:element name="name" type="xs:string"/>
+  <xs:element name="numLayers">
+    <xs:simpleType>
+      <xs:restriction base="xs:int">
+        <xs:minInclusive value="2"/>
+      </xs:restriction>
+    </xs:simpleType>
+  </xs:element>
   <xs:element name="defaultPadstack" type="ObjID"/>
   <!-- Padstacks section -->
   <xs:element name="padstacks">

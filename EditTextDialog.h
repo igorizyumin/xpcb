@@ -29,7 +29,7 @@ class EditTextDialog : public QDialog, private Ui::EditTextDialog
     Q_OBJECT
 
 public:
-	explicit EditTextDialog(QWidget *parent = 0);
+	explicit EditTextDialog(QWidget *parent = 0, int numLayers = 2);
 	void init(Text* t = NULL);
 	QPoint pos() const { return QPoint(toPCB(xPos->value()), toPCB(yPos->value())); }
 	int angle() const { return angleBox->currentIndex() * 90; }
@@ -42,7 +42,7 @@ public:
 	bool isPosSet() const { return setPosRadio->isChecked(); }
 	bool isWidthSet() const { return setWidthRadio->isChecked(); }
 
-	PCBLAYER layer() const { return mLayer; }
+	PCBLAYER layer() const;
 
 
 private slots:
@@ -52,9 +52,10 @@ private slots:
 
 private:
 	void updateUnits();
+	void populateLayers(int numLayers);
 	int toPCB(double value) const { return mInMM ? MM2PCB(value) : MIL2PCB(value); }
 	bool mInMM;
-	PCBLAYER mLayer;
+	QList<PCBLAYER> mLayerInd;
 };
 
 #endif // EDITTEXTDIALOG_H

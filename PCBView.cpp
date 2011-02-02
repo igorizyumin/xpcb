@@ -6,6 +6,7 @@
 #include <QSize>
 #include <QPainter>
 #include <QMouseEvent>
+#include <QSettings>
 
 PCBView::PCBView(QWidget *parent)
 	: QWidget(parent), mCtrl(NULL), mWheelAngle(0)
@@ -32,18 +33,6 @@ QSize PCBView::sizeHint() const
 void PCBView::setCtrl(Controller *ctrl)
 {
 	mCtrl = ctrl;
-	connect(ctrl, SIGNAL(selectionChanged()), this, SLOT(selChanged()));
-	connect(ctrl, SIGNAL(documentChanged()), this, SLOT(docChanged()));
-}
-
-void PCBView::docChanged()
-{
-	update();
-}
-
-void PCBView::selChanged()
-{
-	update();
 }
 
 void PCBView::visGridChanged(int grid)
@@ -56,22 +45,33 @@ void PCBView::paintEvent(QPaintEvent *e)
 {
 	QPainter painter(this);
 //	painter.setBackgroundMode(Qt::BGMode::OpaqueMode);
-	painter.setBackground(QBrush(Qt::black));
+	painter.setBackground(QBrush(layerColor(LAY_BACKGND)));
 	painter.setClipping(true);
 	painter.eraseRect(this->rect());
 	if (mCtrl && mCtrl->docIsOpen())
 	{
-		QPen pen(Qt::white);
+		QPen pen(layerColor(LAY_VISIBLE_GRID));
 		pen.setCapStyle(Qt::RoundCap);
 		pen.setJoinStyle(Qt::RoundJoin);
 		painter.setTransform(mTransform);
 		painter.setPen(pen);
-		drawOrigin(&painter);
-		drawGrid(&painter);
+		if (mCtrl->isLayerVisible(LAY_VISIBLE_GRID))
+		{
+			drawOrigin(&painter);
+			drawGrid(&painter);
+		}
 		painter.setRenderHint(QPainter::Antialiasing);
 		QRect bb = mTransform.inverted().mapRect(e->rect());
 		for(int l = 0; l < MAX_LAYERS; l++)
-			mCtrl->draw(&painter, bb, (PCBLAYER)l);
+		{
+			if (mCtrl->isLayerVisible((PCBLAYER)l))
+			{
+				QPen p = painter.pen();
+				p.setColor(layerColor((PCBLAYER)l));
+				painter.setPen(p);
+				mCtrl->draw(&painter, bb, (PCBLAYER)l);
+			}
+		}
 	}
 	painter.end();
 }
@@ -88,8 +88,7 @@ void PCBView::drawOrigin(QPainter *painter)
 
 void PCBView::drawGrid(QPainter *painter)
 {
-	painter->drawRect(QRect(QPoint(-PCB_BOUND, -PCB_BOUND), QPoint(PCB_BOUND, PCB_BOUND)));
-
+//	painter->drawRect(QRect(QPoint(-PCB_BOUND, -PCB_BOUND), QPoint(PCB_BOUND, PCB_BOUND)));
 	QRect viewport = mTransform.inverted().mapRect(this->rect());
 	if (mTransform.map(QLine(QPoint(0,0), QPoint(mVisibleGrid, 0))).dx() <= 5)
 		return;
@@ -214,4 +213,10 @@ void PCBView::zoom(double factor, QPoint pos)
 	}
 	mTransform = test;
 	recenter(p, true);
+}
+
+QColor PCBView::layerColor(PCBLAYER l)
+{
+	QSettings s;
+	return s.value(QString("colors/%1").arg(layer_str[(int)l])).value<QColor>();
 }

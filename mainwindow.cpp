@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QCloseEvent>
+#include <QSettings>
 #include "GridToolbarWidget.h"
 #include "ActionBar.h"
 #include "AboutDialog.h"
@@ -37,7 +38,8 @@ MainWindow::MainWindow(QWidget *parent)
 	this->m_view = new PCBView(this);
 	this->m_ctrl = new Controller(this);
 	this->m_ctrl->registerView(m_view);
-	this->m_ctrl->registerActions(m_actionbar->getActions());
+	this->m_ctrl->registerActionBar(m_actionbar);
+	this->m_ctrl->registerLayerWidget(m_layers);
 	this->m_doc = NULL;
 	connect(this->m_view, SIGNAL(mouseMoved(QPoint)),
 					 this, SLOT(onViewCoords(QPoint)));
@@ -49,6 +51,11 @@ MainWindow::MainWindow(QWidget *parent)
 			m_ctrl, SLOT(onRouteGridChanged(int)));
 	this->setCentralWidget(this->m_view);
 	setCurrentFile("");
+
+	// restore geometry
+	QSettings settings;
+	restoreGeometry(settings.value("mainWindow/geometry").toByteArray());
+	restoreState(settings.value("mainWindow/windowState").toByteArray());
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -56,6 +63,11 @@ void MainWindow::closeEvent(QCloseEvent *event)
 	if (maybeSave())
 	{
 		event->accept();
+		// save geometry
+		QSettings settings;
+		settings.setValue("mainWindow/geometry", saveGeometry());
+		settings.setValue("mainWindow/windowState", saveState());
+		QMainWindow::closeEvent(event);
 	}
 	else
 	{

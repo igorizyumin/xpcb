@@ -27,8 +27,8 @@ LayerWidget::LayerWidget(QWidget* parent)
 {
 	QVBoxLayout* layout = new QVBoxLayout();
 	this->setLayout(layout);
-	setNumLayers(16);
 	mActiveLayer = LAY_TOP_COPPER;
+	setNumLayers(16);
 	setActive(LAY_TOP_COPPER);
 	this->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 	connect(&mMapper, SIGNAL(mapped(int)), this, SLOT(onKeyboardShortcut(int)));
@@ -52,6 +52,7 @@ void LayerWidget::rebuild()
 		addLayer((PCBLAYER)((int)LAY_INNER1+i));
 	}
 	addLayer(LAY_BOTTOM_COPPER);
+	setActive(LAY_TOP_COPPER);
 }
 
 // returns the list index for a layer
@@ -68,7 +69,7 @@ int LayerWidget::mapLayer(PCBLAYER l) const
 
 QString getStylesheet(QColor color, bool active = false)
 {
-	return QString("QCheckBox { font-weight: %3; }\nQCheckBox::indicator {width: 12px; height: 12px; border: %2 solid black; }\nQCheckBox::indicator::checked { background-color: %1; }\nQCheckBox::indicator::unchecked { background-image: url(:bg-disabled.png); }\n")
+	return QString("QCheckBox { font-weight: %3; }\nQCheckBox:disabled { color: palette(text); }\nQCheckBox::indicator {width: 12px; height: 12px; border: %2 solid black; }\nQCheckBox::indicator::checked { background-color: %1; }\nQCheckBox::indicator::unchecked { background-image: url(:bg-disabled.png); }\n")
 			.arg(color.name()).arg(active? "2px" : "1px").arg(active?"bold":"normal");
 }
 
@@ -83,7 +84,8 @@ QCheckBox* makeCheckbox(QString name, QColor color)
 
 void LayerWidget::addLayer(PCBLAYER l)
 {
-	const char keys[18] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I'};
+	const char keys[17] = "12345678QWERTYUI";
+
 	QSettings s;
 	if ((int)l >=0 && (int)l < MAX_LAYERS)
 	{
@@ -104,6 +106,8 @@ void LayerWidget::addLayer(PCBLAYER l)
 		// make new checkbox
 		QCheckBox* cb = makeCheckbox(label, col);
 		connect(cb, SIGNAL(stateChanged(int)), this, SIGNAL(layerVisibilityChanged()));
+		if (l == LAY_SELECTION || l == LAY_BACKGND)
+			cb->setEnabled(false);
 
 		// append checkbox and set ourselves as parent
 		mCheckboxes.append(cb);
@@ -126,7 +130,9 @@ void LayerWidget::setActive(PCBLAYER l)
 
 bool LayerWidget::isLayerVisible(PCBLAYER l) const
 {
-	return mCheckboxes[mapLayer(l)]->checkState();
+	int ind = mapLayer(l);
+	if (ind >= mCheckboxes.size()) return false;
+	else return mCheckboxes[ind]->checkState();
 }
 
 void LayerWidget::onKeyboardShortcut(int layer)

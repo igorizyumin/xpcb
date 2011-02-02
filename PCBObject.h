@@ -44,6 +44,9 @@ public:
 	/// \return object ID
 	int getid() const {return objID;}
 
+	/// Returns true if the object was hit.
+	virtual bool testHit(QPoint pt, PCBLAYER l) const { return false; }
+
 private:
 	int objID;
 	static int nextObjID;

@@ -19,9 +19,13 @@
 #include "PCBDoc.h"
 #include "PCBView.h"
 #include "Editor.h"
+#include "LayerWidget.h"
+#include "Log.h"
+#include "ActionBar.h"
 
 Controller::Controller(QObject *parent) :
-	QObject(parent), mView(NULL), mDoc(NULL), mEditor(NULL), mPlaceGrid(IN2PCB(0.05)), mRouteGrid(IN2PCB(0.001))
+	QObject(parent), mView(NULL), mDoc(NULL), mEditor(NULL), mLayerWidget(NULL), mActionBar(NULL),
+	mPlaceGrid(IN2PCB(0.05)), mRouteGrid(IN2PCB(0.001))
 {
 }
 
@@ -30,20 +34,18 @@ void Controller::registerDoc(PCBDoc* doc)
 	if (!mDoc && doc)
 	{
 		mDoc = doc;
-		connect(mDoc, SIGNAL(changed()), this, SLOT(onDocChanged()));
-		emit documentChanged();
+		if (mLayerWidget)
+			mLayerWidget->setNumLayers(mDoc->numLayers());
+		connect(mDoc, SIGNAL(changed()), this, SLOT(onDocumentChanged()));
+		onDocumentChanged();
 	}
-	else if (!doc)
+	else if (mDoc && !doc)
 	{
-		disconnect(mDoc, SIGNAL(changed()), this, SLOT(onDocChanged()));
+		disconnect(mDoc, SIGNAL(changed()), this, SIGNAL(onDocumentChanged()));
 		mDoc = NULL;
-		emit documentChanged();
+		onDocumentChanged();
 	}
-}
-
-void Controller::onDocChanged()
-{
-	emit documentChanged();
+	updateEditor();
 }
 
 void Controller::registerView(PCBView* view)
@@ -56,20 +58,25 @@ void Controller::registerView(PCBView* view)
 	}
 }
 
-void Controller::registerActions(QList<QAction *> actions)
+void Controller::registerActionBar(ActionBar* bar)
 {
-	mActions = actions;
+	mActionBar = bar;
+	connect(mActionBar, SIGNAL(triggered(int)), this, SLOT(onAction(int)));
+	updateActions();
+}
+
+void Controller::registerLayerWidget(LayerWidget *widget)
+{
+	mLayerWidget = widget;
+	if (mDoc)
+		mLayerWidget->setNumLayers(mDoc->numLayers());
+	connect(mLayerWidget, SIGNAL(layerVisibilityChanged()), this, SLOT(onDocumentChanged()));
 }
 
 void Controller::draw(QPainter* painter, QRect &rect, PCBLAYER layer)
 {
 	if (!mView || !mDoc) return;
-	QList<PCBObject*> objs = mDoc->findObjs(rect);
-	foreach(PCBObject* obj, objs)
-	{
-		if (!mHiddenObjs.contains(obj))
-			obj->draw(painter, layer);
-	}
+
 
 	if (layer == LAY_SELECTION)
 	{
@@ -80,6 +87,15 @@ void Controller::draw(QPainter* painter, QRect &rect, PCBLAYER layer)
 		}
 		if (mEditor)
 			mEditor->drawOverlay(painter);
+	}
+	else
+	{
+		QList<PCBObject*> objs = mDoc->findObjs(rect);
+		foreach(PCBObject* obj, objs)
+		{
+			if (!mHiddenObjs.contains(obj))
+				obj->draw(painter, layer);
+		}
 	}
 }
 
@@ -125,11 +141,29 @@ void Controller::mouseReleaseEvent(QMouseEvent *event)
 	}
 	QPoint pos = mView->transform().inverted().map(event->pos());
 	QList<PCBObject*> objs = mDoc->findObjs(pos);
+	QMutableListIterator<PCBObject*> i(objs);
+	while(i.hasNext())
+	{
+		PCBObject* obj = i.next();
+		bool hit = false;
+		for(int l = (int)LAY_DRC_ERROR; l < (int)LAY_TOP_COPPER + mDoc->numLayers(); l++)
+		{
+			if (!mLayerWidget->isLayerVisible((PCBLAYER)l)) continue;
+			if (obj->testHit(pos, (PCBLAYER)l))
+			{
+				hit = true;
+				break;
+			}
+		}
+		if (!hit)
+			i.remove();
+	}
+
 	if (objs.size() == 0)
 	{
 		mSelectedObjs.clear();
 		updateEditor();
-		emit selectionChanged();
+		mView->update();
 		return;
 	}
 	if (mSelectedObjs.size() != 1)
@@ -137,7 +171,7 @@ void Controller::mouseReleaseEvent(QMouseEvent *event)
 		mSelectedObjs.clear();
 		mSelectedObjs.append(objs.first());
 		updateEditor();
-		emit selectionChanged();
+		mView->update();
 	}
 	else // one obj currently selected
 	{
@@ -158,7 +192,7 @@ void Controller::mouseReleaseEvent(QMouseEvent *event)
 			mSelectedObjs.append(objs.at(i));
 		}
 		updateEditor();
-		emit selectionChanged();
+		mView->update();
 	}
 
 	event->accept();
@@ -170,15 +204,72 @@ void Controller::updateEditor()
 	{
 		delete mEditor;
 		mEditor = NULL;
+		Log::instance().message("Editor deleted");
+
 	}
 	mHiddenObjs.clear();
 	if (mSelectedObjs.size() == 1)
 	{
-		mEditor = EditorFactory::instance().newEditor(mSelectedObjs[0], this, mActions);
-		mView->installEventFilter(mEditor);
-		connect(mEditor, SIGNAL(overlayChanged()), this, SLOT(onEditorOverlayChanged()));
-		connect(mEditor, SIGNAL(editorFinished()), this, SLOT(onEditorFinished()));
+		mEditor = EditorFactory::instance().newEditor(mSelectedObjs[0], this);
+		installEditor();
 	}
+	else
+		updateActions();
+}
+
+void Controller::installEditor()
+{
+	Q_ASSERT(mEditor != NULL);
+
+	Log::instance().message("Installing editor");
+	mView->installEventFilter(mEditor);
+	connect(mEditor, SIGNAL(overlayChanged()), this, SLOT(onEditorOverlayChanged()));
+	connect(mEditor, SIGNAL(editorFinished()), this, SLOT(onEditorFinished()));
+	connect(mEditor, SIGNAL(actionsChanged()), this, SLOT(onEditorActionsChanged()));
+	updateActions();
+	mEditor->init();
+}
+
+void Controller::onAddTextAction()
+{
+	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
+
+	mEditor = EditorFactory::instance().newTextEditor(this);
+	installEditor();
+}
+
+void Controller::updateActions()
+{
+	Q_ASSERT(mActionBar != NULL);
+
+	if (!mDoc)
+	{
+		mActionBar->setActions(QList<CtrlAction>());
+		return;
+	}
+
+	if (!mEditor)
+	{
+		mActionBar->setActions(CtrlAction(2, "Add Text"));
+	}
+	else
+	{
+		mActionBar->setActions(mEditor->actions());
+	}
+}
+
+void Controller::onAction(int key)
+{
+	if (mEditor)
+		mEditor->action(key);
+	else if (key == 2)
+		onAddTextAction();
+}
+
+void Controller::selectObj(PCBObject *obj)
+{
+	mSelectedObjs.append(obj);
+	mView->update();
 }
 
 void Controller::hideObj(PCBObject *obj)
@@ -188,13 +279,24 @@ void Controller::hideObj(PCBObject *obj)
 
 void Controller::onEditorOverlayChanged()
 {
-	emit selectionChanged();
+	mView->update();
 }
 
 void Controller::onEditorFinished()
 {
 	mSelectedObjs.clear();
 	updateEditor();
+	mView->update();
+}
+
+void Controller::onEditorActionsChanged()
+{
+	updateActions();
+}
+
+void Controller::onDocumentChanged()
+{
+	mView->update();
 }
 
 QPoint Controller::snapToPlaceGrid(QPoint p)
@@ -207,4 +309,10 @@ QPoint Controller::snapToRouteGrid(QPoint p)
 {
 	return QPoint(((p.x() + mRouteGrid/2) / mRouteGrid) * mRouteGrid,
 				  ((p.y() + mRouteGrid/2) / mRouteGrid) * mRouteGrid);
+}
+
+bool Controller::isLayerVisible(PCBLAYER l)
+{
+	if (!mLayerWidget) return false;
+	else return mLayerWidget->isLayerVisible(l);
 }

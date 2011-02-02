@@ -22,6 +22,7 @@ public:
 	virtual void draw(QPainter *painter, PCBLAYER layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
+	virtual bool testHit(QPoint pt, PCBLAYER l) const { return bbox().contains(pt) && mLayer == l; }
 
 	// getters / setters
 	const QPoint& pos() const {return mPos;}
@@ -85,10 +86,13 @@ class TextEditor : public AbstractEditor
 {
 	Q_OBJECT
 public:
-	TextEditor(Controller *ctrl, QList<QAction*> actions, Text *text);
+	TextEditor(Controller *ctrl, Text *text);
 	virtual ~TextEditor();
 
 	virtual void drawOverlay(QPainter* painter);
+	virtual void init();
+	virtual QList<CtrlAction> actions() const;
+	virtual void action(int key);
 
 protected:
 	virtual bool eventFilter(QObject *watched, QEvent *event);
@@ -100,14 +104,15 @@ private slots:
 	void actionRotate();
 
 private:
+	void newText();
 	enum State {SELECTED, MOVE, ADD_MOVE, EDIT_MOVE};
 	void mouseMoveEvent(QMouseEvent* event);
 	void mousePressEvent(QMouseEvent* event);
 	void mouseReleaseEvent(QMouseEvent* event);
 	void keyPressEvent(QKeyEvent *event);
-	void updateActions();
 	void startMove();
 	void finishEdit();
+	void finishNew();
 
 	State mState;
 	Text* mText;

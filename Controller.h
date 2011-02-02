@@ -28,6 +28,23 @@ class PCBView;
 class PCBDoc;
 class PCBObject;
 class AbstractEditor;
+class LayerWidget;
+class SelFilterWidget;
+class ActionBar;
+
+/// Action triggered by a function key
+class CtrlAction
+{
+public:
+	CtrlAction(int key, QString text) : mKey(key), mText(text) {}
+
+	int key() const { return mKey; }
+	QString text() const { return mText; }
+
+private:
+	int mKey;
+	QString mText;
+};
 
 /// The controller mediates all interaction between the model and view.  It
 /// also manages selection.  Other control tasks are handled by delegates.
@@ -42,12 +59,14 @@ public:
 
 	void registerDoc(PCBDoc* doc);
 	void registerView(PCBView* view);
-	void registerActions(QList<QAction*> actions);
+	void registerActionBar(ActionBar* bar);
+	void registerLayerWidget(LayerWidget* widget);
 
 	void draw(QPainter* painter, QRect &rect, PCBLAYER layer);
 
 	bool docIsOpen() {return mDoc != NULL;}
 
+	void selectObj(PCBObject* obj);
 	void hideObj(PCBObject* obj);
 
 	PCBDoc* doc() { return mDoc; }
@@ -55,17 +74,18 @@ public:
 
 	QPoint snapToPlaceGrid(QPoint p);
 	QPoint snapToRouteGrid(QPoint p);
-signals:
-	void selectionChanged();
-	void documentChanged();
+
+	bool isLayerVisible(PCBLAYER l);
 
 public slots:
 	void onPlaceGridChanged(int grid) { mPlaceGrid = grid; }
 	void onRouteGridChanged(int grid) { mRouteGrid = grid; }
 private slots:
-	void onDocChanged();
+	void onAction(int key);
 	void onEditorOverlayChanged();
 	void onEditorFinished();
+	void onEditorActionsChanged();
+	void onDocumentChanged();
 
 private:
 	virtual bool eventFilter(QObject *watched, QEvent *event);
@@ -73,19 +93,21 @@ private:
 	void mousePressEvent(QMouseEvent *event);
 	void mouseReleaseEvent(QMouseEvent *event);
 	void updateEditor();
+	void updateActions();
+	void installEditor();
+	void onAddTextAction();
 
 	PCBView* mView;
 	PCBDoc* mDoc;
 	AbstractEditor* mEditor;
+	LayerWidget* mLayerWidget;
+	ActionBar* mActionBar;
 
 	/// Selected objects
 	QList<PCBObject*> mSelectedObjs;
 
 	/// Hidden objects
 	QList<PCBObject*> mHiddenObjs;
-
-	/// Actions
-	QList<QAction*> mActions;
 
 	int mPlaceGrid;
 	int mRouteGrid;

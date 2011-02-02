@@ -18,10 +18,11 @@
 #include "EditTextDialog.h"
 #include "Text.h"
 
-EditTextDialog::EditTextDialog(QWidget *parent) :
-	QDialog(parent), mInMM(false), mLayer(LAY_SELECTION)
+EditTextDialog::EditTextDialog(QWidget *parent, int numLayers) :
+	QDialog(parent), mInMM(false)
 {
 	setupUi(this);
+	populateLayers(numLayers);
 }
 
 void EditTextDialog::init(Text *t)
@@ -29,9 +30,9 @@ void EditTextDialog::init(Text *t)
 	if (t)
 	{
 		mInMM = false;
-		updateUnits();
+		unitsBox->setCurrentIndex(0);
 		textEdit->setText(t->text());
-		// layerBox->
+		layerBox->setCurrentIndex(mLayerInd.indexOf(t->layer()));
 		mirrorImageBox->setChecked(t->isMirrored());
 		negativeTextBox->setChecked(t->isNegative());
 		setWidthRadio->setChecked(true);
@@ -41,18 +42,18 @@ void EditTextDialog::init(Text *t)
 		xPos->setValue(PCB2MIL(t->pos().x()));
 		yPos->setValue(PCB2MIL(t->pos().y()));
 		angleBox->setCurrentIndex(t->angle() / 90);
-		mLayer = t->layer();
 	}
 	else
 	{
 		// reset to defaults
 		mInMM = false;
-		updateUnits();
+		unitsBox->setCurrentIndex(0);
 		textEdit->setText("");
-		// layerBox
+		layerBox->setCurrentIndex(0);
 		mirrorImageBox->setChecked(false);
 		negativeTextBox->setChecked(false);
 		negativeTextBox->setEnabled(false);
+		heightBox->setValue(100);
 		this->defaultWidthRadio->setChecked(true);
 		widthBox->setValue(10);
 		this->setPosRadio->setChecked(false);
@@ -60,6 +61,11 @@ void EditTextDialog::init(Text *t)
 		yPos->setValue(0);
 		angleBox->setCurrentIndex(0);
 	}
+}
+
+PCBLAYER EditTextDialog::layer() const
+{
+	return mLayerInd[layerBox->currentIndex()];
 }
 
 void EditTextDialog::on_unitsBox_currentIndexChanged(const QString &s)
@@ -129,5 +135,22 @@ void EditTextDialog::updateUnits()
 		xPos->setSuffix(" mm");
 		yPos->setSuffix(" mm");
 	}
+}
+
+void EditTextDialog::populateLayers(int numLayers)
+{
+	layerBox->addItem(layer_str[(int)LAY_SILK_TOP], QVariant((int)LAY_SILK_TOP));
+	mLayerInd.append(LAY_SILK_TOP);
+	layerBox->addItem(layer_str[(int)LAY_SILK_BOTTOM], QVariant((int)LAY_SILK_BOTTOM));
+	mLayerInd.append(LAY_SILK_BOTTOM);
+	layerBox->addItem(layer_str[(int)LAY_TOP_COPPER], QVariant((int)LAY_TOP_COPPER));
+	mLayerInd.append(LAY_TOP_COPPER);
+	for(int i = 0; i < numLayers - 2; i++)
+	{
+		layerBox->addItem(layer_str[(int)LAY_INNER1+i], QVariant((int)LAY_INNER1+i));
+		mLayerInd.append((PCBLAYER)((int)LAY_INNER1 + i));
+	}
+	layerBox->addItem(layer_str[(int)LAY_BOTTOM_COPPER], QVariant((int)LAY_BOTTOM_COPPER));
+	mLayerInd.append(LAY_BOTTOM_COPPER);
 }
 

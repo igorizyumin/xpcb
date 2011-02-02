@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QTransform>
+#include "global.h"
 
 class PCBDoc;
 class PCBObject;
@@ -29,11 +30,7 @@ signals:
 
 public slots:
 	void visGridChanged(int grid);
-//	void layerVisChanged();
-
-private slots:
-	void docChanged();
-	void selChanged();
+	//	void layerVisChanged();
 
 protected:
 	virtual void paintEvent(QPaintEvent *e);
@@ -50,6 +47,8 @@ private:
 	void drawGrid(QPainter *painter);
 	void recenter(QPoint pt, bool world=false);
 	void zoom(double factor, QPoint pos);
+
+	QColor layerColor(PCBLAYER l);
 
 	/// Controller
 	Controller* mCtrl;

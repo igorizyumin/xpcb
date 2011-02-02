@@ -2,7 +2,9 @@
 #define ACTIONBAR_H
 
 #include <QWidget>
-#include <QPushButton>
+#include <QSignalMapper>
+
+#include "Controller.h"
 #include "ui_ActionBar.h"
 
 class ActionBar : public QWidget, private Ui::ActionBar
@@ -11,14 +13,17 @@ class ActionBar : public QWidget, private Ui::ActionBar
 
 public:
     explicit ActionBar(QWidget *parent = 0);
-	QList<QAction*> getActions() { return mActions; }
 
-private slots:
-	void onActionChanged();
+	void setActions(QList<CtrlAction> actions);
+	void setActions(CtrlAction action);
+
+signals:
+	void triggered(int key);
 
 private:
-	QList<QAction*> mActions;
+//	QList<QAction*> mActions;
 	QString wrapText(QString text);
+	QSignalMapper mMapper;
 
 };
 

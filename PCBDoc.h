@@ -35,8 +35,8 @@ public:
 	Footprint* getFootprint(const QString &name);
 	Net* getNet(const QString &name) const;
 
-	QString name() { return mName; }
-	UNIT units() { return mUnits; }
+	QString name() const { return mName; }
+	UNIT units() const { return mUnits; }
 
 	/// Returns a list of all objects that are hit
 	QList<PCBObject*> findObjs(QPoint &pt);
@@ -47,6 +47,8 @@ public:
 	void removeText(Text* t);
 
 	void doCommand(QUndoCommand *cmd);
+
+	int numLayers() const { return mNumLayers; }
 
 signals:
 	void changed();
@@ -63,10 +65,14 @@ private:
 
 	QUndoStack *mUndoStack;
 
+
 	/// Project name
 	QString mName;
 	/// Default units
 	UNIT mUnits;
+	/// Number of copper layers
+	int mNumLayers;
+
 
 	TraceList* mTraceList;
 	QList<Net*> mNets;

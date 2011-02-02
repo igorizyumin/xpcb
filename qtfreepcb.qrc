@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>xpcbschema.xsd</file>
         <file>Resources/tango-icons/22x22/actions/document-new.png</file>
         <file>Resources/tango-icons/22x22/actions/document-open.png</file>
         <file>Resources/tango-icons/22x22/actions/document-open-recent.png</file>
@@ -35,5 +34,6 @@
         <file>Resources/f9.png</file>
         <file>Resources/f1.png</file>
         <file alias="bg-disabled.png">Resources/bg-layer-disabled.png</file>
+        <file>xpcbschema.xsd</file>
     </qresource>
 </RCC>

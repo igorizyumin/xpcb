@@ -49,12 +49,10 @@ void Text::initText() const
 
 void Text::initTransform() const
 {
-//	double scale = (double)mFontSize/22.0;
 	double yoffset = 9.0*mFontSize/22.0;
 	mTransform.reset();
 	mTransform.translate(mPos.x(), mPos.y());
 	mTransform.rotate(mAngle);
-//	mTransform.scale(scale, scale);
 	mTransform.translate(0, yoffset);
 
 }
@@ -140,11 +138,19 @@ void Text::toXML(QXmlStreamWriter &writer) const
 /////////////////////////////////////////////////////////////////////////////
 // EDITOR
 
-TextEditor::TextEditor(Controller *ctrl, QList<QAction*> actions, Text *text)
-	: AbstractEditor(ctrl, actions), mState(SELECTED), mText(text), mDialog(NULL), mAngleDelta(0)
+TextEditor::TextEditor(Controller *ctrl, Text *text)
+	: AbstractEditor(ctrl), mState(SELECTED), mText(text), mDialog(NULL), mAngleDelta(0)
 {
-	ctrl->hideObj(text);
-	updateActions();
+
+}
+
+void TextEditor::init()
+{
+	emit actionsChanged();
+	if (!mText)
+		newText();
+	else
+		mCtrl->hideObj(mText);
 }
 
 TextEditor::~TextEditor()
@@ -153,39 +159,43 @@ TextEditor::~TextEditor()
 		delete mDialog;
 }
 
-void TextEditor::updateActions()
+QList<CtrlAction> TextEditor::actions() const
 {
-	disconnect(mActions[0], 0, this, 0);
-	disconnect(mActions[2], 0, this, 0);
-	disconnect(mActions[3], 0, this, 0);
-	disconnect(mActions[7], 0, this, 0);
-	for(int i = 0; i < 8; i++)
-	{
-		mActions[i]->setVisible(false);
-	}
+	QList<CtrlAction> out;
+
 	switch(mState)
 	{
 	case MOVE:
 	case ADD_MOVE:
 	case EDIT_MOVE:
-		mActions[2]->setText("Rotate Text");
-		mActions[2]->setVisible(true);
-		mActions[2]->setEnabled(true);
-		connect(mActions[2], SIGNAL(triggered()), this, SLOT(actionRotate()));
+		out.append(CtrlAction(2, "Rotate Text"));
 		break;
 	case SELECTED:
-		mActions[0]->setText("Edit Text");
-		mActions[0]->setVisible(true);
-		mActions[0]->setEnabled(true);
-		connect(mActions[0], SIGNAL(triggered()), this, SLOT(actionEdit()));
-		mActions[3]->setText("Move Text");
-		mActions[3]->setVisible(true);
-		mActions[3]->setEnabled(true);
-		connect(mActions[3], SIGNAL(triggered()), this, SLOT(actionMove()));
-		mActions[7]->setText("Delete Text");
-		mActions[7]->setVisible(true);
-		mActions[7]->setEnabled(true);
-		connect(mActions[7], SIGNAL(triggered()), this, SLOT(actionDelete()));
+		out.append(CtrlAction(0, "Edit Text"));
+		out.append(CtrlAction(3, "Move Text"));
+		out.append(CtrlAction(7, "Delete Text"));
+		break;
+	}
+	return out;
+}
+
+void TextEditor::action(int key)
+{
+	switch(mState)
+	{
+	case MOVE:
+	case ADD_MOVE:
+	case EDIT_MOVE:
+		if (key == 2)
+			actionRotate();
+		break;
+	case SELECTED:
+		if (key == 0)
+			actionEdit();
+		else if (key == 3)
+			actionMove();
+		else if (key == 7)
+			actionDelete();
 		break;
 	}
 }
@@ -243,17 +253,24 @@ void TextEditor::mouseReleaseEvent(QMouseEvent *event)
 	{
 		event->accept();
 		mState = SELECTED;
-		updateActions();
 		TextMoveCmd* cmd = new TextMoveCmd(NULL, mText, mPos, mAngleDelta);
 		mCtrl->doc()->doCommand(cmd);
+		emit actionsChanged();
 		emit overlayChanged();
 	}
 	else if (mState == EDIT_MOVE)
 	{
 		event->accept();
 		mState = SELECTED;
-		updateActions();
 		finishEdit();
+		emit actionsChanged();
+	}
+	else if (mState == ADD_MOVE)
+	{
+		event->accept();
+		mState = SELECTED;
+		finishNew();
+		emit actionsChanged();
 	}
 	else
 		event->ignore();
@@ -263,9 +280,18 @@ void TextEditor::keyPressEvent(QKeyEvent *event)
 {
 	if (event->key() == Qt::Key_Escape && mState != SELECTED)
 	{
-		mState = SELECTED;
-		updateActions();
-		emit overlayChanged();
+		if (mState == ADD_MOVE)
+		{
+			delete mText;
+			mText = NULL;
+			emit editorFinished();
+		}
+		else
+		{
+			mState = SELECTED;
+			emit actionsChanged();
+			emit overlayChanged();
+		}
 		event->accept();
 	}
 	else
@@ -278,7 +304,7 @@ void TextEditor::actionMove()
 	mState = MOVE;
 	startMove();
 	QCursor::setPos(mCtrl->view()->mapToGlobal(mCtrl->view()->transform().map(mPos)));
-	updateActions();
+	emit actionsChanged();
 	emit overlayChanged();
 }
 
@@ -303,6 +329,34 @@ void TextEditor::actionRotate()
 	emit overlayChanged();
 }
 
+void TextEditor::newText()
+{
+	if (!mDialog)
+		mDialog = new EditTextDialog();
+	mDialog->init();
+	if (mDialog->exec() == QDialog::Rejected || mDialog->text().isEmpty())
+	{
+		emit editorFinished();
+		return;
+	}
+	mText = new Text(mDialog->pos(), mDialog->angle(), mDialog->isMirrored(), mDialog->isNegative(),
+					 mDialog->layer(), mDialog->textHeight(), mDialog->textWidth(), mDialog->text());
+	if (!mDialog->isWidthSet())
+		mText->setStrokeWidth(mText->fontSize()*0.1);
+	if (!mDialog->isPosSet())
+	{
+		mState = ADD_MOVE;
+		startMove();
+		emit actionsChanged();
+	}
+	else
+	{
+		mPos = mDialog->pos();
+		mAngleDelta = 0;
+		finishNew();
+	}
+}
+
 void TextEditor::actionEdit()
 {
 	if (!mDialog)
@@ -321,23 +375,39 @@ void TextEditor::actionEdit()
 		{
 			mState = EDIT_MOVE;
 			startMove();
-			updateActions();
+			emit actionsChanged();
 			emit overlayChanged();
 		}
 	}
 }
 
+void TextEditor::finishNew()
+{
+	mText->setPos(mPos);
+	mText->setAngle(mText->angle() + mAngleDelta);
+	TextNewCmd *cmd = new TextNewCmd(NULL, mText, mCtrl->doc());
+	mCtrl->doc()->doCommand(cmd);
+	mCtrl->selectObj(mText);
+	mCtrl->hideObj(mText);
+	mState = SELECTED;
+	emit overlayChanged();
+}
+
 void TextEditor::finishEdit()
 {
+	int width = mDialog->textWidth();
+	if (!mDialog->isWidthSet())
+		width = 0.1 * mDialog->textHeight();
 	TextEditCmd *cmd = new TextEditCmd(NULL, mText, mPos, mDialog->layer(),
 									   (mText->angle() + mAngleDelta) % 360, mDialog->isMirrored(), mDialog->isNegative(),
-									   mDialog->textHeight(), mDialog->textWidth(), mDialog->text());
+									   mDialog->textHeight(), width, mDialog->text());
 	mCtrl->doc()->doCommand(cmd);
 	emit overlayChanged();
 }
 
 void TextEditor::drawOverlay(QPainter *painter)
 {
+	if (!mText) return;
 	if (mState == SELECTED)
 	{
 		mText->draw(painter, LAY_SELECTION);

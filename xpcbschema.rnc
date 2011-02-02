@@ -37,6 +37,7 @@ Properties = element props
 { 
 		element name { xsd:string } &
 		Units &
+		element numLayers { xsd:int {minInclusive = "2"} } &
 		element defaultPadstack {ObjID}
 }
 

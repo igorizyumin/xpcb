@@ -19,8 +19,8 @@
 #include "Text.h"
 #include "Controller.h"
 
-AbstractEditor::AbstractEditor(Controller *ctrl, QList<QAction *> actions) :
-	QObject(ctrl), mCtrl(ctrl), mActions(actions)
+AbstractEditor::AbstractEditor(Controller *ctrl) :
+	QObject(ctrl), mCtrl(ctrl)
 {
 
 }
@@ -42,14 +42,18 @@ EditorFactory& EditorFactory::instance()
 	return *EditorFactory::mInst;
 }
 
-AbstractEditor* EditorFactory::newEditor(PCBObject *obj, Controller *ctrl, QList<QAction *> actions)
+AbstractEditor* EditorFactory::newEditor(PCBObject *obj, Controller *ctrl)
 {
 	mEditor = NULL;
 	mObj = obj;
 	mCtrl = ctrl;
-	mActions = actions;
 	obj->accept(this);
 	return mEditor;
+}
+
+AbstractEditor* EditorFactory::newTextEditor(Controller *ctrl)
+{
+	return new TextEditor(ctrl, NULL);
 }
 
 void EditorFactory::visit(Area* a)
@@ -82,7 +86,7 @@ void EditorFactory::visit(Footprint* a)
 
 void EditorFactory::visit(Text *t)
 {
-	mEditor = new TextEditor(mCtrl, mActions, t);
+	mEditor = new TextEditor(mCtrl, t);
 }
 
 void EditorFactory::visit(Vertex* a)
