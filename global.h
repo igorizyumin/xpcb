@@ -14,8 +14,8 @@ enum UNIT
 };
 
 // conversion factors
-const int NM_PER_MIL = 25400;
-const int NM_PER_MM = 1000000;
+//const int NM_PER_MIL = 25400;
+//const int NM_PER_MM = 1000000;
 
 // there are four coordinate systems:
 //	WU = window coords
@@ -24,8 +24,8 @@ const int NM_PER_MM = 1000000;
 //	DU = display coords (mils)
 //
 // conversion factors
-const int PCBU_PER_MIL = NM_PER_MIL;
-const int PCBU_PER_MM = NM_PER_MM;
+const int PCBU_PER_MIL = 254;
+const int PCBU_PER_MM = 10000;
 
 const int PCB_BOUND	= 32000*PCBU_PER_MIL;	// boundary
 
@@ -85,6 +85,7 @@ typedef enum
 	LAY_MASK_BOTTOM = -101,
 	LAY_PASTE_TOP = -102,
 	LAY_PASTE_BOTTOM = -103,
+	LAY_CURR_ACTIVE = -104,
 	LAY_UNKNOWN = -999
 } PCBLAYER;
 

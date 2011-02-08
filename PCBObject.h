@@ -47,6 +47,19 @@ public:
 	/// Returns true if the object was hit.
 	virtual bool testHit(QPoint pt, PCBLAYER l) const { return false; }
 
+	/// Returns the object's transform (from the object's coordinate system to
+	/// PCB coordinates).
+	/// This interface is used to map child widgets into the parent's coordinate system.
+	/// This is used by part and footprint description text, pins, padstacks,
+	/// and other PCBObjects that are contained in another PCBObject.
+	/// The default implementation returns a null transform.
+	virtual QTransform transform() const { return QTransform(); }
+
+	/// Notifies the object that its parent has changed.  The default implementation
+	/// does nothing.
+	virtual void parentChanged() {}
+
+	static int getNextID();
 private:
 	int objID;
 	static int nextObjID;

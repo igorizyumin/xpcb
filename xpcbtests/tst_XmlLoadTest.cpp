@@ -30,14 +30,13 @@ void XmlLoadTest::testLine()
 
 void XmlLoadTest::testArc()
 {
-	QXmlStreamReader reader("<arc width='600' layer='2' x1='100' y1='200' x2='1000' y2='2000' ctrX='400' ctrY='500' dir='cw'/>");
+	QXmlStreamReader reader("<arc width='600' layer='2' x1='100' y1='200' x2='1000' y2='2000' dir='cw'/>");
 	reader.readNextStartElement();
 	Arc a = Arc::newFromXml(reader);
 	QCOMPARE(a.width(), 600);
 	QCOMPARE(a.layer(), (PCBLAYER)2);
 	QCOMPARE(a.start(), QPoint(100, 200));
 	QCOMPARE(a.end(), QPoint(1000, 2000));
-	QCOMPARE(a.ctr(), QPoint(400, 500));
 	QCOMPARE(a.isCw(), true);
 	QVERIFY(reader.isEndElement());
 
@@ -48,14 +47,14 @@ void XmlLoadTest::testText()
 	QXmlStreamReader reader("<text layer='2' x='100' y='200' rot='180' lineWidth='300' textSize='400'> testing 123  </text>");
 	reader.readNextStartElement();
 
-	Text t = Text::newFromXML(reader);
+	Text* t = Text::newFromXML(reader);
 
-	QCOMPARE(t.layer(), (PCBLAYER)2);
-	QCOMPARE(t.angle(), 180);
-	QCOMPARE(t.pos(), QPoint(100,200));
-	QCOMPARE(t.strokeWidth(), 300);
-	QCOMPARE(t.fontSize(), 400);
-	QCOMPARE(t.text(), QString(" testing 123  "));
+	QCOMPARE(t->layer(), (PCBLAYER)2);
+	QCOMPARE(t->angle(), 180);
+	QCOMPARE(t->pos(), QPoint(100,200));
+	QCOMPARE(t->strokeWidth(), 300);
+	QCOMPARE(t->fontSize(), 400);
+	QCOMPARE(t->text(), QString(" testing 123  "));
 	QVERIFY(reader.isEndElement());
 
 }
@@ -199,13 +198,13 @@ void XmlLoadTest::testPolygon()
 							"<outline>"
 							"<start x='0' y='0'/>"
 							"<lineTo x='0' y='1000'/>"
-							"<arcTo x='1000' y='0' dir='cw' ctrX='0' ctrY='0'/>"
+							"<arcTo x='1000' y='0' dir='cw'/>"
 							"<lineTo x='0' y='0'/>"
 							"</outline>"
 							"<!-- more random comments -->"
 							"<hole>"
 							"<start x='100' y='100'/>"
-							"<arcTo x='200' y='200' ctrX='200' ctrY='100' dir='cw'/>"
+							"<arcTo x='200' y='200' dir='cw'/>"
 							"<lineTo x='200' y='100'/>"
 							"<lineTo x='100' y='100'/>"
 							"<!-- random comment -->"
@@ -223,7 +222,6 @@ void XmlLoadTest::testPolygon()
 	QCOMPARE(p->outline()->segment(1).end, QPoint(0,1000));
 	QCOMPARE(p->outline()->segment(2).type, PolyContour::Segment::ARC_CW);
 	QCOMPARE(p->outline()->segment(2).end, QPoint(1000,0));
-	QCOMPARE(p->outline()->segment(2).arcCenter, QPoint(0, 0));
 	QCOMPARE(p->outline()->segment(3).type, PolyContour::Segment::LINE);
 	QCOMPARE(p->outline()->segment(3).end, QPoint(0,0));
 	QCOMPARE(p->hole(0)->numSegs(), 4);
@@ -231,7 +229,6 @@ void XmlLoadTest::testPolygon()
 	QCOMPARE(p->hole(0)->segment(0).end, QPoint(100,100));
 	QCOMPARE(p->hole(0)->segment(1).type, PolyContour::Segment::ARC_CW);
 	QCOMPARE(p->hole(0)->segment(1).end, QPoint(200,200));
-	QCOMPARE(p->hole(0)->segment(1).arcCenter, QPoint(200,100));
 	QCOMPARE(p->hole(0)->segment(2).type, PolyContour::Segment::LINE);
 	QCOMPARE(p->hole(0)->segment(2).end, QPoint(200,100));
 	QCOMPARE(p->hole(0)->segment(3).type, PolyContour::Segment::LINE);
@@ -318,8 +315,8 @@ void XmlLoadTest::testPart()
 	Footprint* fp = Footprint::newFromXML(fpxml, padstacks);
 	doc.mFootprints.append(fp);
 	QXmlStreamReader partxml("<part refdes='P1' value='val' footprint='RES0805' x='1' y='2' rot='270' side='bot' locked='1'>"
-							"<refText x='2000' y='2200' rot='270' lineWidth='42' textSize='212'/>"
-							"<valueText x='3200' y='3400' rot='180' lineWidth='55' textSize='443'/>"
+							"<refText x='0' y='0' rot='270' lineWidth='42' textSize='212'/>"
+							"<valueText x='1' y='1' rot='180' lineWidth='55' textSize='443'/>"
 							"</part>");
 	partxml.readNextStartElement();
 	Part* p = Part::newFromXML(partxml, &doc);
@@ -330,14 +327,14 @@ void XmlLoadTest::testPart()
 	QCOMPARE(p->angle(), 270);
 	QCOMPARE(p->side(), SIDE_BOTTOM);
 	QCOMPARE(p->locked(), true);
-	QCOMPARE(p->refdesText().pos(), QPoint(2000,2200));
-	QCOMPARE(p->refdesText().angle(), 270);
-	QCOMPARE(p->refdesText().strokeWidth(), 42);
-	QCOMPARE(p->refdesText().fontSize(), 212);
-	QCOMPARE(p->valueText().pos(), QPoint(3200,3400));
-	QCOMPARE(p->valueText().angle(), 180);
-	QCOMPARE(p->valueText().strokeWidth(), 55);
-	QCOMPARE(p->valueText().fontSize(), 443);
+	QCOMPARE(p->refdesText()->pos(), QPoint(1,2));
+	QCOMPARE(p->refdesText()->angle(), 270);
+	QCOMPARE(p->refdesText()->strokeWidth(), 42);
+	QCOMPARE(p->refdesText()->fontSize(), 212);
+	QCOMPARE(p->valueText()->pos(), QPoint(0,1));
+	QCOMPARE(p->valueText()->angle(), 180);
+	QCOMPARE(p->valueText()->strokeWidth(), 55);
+	QCOMPARE(p->valueText()->fontSize(), 443);
 	delete p;
 }
 
@@ -488,12 +485,13 @@ void XmlLoadTest::testDoc()
 	file.write("<xpcbBoard>"
 				"<props>"
 				"<units>mm</units>"
+				"<numLayers>2</numLayers>"
 				"<name>test board</name>"
-				"<defaultPadstack>101</defaultPadstack>"
-				"</props>"
+				"<defaultPadstack>100</defaultPadstack>"
+				"</props>\n"
 
 				"<padstacks>"
-				"<padstack name='pstesid='100' holesize='1000'><!-- fark -->"
+				"<padstack name='pstest' id='100' holesize='1000'><!-- fark -->"
 				"<startpad><pad shape='square' width='10000'/></startpad>"
 				"<innerpad><pad shape='round' width='15000'/><!-- asdf --></innerpad>"
 				"<!-- comment -->"
@@ -525,13 +523,13 @@ void XmlLoadTest::testDoc()
 				"<outline>"
 				"<start x='0' y='0'/>"
 				"<lineTo x='0' y='1000'/>"
-				"<arcTo x='1000' y='0' dir='cw' ctrX='0' ctrY='0'/>"
+				"<arcTo x='1000' y='0' dir='cw'/>"
 				"<lineTo x='0' y='0'/>"
 				"</outline>"
 				"<!-- more random comments -->"
 				"<hole>"
 				"<start x='100' y='100'/>"
-				"<arcTo x='200' y='200' ctrX='200' ctrY='100' dir='cw'/>"
+				"<arcTo x='200' y='200' dir='cw'/>"
 				"<lineTo x='200' y='100'/>"
 				"<lineTo x='100' y='100'/>"
 				"<!-- random comment -->"
@@ -582,13 +580,13 @@ void XmlLoadTest::testDoc()
 				"<outline>"
 				"<start x='0' y='0'/>"
 				"<lineTo x='0' y='1000'/>"
-				"<arcTo x='1000' y='0' dir='cw' ctrX='0' ctrY='0'/>"
+				"<arcTo x='1000' y='0' dir='cw'/>"
 				"<lineTo x='0' y='0'/>"
 				"</outline>"
 				"<!-- more random comments -->"
 				"<hole>"
 				"<start x='100' y='100'/>"
-				"<arcTo x='200' y='200' ctrX='200' ctrY='100' dir='cw'/>"
+				"<arcTo x='200' y='200' dir='cw'/>"
 				"<lineTo x='200' y='100'/>"
 				"<lineTo x='100' y='100'/>"
 				"<!-- random comment -->"
@@ -600,13 +598,13 @@ void XmlLoadTest::testDoc()
 				"<outline>"
 				"<start x='0' y='0'/>"
 				"<lineTo x='0' y='1000'/>"
-				"<arcTo x='1000' y='0' dir='cw' ctrX='0' ctrY='0'/>"
+				"<arcTo x='1000' y='0' dir='cw'/>"
 				"<lineTo x='0' y='0'/>"
 				"</outline>"
 				"<!-- more random comments -->"
 				"<hole>"
 				"<start x='100' y='100'/>"
-				"<arcTo x='200' y='200' ctrX='200' ctrY='100' dir='cw'/>"
+				"<arcTo x='200' y='200' dir='cw'/>"
 				"<lineTo x='200' y='100'/>"
 				"<lineTo x='100' y='100'/>"
 				"<!-- random comment -->"

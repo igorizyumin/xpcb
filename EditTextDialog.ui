@@ -426,8 +426,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
-     <y>254</y>
+     <x>257</x>
+     <y>464</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
@@ -442,12 +442,76 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>260</y>
+     <x>313</x>
+     <y>464</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
      <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>setPosRadio</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>angleBox</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>117</x>
+     <y>368</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>226</x>
+     <y>369</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>setPosRadio</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>xPos</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>86</x>
+     <y>378</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>77</x>
+     <y>407</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>setPosRadio</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>yPos</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>371</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>215</x>
+     <y>412</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>setWidthRadio</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>widthBox</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>73</x>
+     <y>274</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>212</x>
+     <y>277</y>
     </hint>
    </hints>
   </connection>

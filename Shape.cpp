@@ -140,11 +140,53 @@ QRect Pad::bbox() const
 	}
 }
 
+void Pad::draw(QPainter *painter) const
+{
+	switch(mShape)
+	{
+	case PAD_ROUND:
+		painter->drawEllipse(QRect(-mWidth/2, -mWidth/2, mWidth, mWidth));
+		break;
+	case PAD_SQUARE:
+		painter->drawRect(QRect(-mWidth/2, -mWidth/2, mWidth, mWidth));
+		break;
+	case PAD_RECT:
+		painter->drawRect(QRect(-mWidth/2, -mHeight/2, mWidth, mHeight));
+		break;
+	case PAD_OCTAGON:
+		{
+			int x = mWidth * 0.2071 + 0.5;
+			int w = mWidth * 0.5 + 0.5;
+			QPoint pts[8] = {QPoint(x, w), QPoint(w, x), QPoint(w, -x), QPoint(x, -w),
+							 QPoint(-x, -w), QPoint(-w, -x), QPoint(-w, x), QPoint(-x, w)};
+			painter->drawConvexPolygon(pts, 8);
+		}
+		break;
+	case PAD_OBROUND:
+		if (mWidth > mHeight)
+		{
+			// draw horizontal oval
+			int wr = 0.5* (mWidth - mHeight);
+			painter->drawRect(-wr, -mHeight/2, 2*wr, mHeight);
+			painter->drawPie(-mWidth/2, -mHeight/2, mHeight, mHeight, -1440, -2880);
+			painter->drawPie(wr-mHeight/2, -mHeight/2, mHeight, mHeight, 1440, -2880);
+		}
+		else
+		{
+			// draw vertical oval
+			int wr = 0.5* (mHeight - mWidth);
+			painter->drawRect(-mWidth/2, -wr, mWidth, 2*wr);
+			painter->drawPie(-mWidth/2, -mHeight/2, mWidth, mWidth, 0, 2880);
+			painter->drawPie(-mWidth/2, wr-mWidth/2, mWidth, mWidth, 0, -2880);
+		}
+		break;
+	}
+}
 /////////////////////// PADSTACK /////////////////////////
 
 // class padstack
 Padstack::Padstack() :
-		hole_size(0)
+		hole_size(0), mID(PCBObject::getNextID())
 {
 }
 
@@ -202,8 +244,29 @@ Padstack* Padstack::newFromXML(QXmlStreamReader &reader)
 	return p;
 }
 
-void Padstack::draw(QPainter *painter, PCBLAYER layer) const
+void Padstack::draw(QPainter *painter, PSLAYER layer) const
 {
+	switch(layer)
+	{
+	case LAY_START:
+		start.draw(painter);
+		break;
+	case LAY_INNER:
+		inner.draw(painter);
+		break;
+	case LAY_END:
+		end.draw(painter);
+		break;
+	case LAY_HOLE:
+		if (hole_size)
+		{
+			painter->drawEllipse(QRect(QPoint(-hole_size/2, -hole_size/2),
+									   QPoint(hole_size/2, hole_size/2)));
+		}
+		break;
+	default:
+		break;
+	}
 }
 
 void Padstack::toXML(QXmlStreamWriter &writer) const
@@ -264,11 +327,6 @@ QRect Padstack::bbox() const
 	return ret;
 }
 
-void Padstack::accept(PCBObjectVisitor *v)
-{
-	v->visit(this);
-}
-
 /////////////////////// PIN /////////////////////////
 
 Pin Pin::newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> & padstacks, Footprint *fp)
@@ -305,7 +363,7 @@ void Pin::toXML(QXmlStreamWriter &writer) const
 	writer.writeEndElement();
 }
 
-bool Pin::testHit(const QPoint &pt, PINLAYER layer) const
+bool Pin::testHit(const QPoint &pt, Padstack::PSLAYER layer) const
 {
 	Padstack *ps = padstack();
 	// check if we hit a thru-hole
@@ -321,19 +379,20 @@ bool Pin::testHit(const QPoint &pt, PINLAYER layer) const
 	return false;
 }
 
-Pad Pin::getPadOnLayer(PINLAYER layer) const
+Pad Pin::getPadOnLayer(Padstack::PSLAYER layer) const
 {
 	Padstack *ps = padstack();
 
 	switch(layer)
 	{
-	case LAY_START:
+	case Padstack::LAY_START:
 		return ps->getStartPad();
-	case LAY_END:
+	case Padstack::LAY_END:
 		return ps->getEndPad();
-	case LAY_INNER:
+	case Padstack::LAY_INNER:
 		return ps->getInnerPad();
-	case LAY_UNKNOWN:
+	case Padstack::LAY_UNKNOWN:
+	default:
 		return Pad();
 	}
 }
@@ -350,6 +409,13 @@ void Pin::updateTransform()
 	mPartTransform.rotate(mAngle);
 }
 
+void Pin::draw(QPainter *painter, Padstack::PSLAYER layer) const
+{
+	painter->save();
+	painter->setTransform(mPartTransform, true);
+	mPadstack->draw(painter, layer);
+	painter->restore();
+}
 
 
 /////////////////////// FOOTPRINT /////////////////////////
@@ -357,7 +423,7 @@ void Pin::updateTransform()
 Footprint::Footprint()
 	: mName("EMPTY_SHAPE"), mUnits(MIL), mCustomCentroid(false)
 {
-} 
+}
 
 // destructor
 //
@@ -367,8 +433,16 @@ Footprint::~Footprint()
 		delete t;
 }
 
-void Footprint::draw(QPainter *painter, PCBLAYER layer) const
+void Footprint::draw(QPainter *painter, FP_DRAW_LAYER layer) const
 {
+	// draw lines
+	PCBLAYER pcblayer = (layer == Footprint::LAY_START) ? LAY_SILK_TOP : LAY_SILK_BOTTOM;
+	foreach(const Line& l, mOutlineLines)
+		l.draw(painter, pcblayer);
+	foreach(const Arc& a, mOutlineArcs)
+		a.draw(painter, pcblayer);
+	foreach(Text* t, mTexts)
+		t->draw(painter, pcblayer);
 }
 
 Footprint* Footprint::newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks)

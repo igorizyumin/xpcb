@@ -16,7 +16,12 @@ public:
 	Text(const QPoint &pos, int angle,
 		bool mirror, bool negative, PCBLAYER layer, int font_size,
 		int stroke_width, const QString &text );
-	~Text();
+
+	/// Sets the object's parent.  When the object has a parent, its internal
+	/// coordinates are in the parent's coordinate system.  All getters and setters
+	/// still use world coordinates, and the parent's transform is used to map
+	/// them to the parent's coordinate system.
+	void setParent(PCBObject *parent) { mParent = parent; changed(); }
 
 	// overrides
 	virtual void draw(QPainter *painter, PCBLAYER layer) const;
@@ -24,9 +29,13 @@ public:
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual bool testHit(QPoint pt, PCBLAYER l) const { return bbox().contains(pt) && mLayer == l; }
 
+	// i/o
+	static Text* newFromXML(QXmlStreamReader &reader);
+	void toXML(QXmlStreamWriter &writer) const;
+
 	// getters / setters
-	const QPoint& pos() const {return mPos;}
-	void setPos(const QPoint &newpos) { mPos = newpos; changed(); }
+	QPoint pos() const;
+	void setPos(const QPoint &newpos);
 
 	const QString & text() const {return mText;}
 	void setText(const QString &text) { mText = text; changed(); }
@@ -49,13 +58,12 @@ public:
 	PCBLAYER layer() const {return mLayer;}
 	void setLayer(PCBLAYER l) {mLayer = l; changed();}
 
-	static Text* newFromXML(QXmlStreamReader &reader);
-	void toXML(QXmlStreamWriter &writer) const;
+
+	virtual void parentChanged() { changed(); }
 
 protected:
 	void changed() { mIsDirty = true; }
-	void initText() const;
-	void initTransform() const;
+	void rebuild() const;
 
 private:
 	// member variables
@@ -67,6 +75,8 @@ private:
 	int mFontSize;
 	int mStrokeWidth;
 	QString mText;
+
+	PCBObject* mParent;
 
 	/// mStrokes stores the untransformed font strokes.
 	/// Rotation and scaling are applied during the draw operation.

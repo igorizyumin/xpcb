@@ -68,6 +68,7 @@ public:
 
 	void selectObj(PCBObject* obj);
 	void hideObj(PCBObject* obj);
+	void unhideObj(PCBObject* obj);
 
 	PCBDoc* doc() { return mDoc; }
 	PCBView* view() {return mView; }
@@ -75,7 +76,8 @@ public:
 	QPoint snapToPlaceGrid(QPoint p);
 	QPoint snapToRouteGrid(QPoint p);
 
-	bool isLayerVisible(PCBLAYER l);
+	bool isLayerVisible(PCBLAYER l) const;
+	PCBLAYER activeLayer() const;
 
 public slots:
 	void onPlaceGridChanged(int grid) { mPlaceGrid = grid; }

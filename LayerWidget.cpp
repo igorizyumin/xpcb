@@ -23,14 +23,14 @@
 #include "Log.h"
 
 LayerWidget::LayerWidget(QWidget* parent)
-	: QWidget(parent)
+	: QWidget(parent), mSpacer(NULL)
 {
 	QVBoxLayout* layout = new QVBoxLayout();
 	this->setLayout(layout);
 	mActiveLayer = LAY_TOP_COPPER;
-	setNumLayers(16);
+	setNumLayers(2);
 	setActive(LAY_TOP_COPPER);
-	this->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+	this->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 	connect(&mMapper, SIGNAL(mapped(int)), this, SLOT(onKeyboardShortcut(int)));
 }
 
@@ -39,6 +39,9 @@ void LayerWidget::rebuild()
 	// delete any existing objects
 	foreach(QShortcut* s, mShortcuts)
 		delete s;
+	this->layout()->removeItem(mSpacer);
+	delete mSpacer;
+	mSpacer = NULL;
 	mShortcuts.clear();
 	foreach(QCheckBox* b, mCheckboxes)
 		delete b;
@@ -52,6 +55,8 @@ void LayerWidget::rebuild()
 		addLayer((PCBLAYER)((int)LAY_INNER1+i));
 	}
 	addLayer(LAY_BOTTOM_COPPER);
+	mSpacer = new QSpacerItem(1, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
+	this->layout()->addItem(mSpacer);
 	setActive(LAY_TOP_COPPER);
 }
 
@@ -130,9 +135,14 @@ void LayerWidget::setActive(PCBLAYER l)
 
 bool LayerWidget::isLayerVisible(PCBLAYER l) const
 {
-	int ind = mapLayer(l);
-	if (ind >= mCheckboxes.size()) return false;
-	else return mCheckboxes[ind]->checkState();
+	if (((int)LAY_BOTTOM_COPPER + mNumLayers - 2) < (int)l)
+		return false;
+	return mCheckboxes[mapLayer(l)]->checkState();
+}
+
+PCBLAYER LayerWidget::activeLayer() const
+{
+	return mActiveLayer;
 }
 
 void LayerWidget::onKeyboardShortcut(int layer)

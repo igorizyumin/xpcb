@@ -3,6 +3,11 @@
 
 int PCBObject::nextObjID = 1000;
 
-PCBObject::PCBObject() : objID(nextObjID++)
+PCBObject::PCBObject() : objID(getNextID())
 {
+}
+
+int PCBObject::getNextID()
+{
+	return nextObjID++;
 }

@@ -20,8 +20,6 @@ CoordsAttr = (attribute x { Coord }, attribute y { Coord } )
 RotAttr = (attribute rot { "0" | "90" | "180" | "270" } )
 # arc direction attributes
 ArcDirAttr = (attribute dir { "cw" | "ccw" })
-# arc center attributes
-ArcCtrAttr = (attribute ctrX {Coord}, attribute ctrY {Coord} )
 # layer index
 Layer = (xsd:int)
 
@@ -116,21 +114,20 @@ ObroundPad  = (attribute shape {"obround"},
 OctagonPad = (attribute shape {"octagon"},
 	attribute width {Dimension})
 
+PartText = (CoordsAttr,
+	RotAttr,
+	attribute lineWidth {Dimension},
+	attribute textSize { Dimension },
+	attribute visible {Bool}?)
+
 # element reference text location
 RefText = element refText {
-	CoordsAttr,
-	RotAttr,
-	attribute lineWidth {Dimension},
-	attribute textSize { Dimension },
-	attribute visible {Bool}?
+	PartText
 }
+
 # element value text position
 ValueText = element valueText {
-	CoordsAttr,
-	RotAttr,
-	attribute lineWidth {Dimension},
-	attribute textSize { Dimension },
-	attribute visible {Bool}?
+	PartText
 }
 
 # board outline
@@ -210,7 +207,7 @@ ContourStart = element start { CoordsAttr }
 # contour lineTo marker
 LineTo = element lineTo { CoordsAttr }
 # contour arcTo marker
-ArcTo = element arcTo { CoordsAttr, ArcDirAttr, ArcCtrAttr }
+ArcTo = element arcTo { CoordsAttr, ArcDirAttr }
 
 # line definition
 Line = element line {
@@ -230,7 +227,6 @@ Arc = element arc {
 	attribute y1 {Dimension},
 	attribute x2 {Dimension},
 	attribute y2 {Dimension},
-	ArcCtrAttr,
 	ArcDirAttr
 }
 

@@ -74,31 +74,6 @@ void EditTextDialog::on_unitsBox_currentIndexChanged(const QString &s)
 	updateUnits();
 }
 
-void EditTextDialog::on_setPosRadio_toggled(bool checked)
-{
-	if (checked)
-	{
-		xPos->setEnabled(true);
-		yPos->setEnabled(true);
-		angleBox->setEnabled(true);
-	}
-	else
-	{
-		xPos->setEnabled(false);
-		yPos->setEnabled(false);
-		angleBox->setEnabled(false);
-	}
-
-}
-
-void EditTextDialog::on_setWidthRadio_toggled(bool checked)
-{
-	if (checked)
-		widthBox->setEnabled(true);
-	else
-		widthBox->setEnabled(false);
-}
-
 void EditTextDialog::updateUnits()
 {
 	if (!mInMM)

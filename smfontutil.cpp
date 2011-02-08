@@ -541,3 +541,20 @@ int SMFontUtil::GetCharPath( char ch, FONT_TYPE pFont, QPoint offset, double sca
 	return paths.size();
 
 }
+
+void SMFontUtil::GetStrokes(const QString &text, int fontSize, int strokeWidth, QList<QPainterPath> &strokes, QRect &bbox)
+{
+	bbox = QRect();
+	strokes.clear();
+	double scale = (double)fontSize/22.0;
+
+	// get strokes for all characters
+	for (int i = 0; i < text.size(); i++)
+	{
+		if (text[i] == ' ')
+			bbox.adjust(0, 0, 0.5*fontSize, 0);
+		else
+			GetCharPath(text[i].toAscii(), SIMPLEX, QPoint(bbox.right() + 2*strokeWidth, 0), scale, bbox, strokes);
+	}
+	bbox.adjust(-strokeWidth, -strokeWidth, strokeWidth, strokeWidth);
+}

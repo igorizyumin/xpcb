@@ -63,6 +63,7 @@ public:
 			double * max_x, double * max_y, double coords[][4], int max_strokes );
 	int GetCharPath( char ch, FONT_TYPE pFont, QPoint offset, double scale,
 					 QRect &bbox, QList<QPainterPath> &paths );
+	void GetStrokes(const QString &text, int fontSize, int strokeWidth, QList<QPainterPath> &paths, QRect &bbox);
 
 private:
 	QList<SMCharacter*> SMCharList;

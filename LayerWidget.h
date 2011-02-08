@@ -22,6 +22,7 @@
 #include <QCheckBox>
 #include <QSignalMapper>
 #include <QShortcut>
+#include <QSpacerItem>
 #include "global.h"
 
 class LayerWidget : public QWidget
@@ -33,6 +34,7 @@ public:
 
 	void setNumLayers(int numLayers) { mNumLayers = numLayers; rebuild(); }
 	bool isLayerVisible(PCBLAYER l) const;
+	PCBLAYER activeLayer() const;
 
 signals:
 	void layerVisibilityChanged();
@@ -53,6 +55,7 @@ private:
 	QSignalMapper mMapper;
 	QList<QCheckBox*> mCheckboxes;
 	QList<QShortcut*> mShortcuts;
+	QSpacerItem* mSpacer;
 
 };
 

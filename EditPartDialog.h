@@ -15,45 +15,37 @@
 	along with xpcb.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef EDITTEXTDIALOG_H
-#define EDITTEXTDIALOG_H
+#ifndef EDITPARTDIALOG_H
+#define EDITPARTDIALOG_H
 
-#include <QDialog>
-#include "ui_EditTextDialog.h"
+#include "ui_EditPartDialog.h"
 #include "global.h"
 
-class Text;
+class Part;
 
-class EditTextDialog : public QDialog, private Ui::EditTextDialog
+class EditPartDialog : public QDialog, private Ui::EditPartDialog
 {
     Q_OBJECT
 
 public:
-	explicit EditTextDialog(QWidget *parent = 0, int numLayers = 2);
-	void init(Text* t = NULL);
+    explicit EditPartDialog(QWidget *parent = 0);
+
+	void init(Part* p = NULL);
+
 	QPoint pos() const { return QPoint(toPCB(xPos->value()), toPCB(yPos->value())); }
 	int angle() const { return angleBox->currentIndex() * 90; }
-	bool isMirrored() const { return mirrorImageBox->isChecked(); }
-	bool isNegative() const { return negativeTextBox->isChecked(); }
-	int textWidth() const { return toPCB(widthBox->value()); }
-	int textHeight() const { return toPCB(heightBox->value()); }
-	QString text() const { return textEdit->text(); }
 
 	bool isPosSet() const { return setPosRadio->isChecked(); }
-	bool isWidthSet() const { return setWidthRadio->isChecked(); }
-
-	PCBLAYER layer() const;
-
+	PCBSIDE side() const;
 
 private slots:
 	void on_unitsBox_currentIndexChanged(const QString &s);
 
 private:
 	void updateUnits();
-	void populateLayers(int numLayers);
 	int toPCB(double value) const { return mInMM ? MM2PCB(value) : MIL2PCB(value); }
 	bool mInMM;
-	QList<PCBLAYER> mLayerInd;
+	bool mFpSelected;
 };
 
-#endif // EDITTEXTDIALOG_H
+#endif // EDITPARTDIALOG_H

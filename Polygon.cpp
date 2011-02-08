@@ -125,10 +125,7 @@ PolyContour PolyContour::newFromXML(QXmlStreamReader &reader)
 		{
 			Segment::SEG_TYPE t = (attr.value("dir") == "cw")
 						 ? Segment::ARC_CW : Segment::ARC_CCW;
-			QPoint arcCtr = QPoint(
-					attr.value("ctrX").toString().toInt(),
-					attr.value("ctrY").toString().toInt());
-			pc.mSegs.append(Segment(t, endPt, arcCtr));
+			pc.mSegs.append(Segment(t, endPt));
 		}
 		do
 				reader.readNext();
@@ -170,8 +167,6 @@ void PolyContour::toXML(QXmlStreamWriter &writer) const
 			writer.writeAttribute("dir", seg.type == Segment::ARC_CW ? "cw" : "ccw");
 			writer.writeAttribute("x", QString::number(seg.end.x()));
 			writer.writeAttribute("y", QString::number(seg.end.y()));
-			writer.writeAttribute("ctrX", QString::number(seg.arcCenter.x()));
-			writer.writeAttribute("ctrY", QString::number(seg.arcCenter.y()));
 			writer.writeEndElement();
 			break;
 		}

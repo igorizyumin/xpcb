@@ -50,6 +50,7 @@ public:
 	bool testHit( const QPoint & pt );
 
 	QRect bbox() const;
+	void draw(QPainter *painter) const;
 
 private:
 	PADSHAPE mShape;
@@ -60,9 +61,11 @@ private:
 /// A padstack is a collection of pads and a hole.
 /// Padstacks are used for component pins as well as vias.
 /// A padstack is shared between all physically identical pins.
-class Padstack : public PCBObject
+class Padstack
 {
 public:
+	enum PSLAYER { LAY_START, LAY_INNER, LAY_END, LAY_HOLE, LAY_UNKNOWN };
+
 	Padstack();
 	bool operator==(const Padstack &p) const;
 
@@ -79,9 +82,11 @@ public:
 	Pad getStartPaste() const {return start_paste;}
 	Pad getEndPaste() const {return end_paste;}
 	bool isSmt() const {return hole_size == 0;}
-	virtual QRect bbox() const;
-	virtual void draw(QPainter *painter, PCBLAYER layer) const;
-	virtual void accept(PCBObjectVisitor *v);
+	QRect bbox() const;
+	void draw(QPainter *painter, PSLAYER layer) const;
+//	virtal void accept(PCBObjectVisitor *v);
+
+	int getid() const { return mID; }
 private:
 	/// Padstack name; optional; only used for library padstacks
 	/// (i.e. VIA_15MIL)
@@ -90,6 +95,7 @@ private:
 	Pad start, start_mask, start_paste;
 	Pad end, end_mask, end_paste;
 	Pad inner;
+	int mID;
 };
 
 /// A pin is an instance of a padstack associated with a footprint.
@@ -98,7 +104,6 @@ private:
 class Pin
 {
 public:
-	enum PINLAYER { LAY_START, LAY_INNER, LAY_END, LAY_UNKNOWN };
 
 	Pin(Footprint* fp) : mAngle(0), mPadstack(NULL), mFootprint(fp) {}
 
@@ -107,15 +112,15 @@ public:
 	Padstack* padstack() const { return mPadstack; }
 	QString name() const { return mName; }
 
-	void draw(QPainter *painter, PINLAYER layer);
+	void draw(QPainter *painter, Padstack::PSLAYER layer) const;
 	QRect bbox() const;
 
-	bool testHit(const QPoint &pt, PINLAYER layer) const;
+	bool testHit(const QPoint &pt, Padstack::PSLAYER layer) const;
 
 	static Pin newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks, Footprint* fp);
 	void toXML(QXmlStreamWriter &writer) const;
 
-	Pad getPadOnLayer(PINLAYER layer) const;
+	Pad getPadOnLayer(Padstack::PSLAYER layer) const;
 
 private:
 	void updateTransform();
@@ -133,22 +138,23 @@ private:
 	Footprint* mFootprint;
 };
 
-class Footprint : public PCBObject
+class Footprint
 {
 
 public:
 	Footprint();
 	~Footprint();
 
-	virtual void draw(QPainter *painter, PCBLAYER layer) const;
-	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
+	enum FP_DRAW_LAYER { LAY_START, LAY_INNER, LAY_END };
+
+	void draw(QPainter *painter, FP_DRAW_LAYER layer) const;
+	QRect bbox() const;
+//	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	QString name() const { return mName; }
 	QString author() const { return mAuthor; }
 	QString source() const { return mSource; }
 	QString desc() const { return mDesc; }
-
 
 	int numPins() const;
 	const Pin* getPin(const QString & pin) const;
@@ -156,8 +162,8 @@ public:
 
 	QRect getPinBounds() const;
 
-	Text getRefText() {return mRefText;}
-	Text getValueText() {return mValueText;}
+	const Text& getRefText() {return mRefText;}
+	const Text& getValueText() {return mValueText;}
 
 	QPoint centroid() {return mCentroid;}
 	bool isCustomCentroid() {return mCustomCentroid;}

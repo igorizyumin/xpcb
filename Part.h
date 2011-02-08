@@ -42,7 +42,7 @@ public:
 
 private:
 	/// Maps a PCB layer to a pin layer (i.e. top copper -> start for parts on top side)
-	Pin::PINLAYER mapLayer(PCBLAYER layer) const;
+	Padstack::PSLAYER mapLayer(PCBLAYER layer) const;
 
 	/// Pointer to footprint pin (contains position, etc.)
 	const Pin * mPin;
@@ -69,12 +69,21 @@ public:
 
 	QString refdes() const { return mRefdes->text(); }
 	QString value() const { return mValue->text(); }
-	Text refdesText() const { return *mRefdes; }
-	Text valueText() const { return *mValue; }
+	Text* refdesText() const { return mRefdes; }
+	bool refVisible() const { return mRefVisible; }
+	Text* valueText() const { return mValue; }
+	bool valueVisible() const { return mValueVisible; }
 	QPoint pos() const { return mPos; }
 	int angle() { return mAngle; }
 	PCBSIDE side() { return mSide; }
 	bool locked() { return mLocked; }
+
+	void setPos(QPoint pos) { mPos = pos; updateTransform(); }
+	void setAngle(int angle) { mAngle = angle; updateTransform(); }
+	void setSide(PCBSIDE side);
+	void setLocked(bool locked) { mLocked = locked; }
+	bool setRefVisible(bool vis) { mRefVisible = vis; }
+	bool setValueVisible(bool vis) { mValueVisible = vis; }
 
 	Footprint* footprint() { return mFp;}
 	void setFootprint( Footprint * fp );
@@ -84,7 +93,8 @@ public:
 	static Part* newFromXML(QXmlStreamReader &reader, PCBDoc* doc);
 	void toXML(QXmlStreamWriter &writer) const;
 
-	const QTransform& transform() const { return mTransform; }
+	QTransform transform() const { return mTransform; }
+	bool testHit(QPoint pt, PCBLAYER l) const { return bbox().contains(pt); }
 
 private:
 	void resetFp();
@@ -103,15 +113,16 @@ private:
 	bool mLocked;
 	/// Reference designator text
 	Text* mRefdes;
+	bool mRefVisible;
 	/// Value text
 	Text* mValue;
+	bool mValueVisible;
 	/// Pointer to the footprint of the part, may be NULL
 	Footprint * mFp;
 	/// List of part pins.
 	QList<PartPin*> mPins;
 	/// Parent document
 	PCBDoc* mDoc;
-
 };
 
 #endif // PART_H

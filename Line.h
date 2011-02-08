@@ -29,6 +29,9 @@ private:
 	PCBLAYER mLayer;
 };
 
+/// The Arc class represents silkscreen arcs.  Arcs are elliptical sections
+/// that always have a 90 degree sweep.  An arc is defined by its start and
+/// end points and an orientation flag (clockwise/counterclockwise).
 class Arc : public PCBObject
 {
 public:
@@ -40,7 +43,6 @@ public:
 
 	QPoint start() const { return mStart; }
 	QPoint end() const { return mEnd; }
-	QPoint ctr() const { return mCtr; }
 	int width() const { return mWidth; }
 	bool isCw() const { return mIsCw; }
 	PCBLAYER layer() const { return mLayer; }
@@ -50,7 +52,6 @@ public:
 private:
 	QPoint mStart;
 	QPoint mEnd;
-	QPoint mCtr;
 	bool mIsCw;
 	int mWidth;
 	PCBLAYER mLayer;

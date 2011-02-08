@@ -71,6 +71,8 @@ void Controller::registerLayerWidget(LayerWidget *widget)
 	if (mDoc)
 		mLayerWidget->setNumLayers(mDoc->numLayers());
 	connect(mLayerWidget, SIGNAL(layerVisibilityChanged()), this, SLOT(onDocumentChanged()));
+	connect(mLayerWidget, SIGNAL(currLayerChanged(PCBLAYER)), this, SLOT(onDocumentChanged()));
+
 }
 
 void Controller::draw(QPainter* painter, QRect &rect, PCBLAYER layer)
@@ -80,11 +82,6 @@ void Controller::draw(QPainter* painter, QRect &rect, PCBLAYER layer)
 
 	if (layer == LAY_SELECTION)
 	{
-		foreach(PCBObject* o, mSelectedObjs)
-		{
-			if (!mHiddenObjs.contains(o))
-				painter->drawRect(o->bbox());
-		}
 		if (mEditor)
 			mEditor->drawOverlay(painter);
 	}
@@ -140,7 +137,7 @@ void Controller::mouseReleaseEvent(QMouseEvent *event)
 		return;
 	}
 	QPoint pos = mView->transform().inverted().map(event->pos());
-	QList<PCBObject*> objs = mDoc->findObjs(pos);
+	QList<PCBObject*> objs = mDoc->findObjs(pos, true);
 	QMutableListIterator<PCBObject*> i(objs);
 	while(i.hasNext())
 	{
@@ -204,7 +201,6 @@ void Controller::updateEditor()
 	{
 		delete mEditor;
 		mEditor = NULL;
-		Log::instance().message("Editor deleted");
 
 	}
 	mHiddenObjs.clear();
@@ -221,7 +217,6 @@ void Controller::installEditor()
 {
 	Q_ASSERT(mEditor != NULL);
 
-	Log::instance().message("Installing editor");
 	mView->installEventFilter(mEditor);
 	connect(mEditor, SIGNAL(overlayChanged()), this, SLOT(onEditorOverlayChanged()));
 	connect(mEditor, SIGNAL(editorFinished()), this, SLOT(onEditorFinished()));
@@ -277,6 +272,11 @@ void Controller::hideObj(PCBObject *obj)
 	mHiddenObjs.append(obj);
 }
 
+void Controller::unhideObj(PCBObject *obj)
+{
+	mHiddenObjs.removeAll(obj);
+}
+
 void Controller::onEditorOverlayChanged()
 {
 	mView->update();
@@ -311,8 +311,13 @@ QPoint Controller::snapToRouteGrid(QPoint p)
 				  ((p.y() + mRouteGrid/2) / mRouteGrid) * mRouteGrid);
 }
 
-bool Controller::isLayerVisible(PCBLAYER l)
+bool Controller::isLayerVisible(PCBLAYER l) const
 {
 	if (!mLayerWidget) return false;
 	else return mLayerWidget->isLayerVisible(l);
+}
+
+PCBLAYER Controller::activeLayer() const
+{
+	return mLayerWidget->activeLayer();
 }

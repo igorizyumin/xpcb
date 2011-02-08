@@ -6,7 +6,14 @@
 
 QT       += core gui xml xmlpatterns
 
-TARGET = xpcb
+CONFIG(unittest) {
+	message(Building unit tests.)
+	TARGET = xpcb-test
+} else {
+	message(Building app executable)
+	TARGET = xpcb
+}
+
 TEMPLATE = app
 
 
@@ -33,13 +40,17 @@ SOURCES += PCBView.cpp \
     Editor.cpp \
     EditTextDialog.cpp \
     SelFilterWidget.cpp \
-    LayerWidget.cpp
+    LayerWidget.cpp \
+    EditPartDialog.cpp \
+	PartEditor.cpp
 
-CONFIG(unittest) {
+unittest {
 	QT += testlib
-	SOURCES += xpcbtests/tst_XmlLoadTest.cpp \
-				xpcbtests/testmain.cpp
-	HEADERS += xpcbtests/tst_XmlLoadTest.h
+	SOURCES +=	xpcbtests/tst_XmlLoadTest.cpp \
+				xpcbtests/testmain.cpp \
+	xpcbtests/tst_TextTest.cpp
+
+	HEADERS += xpcbtests/tst_XmlLoadTest.h xpcbtests/tst_TextTest.h
 } else {
 	SOURCES += main.cpp
 }
@@ -68,15 +79,17 @@ HEADERS  += PCBView.h \
     Editor.h \
     EditTextDialog.h \
     SelFilterWidget.h \
-    LayerWidget.h
-
+    LayerWidget.h \
+    EditPartDialog.h \
+	PartEditor.h
 
 FORMS    += GridToolbarWidget.ui \
     AboutDialog.ui \
     mainwindow.ui \
     ActionBar.ui \
     EditTextDialog.ui \
-    SelFilterWidget.ui
+    SelFilterWidget.ui \
+    EditPartDialog.ui
 
 RESOURCES += \
     qtfreepcb.qrc

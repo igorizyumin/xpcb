@@ -28,16 +28,14 @@ public:
 					   ARC_CCW		///< a counterclockwise arc.
 				   };
 
-		Segment(SEG_TYPE t, const QPoint& endPt, const QPoint& arcCtr = QPoint() ) :
-				type(t), end(endPt), arcCenter(arcCtr) {}
+		Segment(SEG_TYPE t, const QPoint& endPt) :
+				type(t), end(endPt) {}
 
 		/// The type of this segment.
 		SEG_TYPE type;
 		/// Endpoint coordinates of this segment.  The starting point is the endpoint
 		/// of the previous segment, unless this is a START segment.
 		QPoint end;
-		/// Coordinates of arc center (if this is an arc).
-		QPoint arcCenter;
 	};
 
 

@@ -11,7 +11,7 @@
 
 Text::Text()
 	: PCBObject(), mLayer(LAY_UNKNOWN), mAngle(0), mIsMirrored(false), mIsNegative(false),
-	mFontSize(0), mStrokeWidth(0), mIsDirty(true)
+	mFontSize(0), mStrokeWidth(0), mParent(NULL), mIsDirty(true)
 {
 }
 
@@ -19,50 +19,49 @@ Text::Text( const QPoint &pos, int angle, bool mirror,
 			bool negative, PCBLAYER layer, int font_size, int stroke_width,
 			const QString &str ) :
 PCBObject(), mPos(pos), mLayer(layer), mAngle(angle), mIsMirrored(mirror), mIsNegative(negative),
-mFontSize(font_size), mStrokeWidth(stroke_width), mText(str), mIsDirty(true)
+mFontSize(font_size), mStrokeWidth(stroke_width), mText(str), mParent(NULL), mIsDirty(true)
 {
 
 }
 
-Text::~Text()
+QPoint Text::pos() const
 {
+	if (mParent)
+		return mParent->transform().map(mPos);
+	else return mPos;
 }
 
-void Text::initText() const
+void Text::setPos(const QPoint &newpos)
 {
-	double scale = (double)mFontSize/22.0;
-	QRect newBbox;
-	SMFontUtil &fu = SMFontUtil::instance();
-
-	mStrokes.clear();
-
-	// get new strokes for all characters
-	for (int i = 0; i < mText.size(); i++)
-	{
-		if (mText[i] == ' ')
-			newBbox.adjust(0, 0, 0.5*mFontSize, 0);
-		else
-			fu.GetCharPath(mText[i].toAscii(), SIMPLEX, QPoint(newBbox.right() + 1.5*mStrokeWidth, 0), scale, newBbox, mStrokes);
-	}
-	mStrokeBBox = newBbox.adjusted(-mStrokeWidth, -mStrokeWidth, mStrokeWidth, mStrokeWidth);
+	if (mParent)
+		mPos = mParent->transform().inverted().map(newpos);
+	else mPos = newpos;
+	changed();
 }
 
-void Text::initTransform() const
+void Text::rebuild() const
 {
+	SMFontUtil::instance().GetStrokes(text(), fontSize(), strokeWidth(),
+									  mStrokes, mStrokeBBox);
 	double yoffset = 9.0*mFontSize/22.0;
-	mTransform.reset();
+	if (mParent)
+		mTransform = mParent->transform();
+	else
+		mTransform.reset();
 	mTransform.translate(mPos.x(), mPos.y());
+	if (isMirrored())
+		mTransform.scale(-1, 1);
 	mTransform.rotate(mAngle);
 	mTransform.translate(0, yoffset);
-
+//	if (mParent)
+//		mTransform *= mParent->transform();
 }
 
 QRect Text::bbox() const
 {
 	if (mIsDirty)
 	{
-		initText();
-		initTransform();
+		rebuild();
 		mIsDirty = false;
 	}
 	return mTransform.mapRect(this->mStrokeBBox);
@@ -76,8 +75,7 @@ void Text::draw(QPainter *painter, PCBLAYER layer) const
 	// reload strokes if text has changed
 	if (mIsDirty)
 	{
-		initText();
-		initTransform();
+		rebuild();
 		mIsDirty = false;
 	}
 
@@ -412,6 +410,7 @@ void TextEditor::drawOverlay(QPainter *painter)
 	{
 		mText->draw(painter, LAY_SELECTION);
 		painter->save();
+		painter->setBrush(Qt::NoBrush);
 		painter->setRenderHint(QPainter::Antialiasing, false);
 		painter->drawRect(mText->bbox());
 		painter->restore();
@@ -420,6 +419,7 @@ void TextEditor::drawOverlay(QPainter *painter)
 	{
 		painter->save();
 		painter->setRenderHint(QPainter::Antialiasing, false);
+		painter->setBrush(Qt::NoBrush);
 		painter->translate(mPos);
 		painter->drawLine(QPoint(0, -INT_MAX), QPoint(0, INT_MAX));
 		painter->drawLine(QPoint(-INT_MAX, 0), QPoint(INT_MAX, 0));

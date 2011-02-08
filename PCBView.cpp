@@ -43,13 +43,45 @@ void PCBView::visGridChanged(int grid)
 
 void PCBView::paintEvent(QPaintEvent *e)
 {
+	const int nLayers = 26;
+	// layer draw order
+	const PCBLAYER priority[nLayers] = {
+		LAY_BOTTOM_COPPER,
+		LAY_INNER14,
+		LAY_INNER13,
+		LAY_INNER12,
+		LAY_INNER11,
+		LAY_INNER10,
+		LAY_INNER9,
+		LAY_INNER8,
+		LAY_INNER7,
+		LAY_INNER6,
+		LAY_INNER5,
+		LAY_INNER4,
+		LAY_INNER3,
+		LAY_INNER2,
+		LAY_INNER1,
+		LAY_TOP_COPPER,
+		LAY_CURR_ACTIVE,
+		LAY_HOLE,
+		LAY_SM_BOTTOM,
+		LAY_SM_TOP,
+		LAY_SILK_BOTTOM,
+		LAY_SILK_TOP,
+		LAY_RAT_LINE,
+		LAY_BOARD_OUTLINE,
+		LAY_DRC_ERROR,
+		LAY_SELECTION
+	};
+
 	QPainter painter(this);
-//	painter.setBackgroundMode(Qt::BGMode::OpaqueMode);
+	// erase background
 	painter.setBackground(QBrush(layerColor(LAY_BACKGND)));
 	painter.setClipping(true);
 	painter.eraseRect(this->rect());
 	if (mCtrl && mCtrl->docIsOpen())
 	{
+		// draw grid
 		QPen pen(layerColor(LAY_VISIBLE_GRID));
 		pen.setCapStyle(Qt::RoundCap);
 		pen.setJoinStyle(Qt::RoundJoin);
@@ -60,16 +92,35 @@ void PCBView::paintEvent(QPaintEvent *e)
 			drawOrigin(&painter);
 			drawGrid(&painter);
 		}
+		// turn on AA
 		painter.setRenderHint(QPainter::Antialiasing);
 		QRect bb = mTransform.inverted().mapRect(e->rect());
-		for(int l = 0; l < MAX_LAYERS; l++)
+		PCBLAYER active = mCtrl->activeLayer();
+
+		// draw the layers
+		for(int i = 0; i < nLayers; i++)
 		{
-			if (mCtrl->isLayerVisible((PCBLAYER)l))
+			PCBLAYER l = priority[i];
+			if (l == LAY_CURR_ACTIVE) // placeholder
+				l = active;
+			else if (l == active)
+				continue; // already drawn
+			if (mCtrl->isLayerVisible(l))
 			{
+				// set color / fill
 				QPen p = painter.pen();
 				p.setColor(layerColor((PCBLAYER)l));
+				p.setWidth(0);
 				painter.setPen(p);
-				mCtrl->draw(&painter, bb, (PCBLAYER)l);
+				QBrush b = painter.brush();
+				b.setColor(layerColor(l));
+				if (l != LAY_SELECTION)
+					b.setStyle(Qt::SolidPattern);
+				else
+					b.setStyle(Qt::NoBrush);
+				painter.setBrush(b);
+				// tell controller to draw it
+				mCtrl->draw(&painter, bb, l);
 			}
 		}
 	}

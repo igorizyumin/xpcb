@@ -17,6 +17,7 @@
 
 #include "Editor.h"
 #include "Text.h"
+#include "PartEditor.h"
 #include "Controller.h"
 
 AbstractEditor::AbstractEditor(Controller *ctrl) :
@@ -76,8 +77,9 @@ void EditorFactory::visit(PartPin* a)
 {
 }
 
-void EditorFactory::visit(Part* a)
+void EditorFactory::visit(Part* p)
 {
+	mEditor = new PartEditor(mCtrl, p);
 }
 
 void EditorFactory::visit(Footprint* a)
