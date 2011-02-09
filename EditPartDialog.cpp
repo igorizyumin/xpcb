@@ -19,7 +19,7 @@
 #include "Part.h"
 
 EditPartDialog::EditPartDialog(QWidget *parent)
-	: QDialog(parent), mInMM(false), mFpSelected(false)
+	: QDialog(parent), mInMM(false), mFpChanged(false), mCurrFp(NULL)
 {
     setupUi(this);
 }
@@ -58,13 +58,14 @@ void EditPartDialog::updateUnits()
 
 void EditPartDialog::init(Part *p)
 {
+	unitsBox->setCurrentIndex(0);
+
 	if (p)
 	{
-		unitsBox->setCurrentIndex(0);
 		this->refdesEdit->setText(p->refdes());
 		this->refdesVis->setChecked(p->refVisible());
 		this->valueEdit->setText(p->value());
-		this->valueVis->setCheckable(p->valueVisible());
+		this->valueVis->setChecked(p->valueVisible());
 		this->fpNameEdit->setText(p->footprint()->name());
 		this->descEdit->setText(p->footprint()->desc());
 		this->authorEdit->setText(p->footprint()->author());
@@ -74,6 +75,13 @@ void EditPartDialog::init(Part *p)
 		this->angleBox->setCurrentIndex(p->angle() / 90);
 		this->xPos->setValue(PCB2MIL(p->pos().x()));
 		this->yPos->setValue(PCB2MIL(p->pos().y()));
-		this->mFpSelected = true;
+		this->mFpChanged = false;
+		this->mCurrFp = p->footprint();
+	}
+	else
+	{
+		this->mFpChanged = false;
+		this->mCurrFp = NULL;
+		this->dragPosRadio->setChecked(true);
 	}
 }

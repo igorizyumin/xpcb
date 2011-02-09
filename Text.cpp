@@ -330,7 +330,7 @@ void TextEditor::actionRotate()
 void TextEditor::newText()
 {
 	if (!mDialog)
-		mDialog = new EditTextDialog();
+		mDialog = new EditTextDialog(mCtrl->view());
 	mDialog->init();
 	if (mDialog->exec() == QDialog::Rejected || mDialog->text().isEmpty())
 	{
@@ -358,7 +358,7 @@ void TextEditor::newText()
 void TextEditor::actionEdit()
 {
 	if (!mDialog)
-		mDialog = new EditTextDialog();
+		mDialog = new EditTextDialog(mCtrl->view());
 	mDialog->init(mText);
 	if (mDialog->exec() == QDialog::Accepted)
 	{

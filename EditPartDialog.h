@@ -22,6 +22,7 @@
 #include "global.h"
 
 class Part;
+class Footprint;
 
 class EditPartDialog : public QDialog, private Ui::EditPartDialog
 {
@@ -36,7 +37,14 @@ public:
 	int angle() const { return angleBox->currentIndex() * 90; }
 
 	bool isPosSet() const { return setPosRadio->isChecked(); }
-	PCBSIDE side() const;
+	PCBSIDE side() const { return this->sideBox->currentIndex() == 0 ? SIDE_TOP : SIDE_BOTTOM; }
+
+	QString ref() const { return this->refdesEdit->text(); }
+	QString value() const { return this->valueEdit->text(); }
+	bool refVisible() const { return this->refdesVis->checkState(); }
+	bool valueVisible() const { return this->valueVis->checkState(); }
+
+	Footprint* footprint() const { return mCurrFp; }
 
 private slots:
 	void on_unitsBox_currentIndexChanged(const QString &s);
@@ -45,7 +53,8 @@ private:
 	void updateUnits();
 	int toPCB(double value) const { return mInMM ? MM2PCB(value) : MIL2PCB(value); }
 	bool mInMM;
-	bool mFpSelected;
+	bool mFpChanged;
+	Footprint* mCurrFp;
 };
 
 #endif // EDITPARTDIALOG_H

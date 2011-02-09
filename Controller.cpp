@@ -43,6 +43,10 @@ void Controller::registerDoc(PCBDoc* doc)
 	{
 		disconnect(mDoc, SIGNAL(changed()), this, SIGNAL(onDocumentChanged()));
 		mDoc = NULL;
+		mSelectedObjs.clear();
+		mHiddenObjs.clear();
+		delete mEditor;
+		mEditor = NULL;
 		onDocumentChanged();
 	}
 	updateEditor();
@@ -137,7 +141,7 @@ void Controller::mouseReleaseEvent(QMouseEvent *event)
 		return;
 	}
 	QPoint pos = mView->transform().inverted().map(event->pos());
-	QList<PCBObject*> objs = mDoc->findObjs(pos, true);
+	QList<PCBObject*> objs = mDoc->findObjs(pos);
 	QMutableListIterator<PCBObject*> i(objs);
 	while(i.hasNext())
 	{

@@ -80,7 +80,7 @@ void PCBDoc::removeText(Text *t)
 		Log::instance().error("Text object does not exist in document");
 }
 
-QList<PCBObject*> PCBDoc::findObjs(QRect &rect, bool includeChildren)
+QList<PCBObject*> PCBDoc::findObjs(QRect &rect)
 {
 	QList<PCBObject*> out;
 
@@ -94,13 +94,10 @@ QList<PCBObject*> PCBDoc::findObjs(QRect &rect, bool includeChildren)
 	{
 		if (rect.intersects(p->bbox()))
 			out.append(p);
-		if (includeChildren)
-		{
-			if (p->refdesText()->bbox().intersects(rect))
-				out.append(p->refdesText());
-			if (p->valueText()->bbox().intersects(rect))
-				out.append(p->valueText());
-		}
+		if (p->refVisible() && p->refdesText()->bbox().intersects(rect))
+			out.append(p->refdesText());
+		if (p->valueVisible() && p->valueText()->bbox().intersects(rect))
+			out.append(p->valueText());
 	}
 
 	foreach(Text* t, mTexts)
@@ -118,7 +115,7 @@ QList<PCBObject*> PCBDoc::findObjs(QRect &rect, bool includeChildren)
 	return out;
 }
 
-QList<PCBObject*> PCBDoc::findObjs(QPoint &pt, bool includeChildren)
+QList<PCBObject*> PCBDoc::findObjs(QPoint &pt)
 {
 	QList<PCBObject*> out;
 	foreach(Part* p, mParts)
@@ -127,13 +124,10 @@ QList<PCBObject*> PCBDoc::findObjs(QPoint &pt, bool includeChildren)
 		{
 			out.append(p);
 		}
-		if (includeChildren)
-		{
-			if (p->refdesText()->bbox().contains(pt))
-				out.append(p->refdesText());
-			if (p->valueText()->bbox().contains(pt))
-				out.append(p->valueText());
-		}
+		if (p->refVisible() && p->refdesText()->bbox().contains(pt))
+			out.append(p->refdesText());
+		if (p->valueVisible() && p->valueText()->bbox().contains(pt))
+			out.append(p->valueText());
 	}
 	foreach(Text* t, mTexts)
 	{

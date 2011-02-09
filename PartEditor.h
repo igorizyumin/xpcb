@@ -65,6 +65,39 @@ private:
 	PCBSIDE mSide;
 };
 
+class PartState
+{
+public:
+	PartState()
+		: angle(0), side(SIDE_TOP), refVisible(false), valueVisible(false), fp(NULL)
+	{}
+	PartState(Part* p)
+		: pos(p->pos()), angle(p->angle()), side(p->side()), refdes(p->refdes()), refVisible(p->refVisible()),
+		value(p->value()), valueVisible(p->valueVisible()), fp(p->footprint())
+	{}
+
+	void applyTo(Part* p)
+	{
+		p->setPos(pos);
+		p->setAngle(angle);
+		p->setSide(side);
+		p->refdesText()->setText(refdes);
+		p->setRefVisible(refVisible);
+		p->valueText()->setText(value);
+		p->setValueVisible(valueVisible);
+		//p->setFootprint(fp);
+	}
+
+	QPoint pos;
+	int angle;
+	PCBSIDE side;
+	QString refdes;
+	bool refVisible;
+	QString value;
+	bool valueVisible;
+	Footprint * fp;
+};
+
 class PartMoveCmd : public QUndoCommand
 {
 public:
@@ -81,6 +114,22 @@ private:
 	int mPrevAngle;
 	PCBSIDE mNewSide;
 	PCBSIDE mPrevSide;
+};
+
+class PartEditCmd : public QUndoCommand
+{
+public:
+	PartEditCmd(QUndoCommand *parent, Part* p, PartState& newState)
+		: mPart(p), mPrevState(PartState(p)), mNewState(newState) {}
+
+	virtual void undo();
+	virtual void redo();
+
+private:
+	Part* mPart;
+
+	PartState mPrevState;
+	PartState mNewState;
 };
 
 #endif // PARTEDITOR_H

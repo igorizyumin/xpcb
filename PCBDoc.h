@@ -39,9 +39,9 @@ public:
 	UNIT units() const { return mUnits; }
 
 	/// Returns a list of all objects that are hit
-	QList<PCBObject*> findObjs(QPoint &pt, bool includeChildren = false);
+	QList<PCBObject*> findObjs(QPoint &pt);
 	/// Returns list of all objects touching rect
-	QList<PCBObject*> findObjs(QRect &rect, bool includeChildren = false);
+	QList<PCBObject*> findObjs(QRect &rect);
 
 	void addText(Text* t);
 	void removeText(Text* t);

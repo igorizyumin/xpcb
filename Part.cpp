@@ -73,8 +73,8 @@ void PartPin::setNet(Net *newnet)
 
 ///////////////////// PART /////////////////////
 Part::Part(PCBDoc *doc)
-	: mAngle(0), mSide(SIDE_TOP), mLocked(false), mRefdes(NULL), mValue(NULL),
-	mFp(NULL), mDoc(doc)
+	: mAngle(0), mSide(SIDE_TOP), mLocked(false), mRefdes(NULL), mRefVisible(false), mValue(NULL),
+	mValueVisible(false), mFp(NULL), mDoc(doc)
 {
 
 }
@@ -139,9 +139,13 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 
 	// reference designator
 	pp->mRefdes->setText(attr.value("refdes").toString());
+	pp->mRefVisible = true;
 	// value
 	if (attr.hasAttribute("value"))
+	{
 		pp->mValue->setText(attr.value("value").toString());
+		pp->mValueVisible = true;
+	}
 
 
 	// position/rotation
@@ -170,6 +174,8 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 			pp->mRefdes->setAngle(attr.value("rot").toString().toInt());
 			pp->mRefdes->setFontSize(attr.value("textSize").toString().toInt());
 			pp->mRefdes->setStrokeWidth(attr.value("lineWidth").toString().toInt());
+			if (attr.hasAttribute("visible"))
+				pp->mRefVisible = attr.value("visible") == "1";
 			do
 					reader.readNext();
 			while(!reader.isEndElement());
@@ -182,6 +188,8 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 			pp->mValue->setAngle(attr.value("rot").toString().toInt());
 			pp->mValue->setFontSize(attr.value("textSize").toString().toInt());
 			pp->mValue->setStrokeWidth(attr.value("lineWidth").toString().toInt());
+			if (attr.hasAttribute("visible"))
+				pp->mValueVisible = attr.value("visible") == "1";
 			do
 					reader.readNext();
 			while(!reader.isEndElement());
@@ -214,6 +222,7 @@ void Part::toXML(QXmlStreamWriter &writer) const
 	writer.writeAttribute("rot", QString::number(mRefdes->angle()));
 	writer.writeAttribute("textSize", QString::number(mRefdes->fontSize()));
 	writer.writeAttribute("lineWidth", QString::number(mRefdes->strokeWidth()));
+	writer.writeAttribute("visible", mRefVisible ? "1" : "0");
 	writer.writeEndElement();
 	writer.writeStartElement("valueText");
 	writer.writeAttribute("x", QString::number(valuePos.x()));
@@ -221,6 +230,7 @@ void Part::toXML(QXmlStreamWriter &writer) const
 	writer.writeAttribute("rot", QString::number(mValue->angle()));
 	writer.writeAttribute("textSize", QString::number(mValue->fontSize()));
 	writer.writeAttribute("lineWidth", QString::number(mValue->strokeWidth()));
+	writer.writeAttribute("visible", mValueVisible ? "1" : "0");
 	writer.writeEndElement();
 	writer.writeEndElement();
 }
@@ -249,8 +259,10 @@ void Part::draw(QPainter *painter, PCBLAYER layer) const
 	if (layer == LAY_SELECTION)
 	{
 		painter->drawRect(bbox());
-		painter->drawRect(refdesText()->bbox());
-		painter->drawRect(valueText()->bbox());
+		if (refVisible())
+			painter->drawRect(refdesText()->bbox());
+		if (valueVisible())
+			painter->drawRect(valueText()->bbox());
 		return;
 	}
 
@@ -273,10 +285,6 @@ void Part::draw(QPainter *painter, PCBLAYER layer) const
 	}
 
 	painter->restore();
-
-	// draw ref/value
-	mRefdes->draw(painter, layer);
-	mValue->draw(painter, layer);
 }
 
 QRect Part::bbox() const
