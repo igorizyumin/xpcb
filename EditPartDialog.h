@@ -20,9 +20,7 @@
 
 #include "ui_EditPartDialog.h"
 #include "global.h"
-
-class Part;
-class Footprint;
+#include "Part.h"
 
 class EditPartDialog : public QDialog, private Ui::EditPartDialog
 {
@@ -37,7 +35,7 @@ public:
 	int angle() const { return angleBox->currentIndex() * 90; }
 
 	bool isPosSet() const { return setPosRadio->isChecked(); }
-	PCBSIDE side() const { return this->sideBox->currentIndex() == 0 ? SIDE_TOP : SIDE_BOTTOM; }
+	Part::SIDE side() const { return this->sideBox->currentIndex() == 0 ? Part::SIDE_TOP : Part::SIDE_BOTTOM; }
 
 	QString ref() const { return this->refdesEdit->text(); }
 	QString value() const { return this->valueEdit->text(); }
@@ -51,7 +49,7 @@ private slots:
 
 private:
 	void updateUnits();
-	int toPCB(double value) const { return mInMM ? MM2PCB(value) : MIL2PCB(value); }
+	int toPCB(double value) const { return mInMM ? XPcb::MM2PCB(value) : XPcb::MIL2PCB(value); }
 	bool mInMM;
 	bool mFpChanged;
 	Footprint* mCurrFp;

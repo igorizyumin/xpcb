@@ -10,13 +10,13 @@
 #include "EditTextDialog.h"
 
 Text::Text()
-	: PCBObject(), mLayer(LAY_UNKNOWN), mAngle(0), mIsMirrored(false), mIsNegative(false),
+	: PCBObject(), mLayer(XPcb::LAY_UNKNOWN), mAngle(0), mIsMirrored(false), mIsNegative(false),
 	mFontSize(0), mStrokeWidth(0), mParent(NULL), mIsDirty(true)
 {
 }
 
 Text::Text( const QPoint &pos, int angle, bool mirror,
-			bool negative, PCBLAYER layer, int font_size, int stroke_width,
+			bool negative, XPcb::PCBLAYER layer, int font_size, int stroke_width,
 			const QString &str ) :
 PCBObject(), mPos(pos), mLayer(layer), mAngle(angle), mIsMirrored(mirror), mIsNegative(negative),
 mFontSize(font_size), mStrokeWidth(stroke_width), mText(str), mParent(NULL), mIsDirty(true)
@@ -67,9 +67,9 @@ QRect Text::bbox() const
 	return mTransform.mapRect(this->mStrokeBBox);
 }
 
-void Text::draw(QPainter *painter, PCBLAYER layer) const
+void Text::draw(QPainter *painter, XPcb::PCBLAYER layer) const
 {
-	if (layer != mLayer && layer != LAY_SELECTION)
+	if (layer != mLayer && layer != XPcb::LAY_SELECTION)
 		return;
 
 	// reload strokes if text has changed
@@ -107,7 +107,7 @@ Text* Text::newFromXML(QXmlStreamReader &reader)
 
 	QXmlStreamAttributes attr = reader.attributes();
 	Text *t = new Text();
-	t->mLayer = (PCBLAYER) attr.value("layer").toString().toInt();
+	t->mLayer = (XPcb::PCBLAYER) attr.value("layer").toString().toInt();
 	t->mPos = QPoint(
 			attr.value("x").toString().toInt(),
 			attr.value("y").toString().toInt());
@@ -408,7 +408,7 @@ void TextEditor::drawOverlay(QPainter *painter)
 	if (!mText) return;
 	if (mState == SELECTED)
 	{
-		mText->draw(painter, LAY_SELECTION);
+		mText->draw(painter, XPcb::LAY_SELECTION);
 		painter->save();
 		painter->setBrush(Qt::NoBrush);
 		painter->setRenderHint(QPainter::Antialiasing, false);
@@ -498,7 +498,7 @@ void TextDeleteCmd::undo()
 	mDoc->addText(mText);
 }
 
-TextEditCmd::TextEditCmd(QUndoCommand *parent, Text* obj, QPoint newPos, PCBLAYER newLayer,
+TextEditCmd::TextEditCmd(QUndoCommand *parent, Text* obj, QPoint newPos, XPcb::PCBLAYER newLayer,
 			int newAngle, bool isMirrored, bool isNegative, int newSize,
 			int newWidth, QString newText )
 				: QUndoCommand(parent), mText(obj), mOldPos(obj->pos()), mOldLayer(obj->layer()),

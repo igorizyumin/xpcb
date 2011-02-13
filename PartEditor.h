@@ -62,14 +62,14 @@ private:
 	QPoint mPos;
 	QRect mBox;
 	int mAngle;
-	PCBSIDE mSide;
+	Part::SIDE mSide;
 };
 
 class PartState
 {
 public:
 	PartState()
-		: angle(0), side(SIDE_TOP), refVisible(false), valueVisible(false), fp(NULL)
+		: angle(0), side(Part::SIDE_TOP), refVisible(false), valueVisible(false), fp(NULL)
 	{}
 	PartState(Part* p)
 		: pos(p->pos()), angle(p->angle()), side(p->side()), refdes(p->refdes()), refVisible(p->refVisible()),
@@ -90,7 +90,7 @@ public:
 
 	QPoint pos;
 	int angle;
-	PCBSIDE side;
+	Part::SIDE side;
 	QString refdes;
 	bool refVisible;
 	QString value;
@@ -101,7 +101,7 @@ public:
 class PartMoveCmd : public QUndoCommand
 {
 public:
-	PartMoveCmd(QUndoCommand *parent, Part* obj, QPoint newPos, int newAngle, PCBSIDE newSide);
+	PartMoveCmd(QUndoCommand *parent, Part* obj, QPoint newPos, int newAngle, Part::SIDE newSide);
 
 	virtual void undo();
 	virtual void redo();
@@ -112,8 +112,8 @@ private:
 	QPoint mPrevPos;
 	int mNewAngle;
 	int mPrevAngle;
-	PCBSIDE mNewSide;
-	PCBSIDE mPrevSide;
+	Part::SIDE mNewSide;
+	Part::SIDE mPrevSide;
 };
 
 class PartEditCmd : public QUndoCommand

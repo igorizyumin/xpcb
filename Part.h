@@ -21,7 +21,7 @@ public:
 	PartPin(Part* parent, const Pin* pin) : mPin(pin), mPart(parent), mNet(NULL), mVertex(NULL) {}
 	~PartPin();
 
-	Pad getPadOnLayer(PCBLAYER layer) const;
+	Pad getPadOnLayer(XPcb::PCBLAYER layer) const;
 
 	void setNet(Net* newnet);
 	Net* getNet() {return mNet; }
@@ -34,15 +34,15 @@ public:
 	QPoint pos() const;
 	bool isSmt() const;
 
-	virtual void draw(QPainter *painter, PCBLAYER layer) const;
+	virtual void draw(QPainter *painter, XPcb::PCBLAYER layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
-	bool testHit(const QPoint &pt, PCBLAYER layer) const;
+	bool testHit(const QPoint &pt, XPcb::PCBLAYER layer) const;
 
 private:
 	/// Maps a PCB layer to a pin layer (i.e. top copper -> start for parts on top side)
-	Padstack::PSLAYER mapLayer(PCBLAYER layer) const;
+	Padstack::PSLAYER mapLayer(XPcb::PCBLAYER layer) const;
 
 	/// Pointer to footprint pin (contains position, etc.)
 	const Pin * mPin;
@@ -60,10 +60,12 @@ private:
 class Part : public PCBObject
 {
 public:
+	enum SIDE { SIDE_TOP = 0, SIDE_BOTTOM };
+
 	Part(PCBDoc* doc);
 	~Part();
 
-	virtual void draw(QPainter *painter, PCBLAYER layer) const;
+	virtual void draw(QPainter *painter, XPcb::PCBLAYER layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
@@ -75,15 +77,15 @@ public:
 	bool valueVisible() const { return mValueVisible; }
 	QPoint pos() const { return mPos; }
 	int angle() { return mAngle; }
-	PCBSIDE side() { return mSide; }
+	SIDE side() { return mSide; }
 	bool locked() { return mLocked; }
 
 	void setPos(QPoint pos) { mPos = pos; updateTransform(); }
 	void setAngle(int angle) { mAngle = angle; updateTransform(); }
-	void setSide(PCBSIDE side);
+	void setSide(SIDE side);
 	void setLocked(bool locked) { mLocked = locked; }
-	bool setRefVisible(bool vis) { mRefVisible = vis; }
-	bool setValueVisible(bool vis) { mValueVisible = vis; }
+	void setRefVisible(bool vis) { mRefVisible = vis; }
+	void setValueVisible(bool vis) { mValueVisible = vis; }
 
 	Footprint* footprint() { return mFp;}
 	void setFootprint( Footprint * fp );
@@ -94,7 +96,7 @@ public:
 	void toXML(QXmlStreamWriter &writer) const;
 
 	QTransform transform() const { return mTransform; }
-	bool testHit(QPoint pt, PCBLAYER l) const { return bbox().contains(pt); }
+	bool testHit(QPoint pt, XPcb::PCBLAYER l) const { return bbox().contains(pt); }
 
 private:
 	void resetFp();
@@ -108,7 +110,7 @@ private:
 	/// Rotation angle (clockwise).
 	int mAngle;
 	/// PCB side on which the part is located.
-	PCBSIDE mSide;
+	SIDE mSide;
 	/// Locked parts cannot be moved.
 	bool mLocked;
 	/// Reference designator text

@@ -42,7 +42,7 @@ public:
 	bool isPosSet() const { return setPosRadio->isChecked(); }
 	bool isWidthSet() const { return setWidthRadio->isChecked(); }
 
-	PCBLAYER layer() const;
+	XPcb::PCBLAYER layer() const;
 
 
 private slots:
@@ -51,9 +51,9 @@ private slots:
 private:
 	void updateUnits();
 	void populateLayers(int numLayers);
-	int toPCB(double value) const { return mInMM ? MM2PCB(value) : MIL2PCB(value); }
+	int toPCB(double value) const { return mInMM ? XPcb::MM2PCB(value) : XPcb::MIL2PCB(value); }
 	bool mInMM;
-	QList<PCBLAYER> mLayerInd;
+	QList<XPcb::PCBLAYER> mLayerInd;
 };
 
 #endif // EDITTEXTDIALOG_H

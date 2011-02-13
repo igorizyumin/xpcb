@@ -180,6 +180,8 @@ void Pad::draw(QPainter *painter) const
 			painter->drawPie(-mWidth/2, wr-mWidth/2, mWidth, mWidth, 0, -2880);
 		}
 		break;
+	default:
+		break;
 	}
 }
 /////////////////////// PADSTACK /////////////////////////
@@ -421,7 +423,7 @@ void Pin::draw(QPainter *painter, Padstack::PSLAYER layer) const
 /////////////////////// FOOTPRINT /////////////////////////
 
 Footprint::Footprint()
-	: mName("EMPTY_SHAPE"), mUnits(MIL), mCustomCentroid(false)
+	: mName("EMPTY_SHAPE"), mUnits(XPcb::MIL), mCustomCentroid(false)
 {
 }
 
@@ -436,7 +438,7 @@ Footprint::~Footprint()
 void Footprint::draw(QPainter *painter, FP_DRAW_LAYER layer) const
 {
 	// draw lines
-	PCBLAYER pcblayer = (layer == Footprint::LAY_START) ? LAY_SILK_TOP : LAY_SILK_BOTTOM;
+	XPcb::PCBLAYER pcblayer = (layer == Footprint::LAY_START) ? XPcb::LAY_SILK_TOP : XPcb::LAY_SILK_BOTTOM;
 	foreach(const Line& l, mOutlineLines)
 		l.draw(painter, pcblayer);
 	foreach(const Arc& a, mOutlineArcs)
@@ -460,9 +462,9 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader, const QHash<int, Pads
 		else if (el == "units")
 		{
 			if (reader.readElementText() == "mm")
-				fp->mUnits = MM;
+				fp->mUnits = XPcb::MM;
 			else
-				fp->mUnits = MIL;
+				fp->mUnits = XPcb::MIL;
 		}
 		else if (el == "author")
 		{
@@ -540,7 +542,7 @@ void Footprint::toXML(QXmlStreamWriter &writer) const
 	writer.writeStartElement("footprint");
 
 	writer.writeTextElement("name", mName);
-	writer.writeTextElement("units", mUnits == MM ? "mm" : "mils");
+	writer.writeTextElement("units", mUnits == XPcb::MM ? "mm" : "mils");
 	writer.writeTextElement("author", mAuthor);
 	writer.writeTextElement("source", mSource);
 	writer.writeTextElement("desc", mDesc);

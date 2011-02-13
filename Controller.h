@@ -53,7 +53,8 @@ class Controller : public QObject
     Q_OBJECT
 public:
 
-	enum SelectionMaskT { SM_PARTS, SM_REFDES, SM_VALUE, SM_PINS, SM_TRACES, SM_VERTICES, SM_AREAS, SM_TEXT, SM_CUTOUTS, SM_OUTLINE, SM_DRC };
+	enum SelectionMaskT { SM_PARTS, SM_REFDES, SM_VALUE, SM_PINS, SM_TRACES,
+						  SM_VERTICES, SM_AREAS, SM_TEXT, SM_CUTOUTS, SM_OUTLINE, SM_DRC };
 
 	explicit Controller(QObject *parent = 0);
 
@@ -62,7 +63,7 @@ public:
 	void registerActionBar(ActionBar* bar);
 	void registerLayerWidget(LayerWidget* widget);
 
-	void draw(QPainter* painter, QRect &rect, PCBLAYER layer);
+	void draw(QPainter* painter, QRect &rect, XPcb::PCBLAYER layer);
 
 	bool docIsOpen() {return mDoc != NULL;}
 
@@ -76,8 +77,8 @@ public:
 	QPoint snapToPlaceGrid(QPoint p);
 	QPoint snapToRouteGrid(QPoint p);
 
-	bool isLayerVisible(PCBLAYER l) const;
-	PCBLAYER activeLayer() const;
+	bool isLayerVisible(XPcb::PCBLAYER l) const;
+	XPcb::PCBLAYER activeLayer() const;
 
 public slots:
 	void onPlaceGridChanged(int grid) { mPlaceGrid = grid; }

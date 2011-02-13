@@ -14,7 +14,7 @@ class Text : public PCBObject
 public:
 	Text();
 	Text(const QPoint &pos, int angle,
-		bool mirror, bool negative, PCBLAYER layer, int font_size,
+		bool mirror, bool negative, XPcb::PCBLAYER layer, int font_size,
 		int stroke_width, const QString &text );
 
 	/// Sets the object's parent.  When the object has a parent, its internal
@@ -24,10 +24,10 @@ public:
 	void setParent(PCBObject *parent) { mParent = parent; changed(); }
 
 	// overrides
-	virtual void draw(QPainter *painter, PCBLAYER layer) const;
+	virtual void draw(QPainter *painter, XPcb::PCBLAYER layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
-	virtual bool testHit(QPoint pt, PCBLAYER l) const { return bbox().contains(pt) && mLayer == l; }
+	virtual bool testHit(QPoint pt, XPcb::PCBLAYER l) const { return bbox().contains(pt) && mLayer == l; }
 
 	// i/o
 	static Text* newFromXML(QXmlStreamReader &reader);
@@ -55,8 +55,8 @@ public:
 	bool isNegative() const {return mIsNegative;}
 	void setNegative(bool b) {mIsNegative=b; changed();}
 
-	PCBLAYER layer() const {return mLayer;}
-	void setLayer(PCBLAYER l) {mLayer = l; changed();}
+	XPcb::PCBLAYER layer() const {return mLayer;}
+	void setLayer(XPcb::PCBLAYER l) {mLayer = l; changed();}
 
 
 	virtual void parentChanged() { changed(); }
@@ -68,7 +68,7 @@ protected:
 private:
 	// member variables
 	QPoint mPos;
-	PCBLAYER mLayer;
+	XPcb::PCBLAYER mLayer;
 	int mAngle;
 	bool mIsMirrored;
 	bool mIsNegative;
@@ -181,7 +181,7 @@ private:
 class TextEditCmd : public QUndoCommand
 {
 public:
-	TextEditCmd(QUndoCommand *parent, Text* obj, QPoint newPos, PCBLAYER newLayer,
+	TextEditCmd(QUndoCommand *parent, Text* obj, QPoint newPos, XPcb::PCBLAYER newLayer,
 				int newAngle, bool isMirrored, bool isNegative, int newSize,
 				int newWidth, QString newText );
 
@@ -192,7 +192,7 @@ private:
 	Text* mText;
 	// old
 	QPoint mOldPos;
-	PCBLAYER mOldLayer;
+	XPcb::PCBLAYER mOldLayer;
 	int mOldAngle;
 	bool mOldIsMirrored;
 	bool mOldIsNegative;
@@ -201,7 +201,7 @@ private:
 	QString mOldText;
 	// new
 	QPoint mNewPos;
-	PCBLAYER mNewLayer;
+	XPcb::PCBLAYER mNewLayer;
 	int mNewAngle;
 	bool mNewIsMirrored;
 	bool mNewIsNegative;

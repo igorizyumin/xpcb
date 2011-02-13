@@ -15,8 +15,8 @@ int GridToolbarWidget::parseUnits(QString str)
 	bool in_mm = false;
 	if (str.contains("mm")) in_mm = true;
 	double val = str.remove(" mm").toDouble();
-	if (in_mm) return MM2PCB(val);
-	else return IN2PCB(val/1000);
+	if (in_mm) return XPcb::MM2PCB(val);
+	else return XPcb::IN2PCB(val/1000);
 }
 
 void GridToolbarWidget::onViewGrid(QString str)

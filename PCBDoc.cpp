@@ -10,7 +10,7 @@
 #include "Trace.h"
 
 PCBDoc::PCBDoc()
-		: QObject(), mUnits(MM), mNumLayers(2), mTraceList(NULL), mBoardOutline(NULL), mDefaultPadstack(NULL)
+		: QObject(), mUnits(XPcb::MM), mNumLayers(2), mTraceList(NULL), mBoardOutline(NULL), mDefaultPadstack(NULL)
 {
 	mUndoStack = new QUndoStack(this);
 	connect(mUndoStack, SIGNAL(canUndoChanged(bool)), this, SIGNAL(canUndoChanged(bool)));
@@ -197,7 +197,7 @@ void PCBDoc::redo()
 
 //////// XML PARSING /////////
 // parser methods
-void loadProps(QXmlStreamReader &reader, QString &name, UNIT &units, int &defaultps, int &numLayers);
+void loadProps(QXmlStreamReader &reader, QString &name, XPcb::UNIT &units, int &defaultps, int &numLayers);
 void loadPadstacks(QXmlStreamReader &reader, QHash<int, Padstack*> &padstacks);
 void loadFootprints(QXmlStreamReader &reader, QList<Footprint*> &footprints, const QHash<int, Padstack*> &padstacks);
 void loadOutline(QXmlStreamReader &reader, Polygon *& poly);
@@ -266,7 +266,7 @@ bool PCBDoc::saveToXML(QXmlStreamWriter &writer)
 	writer.writeStartElement("xpcbBoard");
 
 	writer.writeStartElement("props");
-	writer.writeTextElement("units", this->mUnits == MM ? "mm" : "mils");
+	writer.writeTextElement("units", this->mUnits == XPcb::MM ? "mm" : "mils");
 	writer.writeTextElement("numLayers", QString::number(this->mNumLayers));
 	writer.writeTextElement("name", this->mName);
 	writer.writeTextElement("defaultPadstack", QString::number(this->mDefaultPadstack->getid()));
@@ -389,7 +389,7 @@ bool PCBDoc::loadFromXml(QXmlStreamReader &reader)
 	return true;
 }
 
-void loadProps(QXmlStreamReader &reader, QString &name, UNIT &units, int &defaultps, int &numLayers)
+void loadProps(QXmlStreamReader &reader, QString &name, XPcb::UNIT &units, int &defaultps, int &numLayers)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "props");
 	while(reader.readNextStartElement())
@@ -403,9 +403,9 @@ void loadProps(QXmlStreamReader &reader, QString &name, UNIT &units, int &defaul
 		{
 			QString unitsStr = reader.readElementText();
 			if (unitsStr == "mm")
-				units = MM;
+				units = XPcb::MM;
 			else if (unitsStr == "mils")
-				units = MIL;
+				units = XPcb::MIL;
 		}
 		else if (t == "defaultPadstack")
 		{

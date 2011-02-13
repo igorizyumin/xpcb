@@ -34,8 +34,8 @@ void EditPartDialog::updateUnits()
 {
 	if (!mInMM)
 	{
-		xPos->setValue(PCB2MIL(MM2PCB(xPos->value())));
-		yPos->setValue(PCB2MIL(MM2PCB(yPos->value())));
+		xPos->setValue(XPcb::PCB2MIL(XPcb::MM2PCB(xPos->value())));
+		yPos->setValue(XPcb::PCB2MIL(XPcb::MM2PCB(yPos->value())));
 
 		xPos->setDecimals(0);
 		yPos->setDecimals(0);
@@ -48,8 +48,8 @@ void EditPartDialog::updateUnits()
 		xPos->setDecimals(3);
 		yPos->setDecimals(3);
 
-		xPos->setValue(PCB2MM(MIL2PCB(xPos->value())));
-		yPos->setValue(PCB2MM(MIL2PCB(yPos->value())));
+		xPos->setValue(XPcb::PCB2MM(XPcb::MIL2PCB(xPos->value())));
+		yPos->setValue(XPcb::PCB2MM(XPcb::MIL2PCB(yPos->value())));
 
 		xPos->setSuffix(" mm");
 		yPos->setSuffix(" mm");
@@ -73,8 +73,8 @@ void EditPartDialog::init(Part *p)
 		this->setPosRadio->setChecked(true);
 		this->sideBox->setCurrentIndex((int)p->side());
 		this->angleBox->setCurrentIndex(p->angle() / 90);
-		this->xPos->setValue(PCB2MIL(p->pos().x()));
-		this->yPos->setValue(PCB2MIL(p->pos().y()));
+		this->xPos->setValue(XPcb::PCB2MIL(p->pos().x()));
+		this->yPos->setValue(XPcb::PCB2MIL(p->pos().y()));
 		this->mFpChanged = false;
 		this->mCurrFp = p->footprint();
 	}

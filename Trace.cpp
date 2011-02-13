@@ -12,7 +12,7 @@ Vertex::Vertex(TraceList* parent, QPoint pos, bool forcevia)
 
 }
 
-void Vertex::draw(QPainter *painter, PCBLAYER layer) const
+void Vertex::draw(QPainter *painter, XPcb::PCBLAYER layer) const
 {
 	// XXX TODO draw via if needed
 }
@@ -45,7 +45,7 @@ QSet<Vertex*> TraceList::getConnectedVertices(Vertex* vtx) const
 
 QSet<Vertex*> TraceList::getVerticesInArea(const Area& a) const
 {
-	PCBLAYER layer = a.layer();
+	XPcb::PCBLAYER layer = a.layer();
 	QSet<Vertex*> set;
 	foreach(Vertex* vtx, myVtx)
 	{
@@ -138,7 +138,7 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 		QXmlStreamAttributes attr = reader.attributes();
 		int start = attr.value("start").toString().toInt();
 		int end = attr.value("end").toString().toInt();
-		PCBLAYER layer = (PCBLAYER)attr.value("layer").toString().toInt();
+		XPcb::PCBLAYER layer = (XPcb::PCBLAYER)attr.value("layer").toString().toInt();
 		int width = attr.value("width").toString().toInt();
 
 		Segment* s = new Segment(this,
@@ -184,7 +184,7 @@ void TraceList::toXML(QXmlStreamWriter &writer) const
 
 /////////////////////// SEGMENT ///////////////////////
 
-Segment::Segment(TraceList* parent, Vertex* v1, Vertex* v2, PCBLAYER l, int w)
+Segment::Segment(TraceList* parent, Vertex* v1, Vertex* v2, XPcb::PCBLAYER l, int w)
 	: mLayer(l), mParent(parent), mV1(v1), mV2(v2) , mWidth(w)
 {
 	mV1->addSegment(this);
@@ -197,7 +197,7 @@ Segment::~Segment()
 	mV2->removeSegment(this);
 }
 
-void Segment::draw(QPainter *painter, PCBLAYER layer) const
+void Segment::draw(QPainter *painter, XPcb::PCBLAYER layer) const
 {
 	// XXX TODO draw via if needed
 }
@@ -212,7 +212,7 @@ QRect Segment::bbox() const
 
 bool Vertex::isVia() const
 {
-	PCBLAYER layer;
+	XPcb::PCBLAYER layer;
 	bool first = true;
 	foreach(Segment* seg, this->mSegs)
 	{
@@ -226,7 +226,7 @@ bool Vertex::isVia() const
 }
 
 
-bool Vertex::onLayer(PCBLAYER layer) const
+bool Vertex::onLayer(XPcb::PCBLAYER layer) const
 {
 	// vias are present on all layers
 	if (isVia())

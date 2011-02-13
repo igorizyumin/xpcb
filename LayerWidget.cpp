@@ -27,9 +27,9 @@ LayerWidget::LayerWidget(QWidget* parent)
 {
 	QVBoxLayout* layout = new QVBoxLayout();
 	this->setLayout(layout);
-	mActiveLayer = LAY_TOP_COPPER;
+	mActiveLayer = XPcb::LAY_TOP_COPPER;
 	setNumLayers(2);
-	setActive(LAY_TOP_COPPER);
+	setActive(XPcb::LAY_TOP_COPPER);
 	this->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 	connect(&mMapper, SIGNAL(mapped(int)), this, SLOT(onKeyboardShortcut(int)));
 }
@@ -46,27 +46,27 @@ void LayerWidget::rebuild()
 	foreach(QCheckBox* b, mCheckboxes)
 		delete b;
 	mCheckboxes.clear();
-	for(int i = 0; i <= (int)LAY_TOP_COPPER; i++)
+	for(int i = 0; i <= XPcb::LAY_TOP_COPPER; i++)
 	{
-		addLayer((PCBLAYER)i);
+		addLayer((XPcb::PCBLAYER)i);
 	}
 	for(int i = 0; i < mNumLayers-2; i++)
 	{
-		addLayer((PCBLAYER)((int)LAY_INNER1+i));
+		addLayer((XPcb::PCBLAYER)(XPcb::LAY_INNER1+i));
 	}
-	addLayer(LAY_BOTTOM_COPPER);
+	addLayer(XPcb::LAY_BOTTOM_COPPER);
 	mSpacer = new QSpacerItem(1, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
 	this->layout()->addItem(mSpacer);
-	setActive(LAY_TOP_COPPER);
+	setActive(XPcb::LAY_TOP_COPPER);
 }
 
 // returns the list index for a layer
-int LayerWidget::mapLayer(PCBLAYER l) const
+int LayerWidget::mapLayer(XPcb::PCBLAYER l) const
 {
-	int out = (int) l;
-	if (out <= (int)LAY_TOP_COPPER)
+	int out = l;
+	if (out <= XPcb::LAY_TOP_COPPER)
 		return out;
-	if (out == (int) LAY_BOTTOM_COPPER)
+	if (out == XPcb::LAY_BOTTOM_COPPER)
 		return out + mNumLayers - 2;
 	else
 		return out - 1;
@@ -87,21 +87,21 @@ QCheckBox* makeCheckbox(QString name, QColor color)
 	return cb;
 }
 
-void LayerWidget::addLayer(PCBLAYER l)
+void LayerWidget::addLayer(XPcb::PCBLAYER l)
 {
 	const char keys[17] = "12345678QWERTYUI";
 
 	QSettings s;
-	if ((int)l >=0 && (int)l < MAX_LAYERS)
+	if (l >=0 && l < XPcb::NUM_PCB_LAYERS)
 	{
 		// get layer color
-		QColor col = s.value(QString("colors/%1").arg(layer_str[(int)l])).value<QColor>();
-		QString label = layer_str[(int)l];
+		QColor col = s.value(QString("colors/%1").arg(XPcb::layerName(l))).value<QColor>();
+		QString label = XPcb::layerName(l);
 		// add keyboard shortcut if necessary
-		if (l >= LAY_TOP_COPPER)
+		if (l >= XPcb::LAY_TOP_COPPER)
 		{
 			int ind = mapLayer(l);
-			ind -= (int)LAY_TOP_COPPER;
+			ind -= XPcb::LAY_TOP_COPPER;
 			label.append(QString(" [%1]").arg(keys[ind]));
 			QShortcut* sc = new QShortcut(keys[ind], this);
 			mShortcuts.append(sc);
@@ -111,7 +111,7 @@ void LayerWidget::addLayer(PCBLAYER l)
 		// make new checkbox
 		QCheckBox* cb = makeCheckbox(label, col);
 		connect(cb, SIGNAL(stateChanged(int)), this, SIGNAL(layerVisibilityChanged()));
-		if (l == LAY_SELECTION || l == LAY_BACKGND)
+		if (l == XPcb::LAY_SELECTION || l == XPcb::LAY_BACKGND)
 			cb->setEnabled(false);
 
 		// append checkbox and set ourselves as parent
@@ -120,11 +120,11 @@ void LayerWidget::addLayer(PCBLAYER l)
 	}
 }
 
-void LayerWidget::setActive(PCBLAYER l)
+void LayerWidget::setActive(XPcb::PCBLAYER l)
 {
 	QSettings s;
-	QColor prev = s.value(QString("colors/%1").arg(layer_str[(int)mActiveLayer])).value<QColor>();
-	QColor next = s.value(QString("colors/%1").arg(layer_str[(int)l])).value<QColor>();
+	QColor prev = s.value(QString("colors/%1").arg(XPcb::layerName(mActiveLayer))).value<QColor>();
+	QColor next = s.value(QString("colors/%1").arg(XPcb::layerName(l))).value<QColor>();
 
 	// unset active for current
 	mCheckboxes[mapLayer(mActiveLayer)]->setStyleSheet(getStylesheet(prev, false));
@@ -133,19 +133,19 @@ void LayerWidget::setActive(PCBLAYER l)
 	emit currLayerChanged(mActiveLayer);
 }
 
-bool LayerWidget::isLayerVisible(PCBLAYER l) const
+bool LayerWidget::isLayerVisible(XPcb::PCBLAYER l) const
 {
-	if (((int)LAY_BOTTOM_COPPER + mNumLayers - 2) < (int)l)
+	if ((XPcb::LAY_BOTTOM_COPPER + mNumLayers - 2) < l)
 		return false;
 	return mCheckboxes[mapLayer(l)]->checkState();
 }
 
-PCBLAYER LayerWidget::activeLayer() const
+XPcb::PCBLAYER LayerWidget::activeLayer() const
 {
 	return mActiveLayer;
 }
 
 void LayerWidget::onKeyboardShortcut(int layer)
 {
-	setActive((PCBLAYER)layer);
+	setActive((XPcb::PCBLAYER)layer);
 }

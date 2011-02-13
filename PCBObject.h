@@ -35,7 +35,7 @@ public:
 	/// called multiple times during a single redraw operation, once for each layer.
 	/// \param painter the painter to use
 	/// \param layer the PCB layer to draw
-	virtual void draw(QPainter *painter, PCBLAYER layer) const = 0;
+	virtual void draw(QPainter *painter, XPcb::PCBLAYER layer) const = 0;
 
 	/// Returns the object's bounding box
 	virtual QRect bbox() const = 0;
@@ -45,7 +45,7 @@ public:
 	int getid() const {return objID;}
 
 	/// Returns true if the object was hit.
-	virtual bool testHit(QPoint pt, PCBLAYER l) const { return false; }
+	virtual bool testHit(QPoint pt, XPcb::PCBLAYER l) const { return false; }
 
 	/// Returns the object's transform (from the object's coordinate system to
 	/// PCB coordinates).

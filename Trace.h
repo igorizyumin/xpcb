@@ -23,7 +23,7 @@ class Vertex : public PCBObject
 public:
 	Vertex(TraceList* parent, QPoint pos = QPoint(0, 0), bool forcevia = false);
 
-	virtual void draw(QPainter *painter, PCBLAYER layer) const;
+	virtual void draw(QPainter *painter, XPcb::PCBLAYER layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
@@ -36,7 +36,7 @@ public:
 	/// Returns a reference to the segment set.
 	const QSet<Segment*> & segments() const { return mSegs; }
 	/// Returns true if a vertex is present on the given layer
-	bool onLayer(PCBLAYER layer) const;
+	bool onLayer(XPcb::PCBLAYER layer) const;
 	/// Returns true if the vertex is a via (exists on multiple layers)
 	bool isVia() const;
 
@@ -58,23 +58,23 @@ private:
 class Segment : public PCBObject
 {
 public:
-	Segment(TraceList* parent, Vertex* v1, Vertex* v2, PCBLAYER l = LAY_RAT_LINE, int w = 0);
+	Segment(TraceList* parent, Vertex* v1, Vertex* v2, XPcb::PCBLAYER l = XPcb::LAY_RAT_LINE, int w = 0);
 	~Segment();
 
-	virtual void draw(QPainter *painter, PCBLAYER layer) const;
+	virtual void draw(QPainter *painter, XPcb::PCBLAYER layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	int width() const {return mWidth;}
 	void setWidth(int w) {mWidth = w;}
-	PCBLAYER layer() const {return mLayer;}
-	void setLayer(PCBLAYER layer) {mLayer = layer;}
+	XPcb::PCBLAYER layer() const {return mLayer;}
+	void setLayer(XPcb::PCBLAYER layer) {mLayer = layer;}
 
 	const Vertex* v1() const { return mV1; }
 	const Vertex* v2() const { return mV2; }
 	Vertex* otherVertex(Vertex* v) const {return (v == mV1 ? mV2 : mV1);}
 private:
-	PCBLAYER mLayer;
+	XPcb::PCBLAYER mLayer;
 	TraceList *mParent;
 	Vertex *mV1;
 	Vertex *mV2;

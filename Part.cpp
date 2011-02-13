@@ -11,30 +11,30 @@ PartPin::~PartPin()
 		mNet->removePin(this);
 }
 
-Pad PartPin::getPadOnLayer(PCBLAYER layer) const
+Pad PartPin::getPadOnLayer(XPcb::PCBLAYER layer) const
 {
 	return mPin->getPadOnLayer(mapLayer(layer));
 }
 
-Padstack::PSLAYER PartPin::mapLayer(PCBLAYER layer) const
+Padstack::PSLAYER PartPin::mapLayer(XPcb::PCBLAYER layer) const
 {
-	if (layer < LAY_HOLE || layer == LAY_UNKNOWN)
+	if (layer < XPcb::LAY_HOLE || layer == XPcb::LAY_UNKNOWN)
 		return Padstack::LAY_UNKNOWN;
 
-	PCBSIDE side = mPart->side();
-	if ((layer == LAY_TOP_COPPER && side == SIDE_TOP) ||
-		(layer == LAY_BOTTOM_COPPER && side == SIDE_BOTTOM))
+	Part::SIDE side = mPart->side();
+	if ((layer == XPcb::LAY_TOP_COPPER && side == Part::SIDE_TOP) ||
+		(layer == XPcb::LAY_BOTTOM_COPPER && side == Part::SIDE_BOTTOM))
 		return Padstack::LAY_START;
-	else if ((layer == LAY_TOP_COPPER && side == SIDE_BOTTOM) ||
-		(layer == LAY_BOTTOM_COPPER && side == SIDE_TOP))
+	else if ((layer == XPcb::LAY_TOP_COPPER && side == Part::SIDE_BOTTOM) ||
+		(layer == XPcb::LAY_BOTTOM_COPPER && side == Part::SIDE_TOP))
 		return Padstack::LAY_END;
-	else if (layer > LAY_BOTTOM_COPPER)
+	else if (layer > XPcb::LAY_BOTTOM_COPPER)
 		return Padstack::LAY_INNER;
 	else
 		return Padstack::LAY_HOLE;
 }
 
-bool PartPin::testHit( const QPoint& pt, PCBLAYER layer ) const
+bool PartPin::testHit( const QPoint& pt, XPcb::PCBLAYER layer ) const
 {
 	return mPin->testHit(mPart->transform().inverted().map(pt), mapLayer(layer));
 }
@@ -54,11 +54,11 @@ QRect PartPin::bbox() const
 	return mPart->transform().mapRect(mPin->bbox());
 }
 
-void PartPin::draw(QPainter *painter, PCBLAYER layer) const
+void PartPin::draw(QPainter *painter, XPcb::PCBLAYER layer) const
 {
-	if (layer == LAY_SELECTION)
+	if (layer == XPcb::LAY_SELECTION)
 		painter->drawRect(bbox());
-	if (layer < LAY_HOLE) return;
+	if (layer < XPcb::LAY_HOLE) return;
 	mPin->draw(painter, mapLayer(layer));
 }
 
@@ -195,8 +195,8 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 			while(!reader.isEndElement());
 		}
 	}
-	pp->mRefdes->setLayer(pp->mSide == SIDE_TOP ? LAY_SILK_TOP : LAY_SILK_BOTTOM);
-	pp->mValue->setLayer(pp->mSide == SIDE_TOP ? LAY_SILK_TOP : LAY_SILK_BOTTOM);
+	pp->mRefdes->setLayer(pp->mSide == SIDE_TOP ? XPcb::LAY_SILK_TOP : XPcb::LAY_SILK_BOTTOM);
+	pp->mValue->setLayer(pp->mSide == SIDE_TOP ? XPcb::LAY_SILK_TOP : XPcb::LAY_SILK_BOTTOM);
 	pp->mRefdes->setParent(pp);
 	pp->mValue->setParent(pp);
 	return pp;
@@ -235,11 +235,11 @@ void Part::toXML(QXmlStreamWriter &writer) const
 	writer.writeEndElement();
 }
 
-void Part::setSide(PCBSIDE side)
+void Part::setSide(SIDE side)
 {
 	mSide = side;
-	mRefdes->setLayer(mSide == SIDE_TOP ? LAY_SILK_TOP : LAY_SILK_BOTTOM);
-	mValue->setLayer(mSide == SIDE_TOP ? LAY_SILK_TOP : LAY_SILK_BOTTOM);
+	mRefdes->setLayer(mSide == SIDE_TOP ? XPcb::LAY_SILK_TOP : XPcb::LAY_SILK_BOTTOM);
+	mValue->setLayer(mSide == SIDE_TOP ? XPcb::LAY_SILK_TOP : XPcb::LAY_SILK_BOTTOM);
 	updateTransform();
 }
 
@@ -254,9 +254,9 @@ void Part::updateTransform()
 	this->mValue->parentChanged();
 }
 
-void Part::draw(QPainter *painter, PCBLAYER layer) const
+void Part::draw(QPainter *painter, XPcb::PCBLAYER layer) const
 {
-	if (layer == LAY_SELECTION)
+	if (layer == XPcb::LAY_SELECTION)
 	{
 		painter->drawRect(bbox());
 		if (refVisible())
@@ -271,11 +271,11 @@ void Part::draw(QPainter *painter, PCBLAYER layer) const
 
 
 	// draw footprint
-	if ((layer == LAY_SILK_TOP && mSide == SIDE_TOP) ||
-		(layer == LAY_SILK_BOTTOM && mSide == SIDE_BOTTOM))
+	if ((layer == XPcb::LAY_SILK_TOP && mSide == SIDE_TOP) ||
+		(layer == XPcb::LAY_SILK_BOTTOM && mSide == SIDE_BOTTOM))
 		mFp->draw(painter, Footprint::LAY_START);
-	else if ((layer == LAY_SILK_TOP && mSide == SIDE_BOTTOM) ||
-		(layer == LAY_SILK_BOTTOM && mSide == SIDE_TOP))
+	else if ((layer == XPcb::LAY_SILK_TOP && mSide == SIDE_BOTTOM) ||
+		(layer == XPcb::LAY_SILK_BOTTOM && mSide == SIDE_TOP))
 		mFp->draw(painter, Footprint::LAY_END);
 
 	// draw pins

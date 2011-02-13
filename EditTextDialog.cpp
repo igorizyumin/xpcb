@@ -36,11 +36,11 @@ void EditTextDialog::init(Text *t)
 		mirrorImageBox->setChecked(t->isMirrored());
 		negativeTextBox->setChecked(t->isNegative());
 		setWidthRadio->setChecked(true);
-		widthBox->setValue(PCB2MIL(t->strokeWidth()));
-		heightBox->setValue(PCB2MIL(t->fontSize()));
+		widthBox->setValue(XPcb::PCB2MIL(t->strokeWidth()));
+		heightBox->setValue(XPcb::PCB2MIL(t->fontSize()));
 		setPosRadio->setChecked(true);
-		xPos->setValue(PCB2MIL(t->pos().x()));
-		yPos->setValue(PCB2MIL(t->pos().y()));
+		xPos->setValue(XPcb::PCB2MIL(t->pos().x()));
+		yPos->setValue(XPcb::PCB2MIL(t->pos().y()));
 		angleBox->setCurrentIndex(t->angle() / 90);
 	}
 	else
@@ -63,7 +63,7 @@ void EditTextDialog::init(Text *t)
 	}
 }
 
-PCBLAYER EditTextDialog::layer() const
+XPcb::PCBLAYER EditTextDialog::layer() const
 {
 	return mLayerInd[layerBox->currentIndex()];
 }
@@ -78,10 +78,10 @@ void EditTextDialog::updateUnits()
 {
 	if (!mInMM)
 	{
-		widthBox->setValue(PCB2MIL(MM2PCB(widthBox->value())));
-		heightBox->setValue(PCB2MIL(MM2PCB(heightBox->value())));
-		xPos->setValue(PCB2MIL(MM2PCB(xPos->value())));
-		yPos->setValue(PCB2MIL(MM2PCB(yPos->value())));
+		widthBox->setValue(XPcb::PCB2MIL(XPcb::MM2PCB(widthBox->value())));
+		heightBox->setValue(XPcb::PCB2MIL(XPcb::MM2PCB(heightBox->value())));
+		xPos->setValue(XPcb::PCB2MIL(XPcb::MM2PCB(xPos->value())));
+		yPos->setValue(XPcb::PCB2MIL(XPcb::MM2PCB(yPos->value())));
 
 		widthBox->setDecimals(0);
 		heightBox->setDecimals(0);
@@ -100,10 +100,10 @@ void EditTextDialog::updateUnits()
 		xPos->setDecimals(3);
 		yPos->setDecimals(3);
 
-		widthBox->setValue(PCB2MM(MIL2PCB(widthBox->value())));
-		heightBox->setValue(PCB2MM(MIL2PCB(heightBox->value())));
-		xPos->setValue(PCB2MM(MIL2PCB(xPos->value())));
-		yPos->setValue(PCB2MM(MIL2PCB(yPos->value())));
+		widthBox->setValue(XPcb::PCB2MM(XPcb::MIL2PCB(widthBox->value())));
+		heightBox->setValue(XPcb::PCB2MM(XPcb::MIL2PCB(heightBox->value())));
+		xPos->setValue(XPcb::PCB2MM(XPcb::MIL2PCB(xPos->value())));
+		yPos->setValue(XPcb::PCB2MM(XPcb::MIL2PCB(yPos->value())));
 
 		widthBox->setSuffix(" mm");
 		heightBox->setSuffix(" mm");
@@ -114,18 +114,18 @@ void EditTextDialog::updateUnits()
 
 void EditTextDialog::populateLayers(int numLayers)
 {
-	layerBox->addItem(layer_str[(int)LAY_SILK_TOP], QVariant((int)LAY_SILK_TOP));
-	mLayerInd.append(LAY_SILK_TOP);
-	layerBox->addItem(layer_str[(int)LAY_SILK_BOTTOM], QVariant((int)LAY_SILK_BOTTOM));
-	mLayerInd.append(LAY_SILK_BOTTOM);
-	layerBox->addItem(layer_str[(int)LAY_TOP_COPPER], QVariant((int)LAY_TOP_COPPER));
-	mLayerInd.append(LAY_TOP_COPPER);
+	layerBox->addItem(XPcb::layerName(XPcb::LAY_SILK_TOP), QVariant(XPcb::LAY_SILK_TOP));
+	mLayerInd.append(XPcb::LAY_SILK_TOP);
+	layerBox->addItem(XPcb::layerName(XPcb::LAY_SILK_BOTTOM), QVariant(XPcb::LAY_SILK_BOTTOM));
+	mLayerInd.append(XPcb::LAY_SILK_BOTTOM);
+	layerBox->addItem(XPcb::layerName(XPcb::LAY_TOP_COPPER), QVariant(XPcb::LAY_TOP_COPPER));
+	mLayerInd.append(XPcb::LAY_TOP_COPPER);
 	for(int i = 0; i < numLayers - 2; i++)
 	{
-		layerBox->addItem(layer_str[(int)LAY_INNER1+i], QVariant((int)LAY_INNER1+i));
-		mLayerInd.append((PCBLAYER)((int)LAY_INNER1 + i));
+		layerBox->addItem(XPcb::layerName((XPcb::PCBLAYER)(XPcb::LAY_INNER1+i)), QVariant(XPcb::LAY_INNER1+i));
+		mLayerInd.append((XPcb::PCBLAYER)(XPcb::LAY_INNER1 + i));
 	}
-	layerBox->addItem(layer_str[(int)LAY_BOTTOM_COPPER], QVariant((int)LAY_BOTTOM_COPPER));
-	mLayerInd.append(LAY_BOTTOM_COPPER);
+	layerBox->addItem(XPcb::layerName(XPcb::LAY_BOTTOM_COPPER), QVariant(XPcb::LAY_BOTTOM_COPPER));
+	mLayerInd.append(XPcb::LAY_BOTTOM_COPPER);
 }
 

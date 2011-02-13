@@ -167,7 +167,7 @@ public:
 
 	QPoint centroid() {return mCentroid;}
 	bool isCustomCentroid() {return mCustomCentroid;}
-	UNIT units() {return mUnits; }
+	XPcb::UNIT units() {return mUnits; }
 
 	static Footprint* newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks);
 	void toXML(QXmlStreamWriter &writer) const;
@@ -185,7 +185,7 @@ private:
 	/// Description of footprint
 	QString mDesc;
 	/// Units used to draw the footprint
-	UNIT mUnits;
+	XPcb::UNIT mUnits;
 	/// Reference designator text
 	Text mRefText;
 	/// Value text

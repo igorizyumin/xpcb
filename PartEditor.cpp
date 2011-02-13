@@ -245,7 +245,7 @@ void PartEditor::actionDelete()
 
 void PartEditor::actionRotate(bool cw)
 {
-	if (mSide == SIDE_BOTTOM)
+	if (mSide == Part::SIDE_BOTTOM)
 		cw = !cw;
 	mAngle += cw ? 270 : 90;
 	mAngle %= 360;
@@ -254,7 +254,7 @@ void PartEditor::actionRotate(bool cw)
 
 void PartEditor::actionChangeSide()
 {
-	mSide = (mSide == SIDE_TOP) ? SIDE_BOTTOM : SIDE_TOP;
+	mSide = (mSide == Part::SIDE_TOP) ? Part::SIDE_BOTTOM : Part::SIDE_TOP;
 	emit overlayChanged();
 }
 
@@ -346,7 +346,7 @@ void PartEditor::drawOverlay(QPainter *painter)
 		painter->save();
 		painter->setBrush(Qt::NoBrush);
 		painter->setRenderHint(QPainter::Antialiasing, false);
-		mPart->draw(painter, LAY_SELECTION);
+		mPart->draw(painter, XPcb::LAY_SELECTION);
 		painter->restore();
 	}
 	else
@@ -357,7 +357,7 @@ void PartEditor::drawOverlay(QPainter *painter)
 		painter->translate(mPos);
 		painter->drawLine(QPoint(0, -INT_MAX), QPoint(0, INT_MAX));
 		painter->drawLine(QPoint(-INT_MAX, 0), QPoint(INT_MAX, 0));
-		if (mSide == SIDE_BOTTOM)
+		if (mSide == Part::SIDE_BOTTOM)
 			painter->scale(-1, 1);
 		painter->rotate(mAngle);
 		painter->drawRect(mBox);
@@ -369,7 +369,7 @@ void PartEditor::drawOverlay(QPainter *painter)
 /////////////////////////////////// UNDO COMMANDS ///////////////////////////////////////////////
 
 
-PartMoveCmd::PartMoveCmd(QUndoCommand *parent, Part *obj, QPoint newPos, int newAngle, PCBSIDE newSide)
+PartMoveCmd::PartMoveCmd(QUndoCommand *parent, Part *obj, QPoint newPos, int newAngle, Part::SIDE newSide)
 	: QUndoCommand(parent), mPart(obj), mPrevPos(obj->pos()), mNewPos(newPos), mNewAngle(newAngle),
 	mPrevAngle(obj->angle()), mNewSide(newSide), mPrevSide(obj->side())
 {

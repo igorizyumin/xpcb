@@ -36,7 +36,7 @@ public:
 	Net* getNet(const QString &name) const;
 
 	QString name() const { return mName; }
-	UNIT units() const { return mUnits; }
+	XPcb::UNIT units() const { return mUnits; }
 
 	/// Returns a list of all objects that are hit
 	QList<PCBObject*> findObjs(QPoint &pt);
@@ -69,7 +69,7 @@ private:
 	/// Project name
 	QString mName;
 	/// Default units
-	UNIT mUnits;
+	XPcb::UNIT mUnits;
 	/// Number of copper layers
 	int mNumLayers;
 

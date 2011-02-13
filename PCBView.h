@@ -48,7 +48,7 @@ private:
 	void recenter(QPoint pt, bool world=false);
 	void zoom(double factor, QPoint pos);
 
-	QColor layerColor(PCBLAYER l);
+	QColor layerColor(XPcb::PCBLAYER l);
 
 	/// Controller
 	Controller* mCtrl;

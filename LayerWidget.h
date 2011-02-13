@@ -33,23 +33,23 @@ public:
 	explicit LayerWidget(QWidget* parent = 0);
 
 	void setNumLayers(int numLayers) { mNumLayers = numLayers; rebuild(); }
-	bool isLayerVisible(PCBLAYER l) const;
-	PCBLAYER activeLayer() const;
+	bool isLayerVisible(XPcb::PCBLAYER l) const;
+	XPcb::PCBLAYER activeLayer() const;
 
 signals:
 	void layerVisibilityChanged();
-	void currLayerChanged(PCBLAYER layer);
+	void currLayerChanged(XPcb::PCBLAYER layer);
 
 private slots:
 	void onKeyboardShortcut(int layer);
 
 private:
 	void rebuild();
-	void addLayer(PCBLAYER l);
-	void setActive(PCBLAYER l);
-	int mapLayer(PCBLAYER l) const;
+	void addLayer(XPcb::PCBLAYER l);
+	void setActive(XPcb::PCBLAYER l);
+	int mapLayer(XPcb::PCBLAYER l) const;
 
-	PCBLAYER mActiveLayer;
+	XPcb::PCBLAYER mActiveLayer;
 	int mNumLayers;
 
 	QSignalMapper mMapper;

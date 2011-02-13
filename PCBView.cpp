@@ -14,8 +14,8 @@ PCBView::PCBView(QWidget *parent)
 	// initialize transform
 	// 100 pixels = 1 inch
 	mTransform.translate(0, 300);
-	mTransform.scale(100.0/IN2PCB(1), -100.0/IN2PCB(1));
-	mVisibleGrid = IN2PCB(0.1);
+	mTransform.scale(100.0/XPcb::IN2PCB(1), -100.0/XPcb::IN2PCB(1));
+	mVisibleGrid = XPcb::IN2PCB(0.1);
 	setMouseTracking(true);
 	setFocusPolicy(Qt::StrongFocus);
 }
@@ -45,49 +45,49 @@ void PCBView::paintEvent(QPaintEvent *e)
 {
 	const int nLayers = 26;
 	// layer draw order
-	const PCBLAYER priority[nLayers] = {
-		LAY_BOTTOM_COPPER,
-		LAY_INNER14,
-		LAY_INNER13,
-		LAY_INNER12,
-		LAY_INNER11,
-		LAY_INNER10,
-		LAY_INNER9,
-		LAY_INNER8,
-		LAY_INNER7,
-		LAY_INNER6,
-		LAY_INNER5,
-		LAY_INNER4,
-		LAY_INNER3,
-		LAY_INNER2,
-		LAY_INNER1,
-		LAY_TOP_COPPER,
-		LAY_CURR_ACTIVE,
-		LAY_HOLE,
-		LAY_SM_BOTTOM,
-		LAY_SM_TOP,
-		LAY_SILK_BOTTOM,
-		LAY_SILK_TOP,
-		LAY_RAT_LINE,
-		LAY_BOARD_OUTLINE,
-		LAY_DRC_ERROR,
-		LAY_SELECTION
+	const XPcb::PCBLAYER priority[nLayers] = {
+		XPcb::LAY_BOTTOM_COPPER,
+		XPcb::LAY_INNER14,
+		XPcb::LAY_INNER13,
+		XPcb::LAY_INNER12,
+		XPcb::LAY_INNER11,
+		XPcb::LAY_INNER10,
+		XPcb::LAY_INNER9,
+		XPcb::LAY_INNER8,
+		XPcb::LAY_INNER7,
+		XPcb::LAY_INNER6,
+		XPcb::LAY_INNER5,
+		XPcb::LAY_INNER4,
+		XPcb::LAY_INNER3,
+		XPcb::LAY_INNER2,
+		XPcb::LAY_INNER1,
+		XPcb::LAY_TOP_COPPER,
+		XPcb::LAY_CURR_ACTIVE,
+		XPcb::LAY_HOLE,
+		XPcb::LAY_SM_BOTTOM,
+		XPcb::LAY_SM_TOP,
+		XPcb::LAY_SILK_BOTTOM,
+		XPcb::LAY_SILK_TOP,
+		XPcb::LAY_RAT_LINE,
+		XPcb::LAY_BOARD_OUTLINE,
+		XPcb::LAY_DRC_ERROR,
+		XPcb::LAY_SELECTION
 	};
 
 	QPainter painter(this);
 	// erase background
-	painter.setBackground(QBrush(layerColor(LAY_BACKGND)));
+	painter.setBackground(QBrush(layerColor(XPcb::LAY_BACKGND)));
 	painter.setClipping(true);
 	painter.eraseRect(this->rect());
 	if (mCtrl && mCtrl->docIsOpen())
 	{
 		// draw grid
-		QPen pen(layerColor(LAY_VISIBLE_GRID));
+		QPen pen(layerColor(XPcb::LAY_VISIBLE_GRID));
 		pen.setCapStyle(Qt::RoundCap);
 		pen.setJoinStyle(Qt::RoundJoin);
 		painter.setTransform(mTransform);
 		painter.setPen(pen);
-		if (mCtrl->isLayerVisible(LAY_VISIBLE_GRID))
+		if (mCtrl->isLayerVisible(XPcb::LAY_VISIBLE_GRID))
 		{
 			drawOrigin(&painter);
 			drawGrid(&painter);
@@ -95,13 +95,13 @@ void PCBView::paintEvent(QPaintEvent *e)
 		// turn on AA
 		painter.setRenderHint(QPainter::Antialiasing);
 		QRect bb = mTransform.inverted().mapRect(e->rect());
-		PCBLAYER active = mCtrl->activeLayer();
+		XPcb::PCBLAYER active = mCtrl->activeLayer();
 
 		// draw the layers
 		for(int i = 0; i < nLayers; i++)
 		{
-			PCBLAYER l = priority[i];
-			if (l == LAY_CURR_ACTIVE) // placeholder
+			XPcb::PCBLAYER l = priority[i];
+			if (l == XPcb::LAY_CURR_ACTIVE) // placeholder
 				l = active;
 			else if (l == active)
 				continue; // already drawn
@@ -109,12 +109,12 @@ void PCBView::paintEvent(QPaintEvent *e)
 			{
 				// set color / fill
 				QPen p = painter.pen();
-				p.setColor(layerColor((PCBLAYER)l));
+				p.setColor(layerColor((XPcb::PCBLAYER)l));
 				p.setWidth(0);
 				painter.setPen(p);
 				QBrush b = painter.brush();
 				b.setColor(layerColor(l));
-				if (l != LAY_SELECTION)
+				if (l != XPcb::LAY_SELECTION)
 					b.setStyle(Qt::SolidPattern);
 				else
 					b.setStyle(Qt::NoBrush);
@@ -130,11 +130,11 @@ void PCBView::paintEvent(QPaintEvent *e)
 void PCBView::drawOrigin(QPainter *painter)
 {
 	// circle with 4 lines
-	painter->drawEllipse(IN2PCB(-0.05),IN2PCB(-0.05),IN2PCB(0.1), IN2PCB(0.1));
-	painter->drawLine(IN2PCB(0.05), 0, IN2PCB(0.25), 0);
-	painter->drawLine(0, IN2PCB(0.05), 0, IN2PCB(0.25));
-	painter->drawLine(IN2PCB(-0.05), 0, IN2PCB(-0.25), 0);
-	painter->drawLine(0, IN2PCB(-0.05), 0, IN2PCB(-0.25));
+	painter->drawEllipse(XPcb::IN2PCB(-0.05),XPcb::IN2PCB(-0.05),XPcb::IN2PCB(0.1), XPcb::IN2PCB(0.1));
+	painter->drawLine(XPcb::IN2PCB(0.05), 0, XPcb::IN2PCB(0.25), 0);
+	painter->drawLine(0, XPcb::IN2PCB(0.05), 0, XPcb::IN2PCB(0.25));
+	painter->drawLine(XPcb::IN2PCB(-0.05), 0, XPcb::IN2PCB(-0.25), 0);
+	painter->drawLine(0, XPcb::IN2PCB(-0.05), 0, XPcb::IN2PCB(-0.25));
 }
 
 void PCBView::drawGrid(QPainter *painter)
@@ -215,8 +215,8 @@ void PCBView::recenter(QPoint pt, bool world)
 	ctr -= pt;
 	mTransform.translate(ctr.x(), ctr.y());
 	// check if the viewport is out of bounds
-	QRect bound = QRect(QPoint(-PCB_BOUND, -PCB_BOUND),
-						QPoint(PCB_BOUND, PCB_BOUND));
+	QRect bound = QRect(QPoint(-XPcb::PCB_BOUND, -XPcb::PCB_BOUND),
+						QPoint(XPcb::PCB_BOUND, XPcb::PCB_BOUND));
 	QRect vp = mTransform.inverted().mapRect(this->rect());
 	if (!bound.contains(vp))
 	{
@@ -256,8 +256,8 @@ void PCBView::zoom(double factor, QPoint pos)
 	test.scale(factor, factor);
 	// check if the bounding rectangle does not enclose the viewport
 	// refuse to zoom out (factor < 1) if that's the case
-	if(!test.mapRect(QRect(QPoint(-PCB_BOUND, -PCB_BOUND),
-								QPoint(PCB_BOUND, PCB_BOUND))).contains(this->rect())
+	if(!test.mapRect(QRect(QPoint(-XPcb::PCB_BOUND, -XPcb::PCB_BOUND),
+								QPoint(XPcb::PCB_BOUND, XPcb::PCB_BOUND))).contains(this->rect())
 		&& factor < 1 )
 	{
 		return;
@@ -266,8 +266,8 @@ void PCBView::zoom(double factor, QPoint pos)
 	recenter(p, true);
 }
 
-QColor PCBView::layerColor(PCBLAYER l)
+QColor PCBView::layerColor(XPcb::PCBLAYER l)
 {
 	QSettings s;
-	return s.value(QString("colors/%1").arg(layer_str[(int)l])).value<QColor>();
+	return s.value(QString("colors/%1").arg(XPcb::layerName(l))).value<QColor>();
 }

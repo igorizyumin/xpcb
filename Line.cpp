@@ -3,7 +3,7 @@
 #include <QXmlStreamWriter>
 
 Line::Line()
-	: mWidth(0), mLayer(LAY_UNKNOWN)
+	: mWidth(0), mLayer(XPcb::LAY_UNKNOWN)
 {
 }
 
@@ -15,7 +15,7 @@ Line Line::newFromXml(QXmlStreamReader &reader)
 
 	Line l;
 	l.mWidth = attr.value("width").toString().toInt();
-	l.mLayer = (PCBLAYER) attr.value("layer").toString().toInt();
+	l.mLayer = (XPcb::PCBLAYER) attr.value("layer").toString().toInt();
 	l.mStart = QPoint(
 			attr.value("x1").toString().toInt(),
 			attr.value("y1").toString().toInt());
@@ -43,9 +43,9 @@ void Line::toXML(QXmlStreamWriter &writer) const
 
 }
 
-void Line::draw(QPainter *painter, PCBLAYER layer) const
+void Line::draw(QPainter *painter, XPcb::PCBLAYER layer) const
 {
-	if (layer != mLayer && layer != LAY_SELECTION)
+	if (layer != mLayer && layer != XPcb::LAY_SELECTION)
 		return;
 
 	QPen pen = painter->pen();
@@ -63,7 +63,7 @@ QRect Line::bbox() const
 ///////////////////////// ARC /////////////////////////////////////////
 
 Arc::Arc()
-	: mIsCw(false), mWidth(0), mLayer(LAY_UNKNOWN)
+	: mIsCw(false), mWidth(0), mLayer(XPcb::LAY_UNKNOWN)
 {
 }
 
@@ -75,7 +75,7 @@ Arc Arc::newFromXml(QXmlStreamReader &reader)
 
 	Arc a;
 	a.mWidth = attr.value("width").toString().toInt();
-	a.mLayer = (PCBLAYER) attr.value("layer").toString().toInt();
+	a.mLayer = (XPcb::PCBLAYER) attr.value("layer").toString().toInt();
 	a.mStart = QPoint(
 			attr.value("x1").toString().toInt(),
 			attr.value("y1").toString().toInt());
@@ -104,9 +104,9 @@ void Arc::toXML(QXmlStreamWriter &writer) const
 	writer.writeEndElement();
 }
 
-void Arc::draw(QPainter *painter, PCBLAYER layer) const
+void Arc::draw(QPainter *painter, XPcb::PCBLAYER layer) const
 {
-	if (layer != mLayer && layer != LAY_SELECTION) return;
+	if (layer != mLayer && layer != XPcb::LAY_SELECTION) return;
 	int x1, x2, y1, y2;
 	// make x/y always be clockwise values
 	if (mIsCw)

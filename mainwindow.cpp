@@ -220,8 +220,8 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::onViewCoords(QPoint pt)
 {
-	m_statusbar_xc->setText(QString("X: %1").arg(PCB2IN(pt.x())*1000.0, -6, 'f', 1));
-	m_statusbar_yc->setText(QString("Y: %1").arg(PCB2IN(pt.y())*1000.0, -6, 'f', 1));
+	m_statusbar_xc->setText(QString("X: %1").arg(XPcb::PCB2IN(pt.x())*1000.0, -6, 'f', 1));
+	m_statusbar_yc->setText(QString("Y: %1").arg(XPcb::PCB2IN(pt.y())*1000.0, -6, 'f', 1));
 }
 
 void MainWindow::documentWasModified()

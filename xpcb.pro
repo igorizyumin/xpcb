@@ -42,7 +42,8 @@ SOURCES += PCBView.cpp \
     SelFilterWidget.cpp \
     LayerWidget.cpp \
     EditPartDialog.cpp \
-	PartEditor.cpp
+	PartEditor.cpp \
+    global.cpp
 
 unittest {
 	QT += testlib

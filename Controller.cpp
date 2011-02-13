@@ -25,7 +25,7 @@
 
 Controller::Controller(QObject *parent) :
 	QObject(parent), mView(NULL), mDoc(NULL), mEditor(NULL), mLayerWidget(NULL), mActionBar(NULL),
-	mPlaceGrid(IN2PCB(0.05)), mRouteGrid(IN2PCB(0.001))
+	mPlaceGrid(XPcb::IN2PCB(0.05)), mRouteGrid(XPcb::IN2PCB(0.001))
 {
 }
 
@@ -75,16 +75,16 @@ void Controller::registerLayerWidget(LayerWidget *widget)
 	if (mDoc)
 		mLayerWidget->setNumLayers(mDoc->numLayers());
 	connect(mLayerWidget, SIGNAL(layerVisibilityChanged()), this, SLOT(onDocumentChanged()));
-	connect(mLayerWidget, SIGNAL(currLayerChanged(PCBLAYER)), this, SLOT(onDocumentChanged()));
+	connect(mLayerWidget, SIGNAL(currLayerChanged(XPcb::PCBLAYER)), this, SLOT(onDocumentChanged()));
 
 }
 
-void Controller::draw(QPainter* painter, QRect &rect, PCBLAYER layer)
+void Controller::draw(QPainter* painter, QRect &rect, XPcb::PCBLAYER layer)
 {
 	if (!mView || !mDoc) return;
 
 
-	if (layer == LAY_SELECTION)
+	if (layer == XPcb::LAY_SELECTION)
 	{
 		if (mEditor)
 			mEditor->drawOverlay(painter);
@@ -100,7 +100,7 @@ void Controller::draw(QPainter* painter, QRect &rect, PCBLAYER layer)
 	}
 }
 
-bool Controller::eventFilter(QObject *watched, QEvent *event)
+bool Controller::eventFilter(QObject *, QEvent *event)
 {
 	event->accept();
 	if (event->type() == QEvent::MouseMove)
@@ -147,10 +147,10 @@ void Controller::mouseReleaseEvent(QMouseEvent *event)
 	{
 		PCBObject* obj = i.next();
 		bool hit = false;
-		for(int l = (int)LAY_DRC_ERROR; l < (int)LAY_TOP_COPPER + mDoc->numLayers(); l++)
+		for(int l = (int)XPcb::LAY_DRC_ERROR; l < (int)XPcb::LAY_TOP_COPPER + mDoc->numLayers(); l++)
 		{
-			if (!mLayerWidget->isLayerVisible((PCBLAYER)l)) continue;
-			if (obj->testHit(pos, (PCBLAYER)l))
+			if (!mLayerWidget->isLayerVisible((XPcb::PCBLAYER)l)) continue;
+			if (obj->testHit(pos, (XPcb::PCBLAYER)l))
 			{
 				hit = true;
 				break;
@@ -315,13 +315,13 @@ QPoint Controller::snapToRouteGrid(QPoint p)
 				  ((p.y() + mRouteGrid/2) / mRouteGrid) * mRouteGrid);
 }
 
-bool Controller::isLayerVisible(PCBLAYER l) const
+bool Controller::isLayerVisible(XPcb::PCBLAYER l) const
 {
 	if (!mLayerWidget) return false;
 	else return mLayerWidget->isLayerVisible(l);
 }
 
-PCBLAYER Controller::activeLayer() const
+XPcb::PCBLAYER Controller::activeLayer() const
 {
 	return mLayerWidget->activeLayer();
 }
