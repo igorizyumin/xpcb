@@ -12,7 +12,7 @@ Vertex::Vertex(TraceList* parent, QPoint pos, bool forcevia)
 
 }
 
-void Vertex::draw(QPainter *painter, XPcb::PCBLAYER layer) const
+void Vertex::draw(QPainter *painter, const Layer& layer) const
 {
 	// XXX TODO draw via if needed
 }
@@ -45,7 +45,7 @@ QSet<Vertex*> TraceList::getConnectedVertices(Vertex* vtx) const
 
 QSet<Vertex*> TraceList::getVerticesInArea(const Area& a) const
 {
-	XPcb::PCBLAYER layer = a.layer();
+	Layer layer = a.layer();
 	QSet<Vertex*> set;
 	foreach(Vertex* vtx, myVtx)
 	{
@@ -138,7 +138,7 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 		QXmlStreamAttributes attr = reader.attributes();
 		int start = attr.value("start").toString().toInt();
 		int end = attr.value("end").toString().toInt();
-		XPcb::PCBLAYER layer = (XPcb::PCBLAYER)attr.value("layer").toString().toInt();
+		Layer layer((Layer::Type)attr.value("layer").toString().toInt());
 		int width = attr.value("width").toString().toInt();
 
 		Segment* s = new Segment(this,
@@ -173,7 +173,7 @@ void TraceList::toXML(QXmlStreamWriter &writer) const
 		writer.writeStartElement("segment");
 		writer.writeAttribute("start", QString::number(s->v1()->getid()));
 		writer.writeAttribute("end", QString::number(s->v2()->getid()));
-		writer.writeAttribute("layer", QString::number(s->layer()));
+		writer.writeAttribute("layer", QString::number(s->layer().toInt()));
 		writer.writeAttribute("width", QString::number(s->width()));
 		writer.writeEndElement();
 	}
@@ -184,7 +184,7 @@ void TraceList::toXML(QXmlStreamWriter &writer) const
 
 /////////////////////// SEGMENT ///////////////////////
 
-Segment::Segment(TraceList* parent, Vertex* v1, Vertex* v2, XPcb::PCBLAYER l, int w)
+Segment::Segment(TraceList* parent, Vertex* v1, Vertex* v2, const Layer& l, int w)
 	: mLayer(l), mParent(parent), mV1(v1), mV2(v2) , mWidth(w)
 {
 	mV1->addSegment(this);
@@ -197,7 +197,7 @@ Segment::~Segment()
 	mV2->removeSegment(this);
 }
 
-void Segment::draw(QPainter *painter, XPcb::PCBLAYER layer) const
+void Segment::draw(QPainter *painter, const Layer& layer) const
 {
 	// XXX TODO draw via if needed
 }
@@ -212,7 +212,7 @@ QRect Segment::bbox() const
 
 bool Vertex::isVia() const
 {
-	XPcb::PCBLAYER layer;
+	Layer layer;
 	bool first = true;
 	foreach(Segment* seg, this->mSegs)
 	{
@@ -226,7 +226,7 @@ bool Vertex::isVia() const
 }
 
 
-bool Vertex::onLayer(XPcb::PCBLAYER layer) const
+bool Vertex::onLayer(const Layer& layer) const
 {
 	// vias are present on all layers
 	if (isVia())

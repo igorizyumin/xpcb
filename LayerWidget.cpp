@@ -27,49 +27,38 @@ LayerWidget::LayerWidget(QWidget* parent)
 {
 	QVBoxLayout* layout = new QVBoxLayout();
 	this->setLayout(layout);
-	mActiveLayer = XPcb::LAY_TOP_COPPER;
-	setNumLayers(2);
-	setActive(XPcb::LAY_TOP_COPPER);
 	this->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 	connect(&mMapper, SIGNAL(mapped(int)), this, SLOT(onKeyboardShortcut(int)));
 }
 
-void LayerWidget::rebuild()
+void LayerWidget::rebuild(QList<Layer> layers)
 {
 	// delete any existing objects
 	foreach(QShortcut* s, mShortcuts)
 		delete s;
+	mShortcuts.clear();
+	foreach(QCheckBox* c, mCheckboxes)
+		delete c;
+	mCheckboxes.clear();
+	mLayers.clear();
 	this->layout()->removeItem(mSpacer);
 	delete mSpacer;
 	mSpacer = NULL;
-	mShortcuts.clear();
-	foreach(QCheckBox* b, mCheckboxes)
-		delete b;
-	mCheckboxes.clear();
-	for(int i = 0; i <= XPcb::LAY_TOP_COPPER; i++)
+	bool setact = true;
+	Layer active;
+	foreach(const Layer& l, layers)
 	{
-		addLayer((XPcb::PCBLAYER)i);
+		addLayer(l);
+		if (setact && l.isCopper())
+		{
+			active = l;
+			setact = false;
+		}
 	}
-	for(int i = 0; i < mNumLayers-2; i++)
-	{
-		addLayer((XPcb::PCBLAYER)(XPcb::LAY_INNER1+i));
-	}
-	addLayer(XPcb::LAY_BOTTOM_COPPER);
+
 	mSpacer = new QSpacerItem(1, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
 	this->layout()->addItem(mSpacer);
-	setActive(XPcb::LAY_TOP_COPPER);
-}
-
-// returns the list index for a layer
-int LayerWidget::mapLayer(XPcb::PCBLAYER l) const
-{
-	int out = l;
-	if (out <= XPcb::LAY_TOP_COPPER)
-		return out;
-	if (out == XPcb::LAY_BOTTOM_COPPER)
-		return out + mNumLayers - 2;
-	else
-		return out - 1;
+	setActive(active);
 }
 
 QString getStylesheet(QColor color, bool active = false)
@@ -87,65 +76,66 @@ QCheckBox* makeCheckbox(QString name, QColor color)
 	return cb;
 }
 
-void LayerWidget::addLayer(XPcb::PCBLAYER l)
+void LayerWidget::addLayer(const Layer& l)
 {
-	const char keys[17] = "12345678QWERTYUI";
+	const int maxSc = 17;
+	const char keys[maxSc] = "12345678QWERTYUI";
 
-	QSettings s;
-	if (l >=0 && l < XPcb::NUM_PCB_LAYERS)
+	mLayers.append(l);
+
+	QString label = l.name();
+
+	// add keyboard shortcut if necessary
+	int keyInd = mShortcuts.size();
+	if (l.isCopper() && keyInd < maxSc)
 	{
-		// get layer color
-		QColor col = s.value(QString("colors/%1").arg(XPcb::layerName(l))).value<QColor>();
-		QString label = XPcb::layerName(l);
-		// add keyboard shortcut if necessary
-		if (l >= XPcb::LAY_TOP_COPPER)
-		{
-			int ind = mapLayer(l);
-			ind -= XPcb::LAY_TOP_COPPER;
-			label.append(QString(" [%1]").arg(keys[ind]));
-			QShortcut* sc = new QShortcut(keys[ind], this);
-			mShortcuts.append(sc);
-			connect(sc, SIGNAL(activated()), &mMapper, SLOT(map()));
-			mMapper.setMapping(sc, (int)l);
-		}
-		// make new checkbox
-		QCheckBox* cb = makeCheckbox(label, col);
-		connect(cb, SIGNAL(stateChanged(int)), this, SIGNAL(layerVisibilityChanged()));
-		if (l == XPcb::LAY_SELECTION || l == XPcb::LAY_BACKGND)
-			cb->setEnabled(false);
-
-		// append checkbox and set ourselves as parent
-		mCheckboxes.append(cb);
-		this->layout()->addWidget(cb);
+		label.append(QString(" [%1]").arg(keys[keyInd]));
+		QShortcut* sc = new QShortcut(keys[keyInd], this);
+		mShortcuts.append(sc);
+		connect(sc, SIGNAL(activated()), &mMapper, SLOT(map()));
+		mMapper.setMapping(sc, mLayers.size()-1);
 	}
+	// make new checkbox
+	QCheckBox* cb = makeCheckbox(label, l.color());
+	connect(cb, SIGNAL(stateChanged(int)), this, SIGNAL(layerVisibilityChanged()));
+
+	// append checkbox and set ourselves as parent
+	mCheckboxes.append(cb);
+	this->layout()->addWidget(cb);
 }
 
-void LayerWidget::setActive(XPcb::PCBLAYER l)
+void LayerWidget::setActive(const Layer& l)
 {
-	QSettings s;
-	QColor prev = s.value(QString("colors/%1").arg(XPcb::layerName(mActiveLayer))).value<QColor>();
-	QColor next = s.value(QString("colors/%1").arg(XPcb::layerName(l))).value<QColor>();
+	if (!mLayers.contains(l))
+		return;
+	QColor prev = mActiveLayer.color();
+	QColor next = l.color();
+	int prevind = mLayers.indexOf(mActiveLayer);
+	int newind = mLayers.indexOf(l);
 
 	// unset active for current
-	mCheckboxes[mapLayer(mActiveLayer)]->setStyleSheet(getStylesheet(prev, false));
-	mCheckboxes[mapLayer(l)]->setStyleSheet(getStylesheet(next, true));
+	if (prevind != -1)
+		mCheckboxes[prevind]->setStyleSheet(getStylesheet(prev, false));
+	// set active for new
+	if (newind != -1)
+		mCheckboxes[newind]->setStyleSheet(getStylesheet(next, true));
 	mActiveLayer = l;
 	emit currLayerChanged(mActiveLayer);
 }
 
-bool LayerWidget::isLayerVisible(XPcb::PCBLAYER l) const
+bool LayerWidget::isLayerVisible(const Layer& l) const
 {
-	if ((XPcb::LAY_BOTTOM_COPPER + mNumLayers - 2) < l)
+	if (!mLayers.contains(l))
 		return false;
-	return mCheckboxes[mapLayer(l)]->checkState();
+	return mCheckboxes[mLayers.indexOf(l)]->checkState();
 }
 
-XPcb::PCBLAYER LayerWidget::activeLayer() const
+const Layer& LayerWidget::activeLayer() const
 {
 	return mActiveLayer;
 }
 
 void LayerWidget::onKeyboardShortcut(int layer)
 {
-	setActive((XPcb::PCBLAYER)layer);
+	setActive(mLayers[layer]);
 }

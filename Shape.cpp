@@ -246,20 +246,20 @@ Padstack* Padstack::newFromXML(QXmlStreamReader &reader)
 	return p;
 }
 
-void Padstack::draw(QPainter *painter, PSLAYER layer) const
+void Padstack::draw(QPainter *painter, const Layer& layer) const
 {
-	switch(layer)
+	switch(layer.type())
 	{
-	case LAY_START:
+	case Layer::LAY_START:
 		start.draw(painter);
 		break;
-	case LAY_INNER:
+	case Layer::LAY_INNER:
 		inner.draw(painter);
 		break;
-	case LAY_END:
+	case Layer::LAY_END:
 		end.draw(painter);
 		break;
-	case LAY_HOLE:
+	case Layer::LAY_HOLE:
 		if (hole_size)
 		{
 			painter->drawEllipse(QRect(QPoint(-hole_size/2, -hole_size/2),
@@ -365,7 +365,7 @@ void Pin::toXML(QXmlStreamWriter &writer) const
 	writer.writeEndElement();
 }
 
-bool Pin::testHit(const QPoint &pt, Padstack::PSLAYER layer) const
+bool Pin::testHit(const QPoint &pt, const Layer& layer) const
 {
 	Padstack *ps = padstack();
 	// check if we hit a thru-hole
@@ -381,40 +381,35 @@ bool Pin::testHit(const QPoint &pt, Padstack::PSLAYER layer) const
 	return false;
 }
 
-Pad Pin::getPadOnLayer(Padstack::PSLAYER layer) const
+Pad Pin::getPadOnLayer(const Layer& layer) const
 {
 	Padstack *ps = padstack();
 
-	switch(layer)
-	{
-	case Padstack::LAY_START:
+	if (layer == Layer::LAY_START)
 		return ps->getStartPad();
-	case Padstack::LAY_END:
+	else if (layer == Layer::LAY_END)
 		return ps->getEndPad();
-	case Padstack::LAY_INNER:
+	else if (layer == Layer::LAY_INNER)
 		return ps->getInnerPad();
-	case Padstack::LAY_UNKNOWN:
-	default:
-		return Pad();
-	}
+	return Pad();
 }
 
 QRect Pin::bbox() const
 {
-	return mPartTransform.mapRect(padstack()->bbox());
+	return mFpTransform.mapRect(padstack()->bbox());
 }
 
 void Pin::updateTransform()
 {
-	mPartTransform.reset();
-	mPartTransform.translate(mPos.x(), mPos.y());
-	mPartTransform.rotate(mAngle);
+	mFpTransform.reset();
+	mFpTransform.translate(mPos.x(), mPos.y());
+	mFpTransform.rotate(mAngle);
 }
 
-void Pin::draw(QPainter *painter, Padstack::PSLAYER layer) const
+void Pin::draw(QPainter *painter, const Layer& layer) const
 {
 	painter->save();
-	painter->setTransform(mPartTransform, true);
+	painter->setTransform(mFpTransform, true);
 	mPadstack->draw(painter, layer);
 	painter->restore();
 }
@@ -438,7 +433,7 @@ Footprint::~Footprint()
 void Footprint::draw(QPainter *painter, FP_DRAW_LAYER layer) const
 {
 	// draw lines
-	XPcb::PCBLAYER pcblayer = (layer == Footprint::LAY_START) ? XPcb::LAY_SILK_TOP : XPcb::LAY_SILK_BOTTOM;
+	Layer pcblayer = (layer == Footprint::LAY_START) ? Layer(Layer::LAY_SILK_TOP) : Layer(Layer::LAY_SILK_BOTTOM);
 	foreach(const Line& l, mOutlineLines)
 		l.draw(painter, pcblayer);
 	foreach(const Arc& a, mOutlineArcs)

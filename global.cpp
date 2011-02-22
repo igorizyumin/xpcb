@@ -16,55 +16,33 @@
 */
 
 #include "global.h"
+#include <QSettings>
 
-QString XPcb::layerName(FPLAYER layer)
+bool Layer::isPhysical() const
 {
-	switch(layer)
-	{
-	case LAY_FP_SELECTION:
-		return "selection";
-	case LAY_FP_BACKGND:
-		return "background";
-	case LAY_FP_VISIBLE_GRID:
-		return "visible grid";
-	case LAY_FP_SILK_TOP:
-		return "top silk";
-	case LAY_FP_CENTROID:
-		return "centroid";
-	case LAY_FP_DOT:
-		return "adhesive";
-	case LAY_FP_HOLE:
-		return "drilled hole";
-	case LAY_FP_TOP_MASK:
-		return "top mask";
-	case LAY_FP_TOP_PASTE:
-		return "top paste";
-	case LAY_FP_BOTTOM_MASK:
-		return "bottom mask";
-	case LAY_FP_BOTTOM_PASTE:
-		return "bottom paste";
-	case LAY_FP_TOP_COPPER:
-		return "top copper";
-	case LAY_FP_INNER_COPPER:
-		return "inner copper";
-	case LAY_FP_BOTTOM_COPPER:
-		return "bottom copper";
-	default:
-		return "unknown layer";
-	}
+	return  mType != LAY_BACKGND
+			&& mType != LAY_SELECTION
+			&& mType != LAY_VISIBLE_GRID
+			&& mType != LAY_DRC
+			&& mType != LAY_RAT_LINE;
 }
 
-QString XPcb::layerName(PCBLAYER layer)
+bool Layer::isCopper() const
 {
-	switch(layer)
+	return (mType >= LAY_TOP_COPPER && mType <= LAY_INNER14);
+}
+
+QString Layer::name(Type c)
+{
+	switch(c)
 	{
-	case LAY_SELECTION:
-		return "selection";
 	case LAY_BACKGND:
 		return "background";
+	case LAY_SELECTION:
+		return "selection";
 	case LAY_VISIBLE_GRID:
 		return "visible grid";
-	case LAY_DRC_ERROR:
+	case LAY_DRC:
 		return "drc error";
 	case LAY_BOARD_OUTLINE:
 		return "board outline";
@@ -74,9 +52,9 @@ QString XPcb::layerName(PCBLAYER layer)
 		return "top silk";
 	case LAY_SILK_BOTTOM:
 		return "bottom silk";
-	case LAY_SM_TOP:
+	case LAY_SMCUT_TOP:
 		return "top sm cutout";
-	case LAY_SM_BOTTOM:
+	case LAY_SMCUT_BOTTOM:
 		return "bottom sm cutout";
 	case LAY_HOLE:
 		return "drilled hole";
@@ -112,15 +90,22 @@ QString XPcb::layerName(PCBLAYER layer)
 		return "inner 13";
 	case LAY_INNER14:
 		return "inner 14";
-	case LAY_MASK_TOP:
-		return "top mask";
-	case LAY_MASK_BOTTOM:
-		return "bottom mask";
 	case LAY_PASTE_TOP:
 		return "top paste";
 	case LAY_PASTE_BOTTOM:
 		return "bottom paste";
-	default:
-		return "unknown layer";
+	case LAY_START:
+		return "start pad";
+	case LAY_INNER:
+		return "inner pad";
+	case LAY_END:
+		return "end pad";
 	}
+	return "unknown layer";
+}
+
+QColor Layer::color(Type c)
+{
+	QSettings s;
+	return s.value(QString("colors/%1").arg(Layer::name(c))).value<QColor>();
 }

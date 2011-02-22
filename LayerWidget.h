@@ -32,27 +32,28 @@ class LayerWidget : public QWidget
 public:
 	explicit LayerWidget(QWidget* parent = 0);
 
-	void setNumLayers(int numLayers) { mNumLayers = numLayers; rebuild(); }
-	bool isLayerVisible(XPcb::PCBLAYER l) const;
-	XPcb::PCBLAYER activeLayer() const;
+	bool isLayerVisible(const Layer& l) const;
+	const Layer& activeLayer() const;
 
 signals:
 	void layerVisibilityChanged();
-	void currLayerChanged(XPcb::PCBLAYER layer);
+	void currLayerChanged(const Layer& layer);
+
+public slots:
+	void layersChanged(QList<Layer> layers) { rebuild(layers); }
 
 private slots:
 	void onKeyboardShortcut(int layer);
 
 private:
-	void rebuild();
-	void addLayer(XPcb::PCBLAYER l);
-	void setActive(XPcb::PCBLAYER l);
-	int mapLayer(XPcb::PCBLAYER l) const;
+	void rebuild(QList<Layer> layers);
+	void addLayer(const Layer& l);
+	void setActive(const Layer& l);
 
-	XPcb::PCBLAYER mActiveLayer;
-	int mNumLayers;
+	Layer mActiveLayer;
 
 	QSignalMapper mMapper;
+	QList<Layer> mLayers;
 	QList<QCheckBox*> mCheckboxes;
 	QList<QShortcut*> mShortcuts;
 	QSpacerItem* mSpacer;

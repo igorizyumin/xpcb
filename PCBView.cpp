@@ -43,84 +43,67 @@ void PCBView::visGridChanged(int grid)
 
 void PCBView::paintEvent(QPaintEvent *e)
 {
-	const int nLayers = 26;
-	// layer draw order
-	const XPcb::PCBLAYER priority[nLayers] = {
-		XPcb::LAY_BOTTOM_COPPER,
-		XPcb::LAY_INNER14,
-		XPcb::LAY_INNER13,
-		XPcb::LAY_INNER12,
-		XPcb::LAY_INNER11,
-		XPcb::LAY_INNER10,
-		XPcb::LAY_INNER9,
-		XPcb::LAY_INNER8,
-		XPcb::LAY_INNER7,
-		XPcb::LAY_INNER6,
-		XPcb::LAY_INNER5,
-		XPcb::LAY_INNER4,
-		XPcb::LAY_INNER3,
-		XPcb::LAY_INNER2,
-		XPcb::LAY_INNER1,
-		XPcb::LAY_TOP_COPPER,
-		XPcb::LAY_CURR_ACTIVE,
-		XPcb::LAY_HOLE,
-		XPcb::LAY_SM_BOTTOM,
-		XPcb::LAY_SM_TOP,
-		XPcb::LAY_SILK_BOTTOM,
-		XPcb::LAY_SILK_TOP,
-		XPcb::LAY_RAT_LINE,
-		XPcb::LAY_BOARD_OUTLINE,
-		XPcb::LAY_DRC_ERROR,
-		XPcb::LAY_SELECTION
-	};
-
 	QPainter painter(this);
 	// erase background
-	painter.setBackground(QBrush(layerColor(XPcb::LAY_BACKGND)));
+	painter.setBackground(QBrush(Layer::color(Layer::LAY_BACKGND)));
 	painter.setClipping(true);
 	painter.eraseRect(this->rect());
+	// draw document
 	if (mCtrl && mCtrl->docIsOpen())
 	{
+		QList<Layer> layers = mCtrl->doc()->layerList(PCBDoc::DrawPriorityOrder);
 		// draw grid
-		QPen pen(layerColor(XPcb::LAY_VISIBLE_GRID));
+		QPen pen(Layer::color(Layer::LAY_VISIBLE_GRID));
 		pen.setCapStyle(Qt::RoundCap);
 		pen.setJoinStyle(Qt::RoundJoin);
 		painter.setTransform(mTransform);
 		painter.setPen(pen);
-		if (mCtrl->isLayerVisible(XPcb::LAY_VISIBLE_GRID))
+		if (mCtrl->isLayerVisible(Layer::LAY_VISIBLE_GRID))
 		{
 			drawOrigin(&painter);
 			drawGrid(&painter);
 		}
 		// turn on AA
 		painter.setRenderHint(QPainter::Antialiasing);
+		// set transform
 		QRect bb = mTransform.inverted().mapRect(e->rect());
-		XPcb::PCBLAYER active = mCtrl->activeLayer();
+		// figure out active layer
+		Layer active = mCtrl->activeLayer();
 
 		// draw the layers
-		for(int i = 0; i < nLayers; i++)
+		bool activeDrawn = false;
+		QListIterator<Layer> i(layers);
+		while(i.hasNext())
 		{
-			XPcb::PCBLAYER l = priority[i];
-			if (l == XPcb::LAY_CURR_ACTIVE) // placeholder
-				l = active;
-			else if (l == active)
-				continue; // already drawn
-			if (mCtrl->isLayerVisible(l))
+			Layer curr;
+			// find first copper layer to draw current active layer
+			if (!activeDrawn && !i.peekNext().isCopper() && i.hasPrevious() && i.peekPrevious().isCopper())
+			{
+				curr = active;
+				activeDrawn = true;
+			}
+			else
+			{
+				curr = i.next();
+				if (curr == active)
+					continue; // will draw later
+			}
+			if (mCtrl->isLayerVisible(curr))
 			{
 				// set color / fill
 				QPen p = painter.pen();
-				p.setColor(layerColor((XPcb::PCBLAYER)l));
+				p.setColor(curr.color());
 				p.setWidth(0);
 				painter.setPen(p);
 				QBrush b = painter.brush();
-				b.setColor(layerColor(l));
-				if (l != XPcb::LAY_SELECTION)
+				b.setColor(curr.color());
+				if (curr.type() != Layer::LAY_SELECTION)
 					b.setStyle(Qt::SolidPattern);
 				else
 					b.setStyle(Qt::NoBrush);
 				painter.setBrush(b);
 				// tell controller to draw it
-				mCtrl->draw(&painter, bb, l);
+				mCtrl->draw(&painter, bb, curr);
 			}
 		}
 	}
@@ -264,10 +247,4 @@ void PCBView::zoom(double factor, QPoint pos)
 	}
 	mTransform = test;
 	recenter(p, true);
-}
-
-QColor PCBView::layerColor(XPcb::PCBLAYER l)
-{
-	QSettings s;
-	return s.value(QString("colors/%1").arg(XPcb::layerName(l))).value<QColor>();
 }

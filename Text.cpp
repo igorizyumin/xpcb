@@ -10,13 +10,13 @@
 #include "EditTextDialog.h"
 
 Text::Text()
-	: PCBObject(), mLayer(XPcb::LAY_UNKNOWN), mAngle(0), mIsMirrored(false), mIsNegative(false),
+	: PCBObject(), mAngle(0), mIsMirrored(false), mIsNegative(false),
 	mFontSize(0), mStrokeWidth(0), mParent(NULL), mIsDirty(true)
 {
 }
 
 Text::Text( const QPoint &pos, int angle, bool mirror,
-			bool negative, XPcb::PCBLAYER layer, int font_size, int stroke_width,
+			bool negative, const Layer& layer, int font_size, int stroke_width,
 			const QString &str ) :
 PCBObject(), mPos(pos), mLayer(layer), mAngle(angle), mIsMirrored(mirror), mIsNegative(negative),
 mFontSize(font_size), mStrokeWidth(stroke_width), mText(str), mParent(NULL), mIsDirty(true)
@@ -67,9 +67,9 @@ QRect Text::bbox() const
 	return mTransform.mapRect(this->mStrokeBBox);
 }
 
-void Text::draw(QPainter *painter, XPcb::PCBLAYER layer) const
+void Text::draw(QPainter *painter, const Layer& layer) const
 {
-	if (layer != mLayer && layer != XPcb::LAY_SELECTION)
+	if (layer != mLayer && layer != Layer::LAY_SELECTION)
 		return;
 
 	// reload strokes if text has changed
@@ -107,7 +107,7 @@ Text* Text::newFromXML(QXmlStreamReader &reader)
 
 	QXmlStreamAttributes attr = reader.attributes();
 	Text *t = new Text();
-	t->mLayer = (XPcb::PCBLAYER) attr.value("layer").toString().toInt();
+	t->mLayer = Layer(attr.value("layer").toString().toInt());
 	t->mPos = QPoint(
 			attr.value("x").toString().toInt(),
 			attr.value("y").toString().toInt());
@@ -123,7 +123,7 @@ Text* Text::newFromXML(QXmlStreamReader &reader)
 void Text::toXML(QXmlStreamWriter &writer) const
 {
 	writer.writeStartElement("text");
-	writer.writeAttribute("layer", QString::number(mLayer));
+	writer.writeAttribute("layer", QString::number(mLayer.toInt()));
 	writer.writeAttribute("x", QString::number(mPos.x()));
 	writer.writeAttribute("y", QString::number(mPos.y()));
 	writer.writeAttribute("rot", QString::number(mAngle));
@@ -408,7 +408,7 @@ void TextEditor::drawOverlay(QPainter *painter)
 	if (!mText) return;
 	if (mState == SELECTED)
 	{
-		mText->draw(painter, XPcb::LAY_SELECTION);
+		mText->draw(painter, Layer::LAY_SELECTION);
 		painter->save();
 		painter->setBrush(Qt::NoBrush);
 		painter->setRenderHint(QPainter::Antialiasing, false);
@@ -450,7 +450,7 @@ void TextMoveCmd::redo()
 	mText->setAngle(mNewAngle);
 }
 
-TextNewCmd::TextNewCmd(QUndoCommand *parent, Text *obj, PCBDoc *doc)
+TextNewCmd::TextNewCmd(QUndoCommand *parent, Text *obj, Document *doc)
 	:QUndoCommand(parent), mText(obj), mDoc(doc), mInDoc(false)
 {
 	setText("add text");
@@ -474,7 +474,7 @@ void TextNewCmd::undo()
 	mDoc->removeText(mText);
 }
 
-TextDeleteCmd::TextDeleteCmd(QUndoCommand *parent, Text *obj, PCBDoc *doc)
+TextDeleteCmd::TextDeleteCmd(QUndoCommand *parent, Text *obj, Document *doc)
 	:QUndoCommand(parent), mText(obj), mDoc(doc), mInDoc(true)
 {
 	setText("delete text");
@@ -498,7 +498,7 @@ void TextDeleteCmd::undo()
 	mDoc->addText(mText);
 }
 
-TextEditCmd::TextEditCmd(QUndoCommand *parent, Text* obj, QPoint newPos, XPcb::PCBLAYER newLayer,
+TextEditCmd::TextEditCmd(QUndoCommand *parent, Text* obj, QPoint newPos, const Layer& newLayer,
 			int newAngle, bool isMirrored, bool isNegative, int newSize,
 			int newWidth, QString newText )
 				: QUndoCommand(parent), mText(obj), mOldPos(obj->pos()), mOldLayer(obj->layer()),

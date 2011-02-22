@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>307</width>
-    <height>366</height>
+    <width>725</width>
+    <height>492</height>
    </rect>
   </property>
   <property name="dockNestingEnabled">
@@ -22,7 +22,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>307</width>
+     <width>725</width>
      <height>25</height>
     </rect>
    </property>
@@ -221,8 +221,8 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>0</width>
-     <height>0</height>
+     <width>198</width>
+     <height>127</height>
     </size>
    </property>
    <property name="allowedAreas">
@@ -268,7 +268,7 @@
           <x>0</x>
           <y>0</y>
           <width>178</width>
-          <height>82</height>
+          <height>151</height>
          </rect>
         </property>
        </widget>
@@ -339,7 +339,7 @@
           <x>0</x>
           <y>0</y>
           <width>178</width>
-          <height>82</height>
+          <height>139</height>
          </rect>
         </property>
        </widget>

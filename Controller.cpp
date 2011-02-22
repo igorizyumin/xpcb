@@ -24,32 +24,9 @@
 #include "ActionBar.h"
 
 Controller::Controller(QObject *parent) :
-	QObject(parent), mView(NULL), mDoc(NULL), mEditor(NULL), mLayerWidget(NULL), mActionBar(NULL),
+	QObject(parent), mView(NULL), mEditor(NULL), mLayerWidget(NULL), mActionBar(NULL),
 	mPlaceGrid(XPcb::IN2PCB(0.05)), mRouteGrid(XPcb::IN2PCB(0.001))
 {
-}
-
-void Controller::registerDoc(PCBDoc* doc)
-{
-	if (!mDoc && doc)
-	{
-		mDoc = doc;
-		if (mLayerWidget)
-			mLayerWidget->setNumLayers(mDoc->numLayers());
-		connect(mDoc, SIGNAL(changed()), this, SLOT(onDocumentChanged()));
-		onDocumentChanged();
-	}
-	else if (mDoc && !doc)
-	{
-		disconnect(mDoc, SIGNAL(changed()), this, SIGNAL(onDocumentChanged()));
-		mDoc = NULL;
-		mSelectedObjs.clear();
-		mHiddenObjs.clear();
-		delete mEditor;
-		mEditor = NULL;
-		onDocumentChanged();
-	}
-	updateEditor();
 }
 
 void Controller::registerView(PCBView* view)
@@ -72,29 +49,30 @@ void Controller::registerActionBar(ActionBar* bar)
 void Controller::registerLayerWidget(LayerWidget *widget)
 {
 	mLayerWidget = widget;
-	if (mDoc)
-		mLayerWidget->setNumLayers(mDoc->numLayers());
+	if (doc())
+		mLayerWidget->layersChanged(doc()->layerList());
 	connect(mLayerWidget, SIGNAL(layerVisibilityChanged()), this, SLOT(onDocumentChanged()));
-	connect(mLayerWidget, SIGNAL(currLayerChanged(XPcb::PCBLAYER)), this, SLOT(onDocumentChanged()));
+	connect(mLayerWidget, SIGNAL(currLayerChanged(const Layer&)), this, SLOT(onDocumentChanged()));
 
 }
 
-void Controller::draw(QPainter* painter, QRect &rect, XPcb::PCBLAYER layer)
+void Controller::draw(QPainter* painter, QRect &rect, const Layer& layer)
 {
-	if (!mView || !mDoc) return;
+	if (!mView || !doc()) return;
 
 
-	if (layer == XPcb::LAY_SELECTION)
+	if (layer == Layer::LAY_SELECTION)
 	{
 		if (mEditor)
 			mEditor->drawOverlay(painter);
 	}
 	else
 	{
-		QList<PCBObject*> objs = mDoc->findObjs(rect);
+		QList<PCBObject*> objs = doc()->findObjs(rect);
 		foreach(PCBObject* obj, objs)
 		{
-			if (!mHiddenObjs.contains(obj))
+			if (!mLayerWidget->isLayerVisible(Layer::LAY_SELECTION) ||
+				!mHiddenObjs.contains(obj))
 				obj->draw(painter, layer);
 		}
 	}
@@ -135,22 +113,27 @@ void Controller::mousePressEvent(QMouseEvent *event)
 
 void Controller::mouseReleaseEvent(QMouseEvent *event)
 {
-	if (!mDoc || !mView)
+	if (!doc() || !mView)
 	{
 		event->ignore();
 		return;
 	}
 	QPoint pos = mView->transform().inverted().map(event->pos());
-	QList<PCBObject*> objs = mDoc->findObjs(pos);
+	QList<PCBObject*> objs = doc()->findObjs(pos);
 	QMutableListIterator<PCBObject*> i(objs);
 	while(i.hasNext())
 	{
 		PCBObject* obj = i.next();
 		bool hit = false;
-		for(int l = (int)XPcb::LAY_DRC_ERROR; l < (int)XPcb::LAY_TOP_COPPER + mDoc->numLayers(); l++)
+		// traverse list of layers in reverse draw order (topmost layer first)
+		QList<Layer> layerList = doc()->layerList(PCBDoc::DrawPriorityOrder);
+		QListIterator<Layer> j(layerList);
+		j.toBack();
+		while(j.hasPrevious())
 		{
-			if (!mLayerWidget->isLayerVisible((XPcb::PCBLAYER)l)) continue;
-			if (obj->testHit(pos, (XPcb::PCBLAYER)l))
+			const Layer& l = j.previous();
+			if (!mLayerWidget->isLayerVisible(l)) continue;
+			if (obj->testHit(pos, l))
 			{
 				hit = true;
 				break;
@@ -229,41 +212,7 @@ void Controller::installEditor()
 	mEditor->init();
 }
 
-void Controller::onAddTextAction()
-{
-	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
 
-	mEditor = EditorFactory::instance().newTextEditor(this);
-	installEditor();
-}
-
-void Controller::updateActions()
-{
-	Q_ASSERT(mActionBar != NULL);
-
-	if (!mDoc)
-	{
-		mActionBar->setActions(QList<CtrlAction>());
-		return;
-	}
-
-	if (!mEditor)
-	{
-		mActionBar->setActions(CtrlAction(2, "Add Text"));
-	}
-	else
-	{
-		mActionBar->setActions(mEditor->actions());
-	}
-}
-
-void Controller::onAction(int key)
-{
-	if (mEditor)
-		mEditor->action(key);
-	else if (key == 2)
-		onAddTextAction();
-}
 
 void Controller::selectObj(PCBObject *obj)
 {
@@ -303,25 +252,97 @@ void Controller::onDocumentChanged()
 	mView->update();
 }
 
-QPoint Controller::snapToPlaceGrid(QPoint p)
+QPoint Controller::snapToPlaceGrid(const QPoint &p) const
 {
 	return QPoint(((p.x() + mPlaceGrid/2) / mPlaceGrid) * mPlaceGrid,
 				  ((p.y() + mPlaceGrid/2) / mPlaceGrid) * mPlaceGrid);
 }
 
-QPoint Controller::snapToRouteGrid(QPoint p)
+QPoint Controller::snapToRouteGrid(const QPoint &p) const
 {
 	return QPoint(((p.x() + mRouteGrid/2) / mRouteGrid) * mRouteGrid,
 				  ((p.y() + mRouteGrid/2) / mRouteGrid) * mRouteGrid);
 }
 
-bool Controller::isLayerVisible(XPcb::PCBLAYER l) const
+bool Controller::isLayerVisible(const Layer& l) const
 {
 	if (!mLayerWidget) return false;
 	else return mLayerWidget->isLayerVisible(l);
 }
 
-XPcb::PCBLAYER Controller::activeLayer() const
+const Layer& Controller::activeLayer() const
 {
 	return mLayerWidget->activeLayer();
+}
+
+
+//////////////////////////// PCBCONTROLLER /////////////////////////////////
+
+PCBController::PCBController(QObject *parent)
+	: Controller(parent), mDoc(NULL)
+{
+}
+
+void PCBController::registerDoc(PCBDoc* doc)
+{
+	if (!mDoc && doc)
+	{
+		mDoc = doc;
+		if (mLayerWidget)
+			mLayerWidget->layersChanged(mDoc->layerList());
+		connect(mDoc, SIGNAL(changed()), this, SLOT(onDocumentChanged()));
+		onDocumentChanged();
+	}
+	else if (mDoc && !doc)
+	{
+		disconnect(mDoc, SIGNAL(changed()), this, SIGNAL(onDocumentChanged()));
+		mDoc = NULL;
+		mSelectedObjs.clear();
+		mHiddenObjs.clear();
+		delete mEditor;
+		mEditor = NULL;
+		onDocumentChanged();
+	}
+	updateEditor();
+}
+
+Document* PCBController::doc()
+{
+	return mDoc;
+}
+
+void PCBController::onAction(int key)
+{
+	if (mEditor)
+		mEditor->action(key);
+	else if (key == 2)
+		onAddTextAction();
+}
+
+void PCBController::updateActions()
+{
+	Q_ASSERT(mActionBar != NULL);
+
+	if (!doc())
+	{
+		mActionBar->setActions(QList<CtrlAction>());
+		return;
+	}
+
+	if (!mEditor)
+	{
+		mActionBar->setActions(CtrlAction(2, "Add Text"));
+	}
+	else
+	{
+		mActionBar->setActions(mEditor->actions());
+	}
+}
+
+void PCBController::onAddTextAction()
+{
+	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
+
+	mEditor = EditorFactory::instance().newTextEditor(this);
+	installEditor();
 }

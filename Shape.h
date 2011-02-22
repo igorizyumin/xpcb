@@ -64,8 +64,6 @@ private:
 class Padstack
 {
 public:
-	enum PSLAYER { LAY_START, LAY_INNER, LAY_END, LAY_HOLE, LAY_UNKNOWN };
-
 	Padstack();
 	bool operator==(const Padstack &p) const;
 
@@ -83,7 +81,7 @@ public:
 	Pad getEndPaste() const {return end_paste;}
 	bool isSmt() const {return hole_size == 0;}
 	QRect bbox() const;
-	void draw(QPainter *painter, PSLAYER layer) const;
+	void draw(QPainter *painter, const Layer& layer) const;
 //	virtal void accept(PCBObjectVisitor *v);
 
 	int getid() const { return mID; }
@@ -101,7 +99,7 @@ private:
 /// A pin is an instance of a padstack associated with a footprint.
 /// It stores the name, coordinates, rotation, and the associated padstack
 /// of each pin within a footprint.
-class Pin
+class Pin : public PCBObject
 {
 public:
 
@@ -112,15 +110,18 @@ public:
 	Padstack* padstack() const { return mPadstack; }
 	QString name() const { return mName; }
 
-	void draw(QPainter *painter, Padstack::PSLAYER layer) const;
-	QRect bbox() const;
+	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
+	virtual void draw(QPainter *painter, const Layer& layer) const;
+	virtual QRect bbox() const;
 
-	bool testHit(const QPoint &pt, Padstack::PSLAYER layer) const;
+	virtual bool testHit(const QPoint &pt, const Layer& layer) const;
 
 	static Pin newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks, Footprint* fp);
 	void toXML(QXmlStreamWriter &writer) const;
 
-	Pad getPadOnLayer(Padstack::PSLAYER layer) const;
+	Pad getPadOnLayer(const Layer& layer) const;
+
+	virtual QTransform transform() const { return mFpTransform; }
 
 private:
 	void updateTransform();
@@ -131,7 +132,7 @@ private:
 	/// Rotation angle (CW)
 	int mAngle;
 	/// Transform to part coordinates
-	QTransform mPartTransform;
+	QTransform mFpTransform;
 	/// Padstack used for this pin
 	Padstack* mPadstack;
 	/// Parent footprint
@@ -149,7 +150,6 @@ public:
 
 	void draw(QPainter *painter, FP_DRAW_LAYER layer) const;
 	QRect bbox() const;
-//	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	QString name() const { return mName; }
 	QString author() const { return mAuthor; }
@@ -159,6 +159,10 @@ public:
 	int numPins() const;
 	const Pin* getPin(const QString & pin) const;
 	const Pin* getPin(int i) {return &mPins.at(i);}
+	const QList<Pin>& getPins() { return mPins; }
+
+	const QList<Arc>& getArcs() { return mOutlineArcs; }
+	const QList<Line>& getLines() { return mOutlineLines; }
 
 	QRect getPinBounds() const;
 

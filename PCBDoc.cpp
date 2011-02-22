@@ -5,17 +5,203 @@
 #include <QXmlStreamWriter>
 #include <QtXmlPatterns/QXmlSchema>
 #include <QtXmlPatterns/QXmlSchemaValidator>
+#include <QSettings>
 #include "Polygon.h"
 #include "Area.h"
 #include "Trace.h"
+#include "Line.h"
 
-PCBDoc::PCBDoc()
-		: QObject(), mUnits(XPcb::MM), mNumLayers(2), mTraceList(NULL), mBoardOutline(NULL), mDefaultPadstack(NULL)
+////////////// DOCUMENT ////////////////////////////////////////////////
+
+Document::Document()
+	: mUnits(XPcb::MM)
 {
 	mUndoStack = new QUndoStack(this);
 	connect(mUndoStack, SIGNAL(canUndoChanged(bool)), this, SIGNAL(canUndoChanged(bool)));
 	connect(mUndoStack, SIGNAL(canRedoChanged(bool)), this, SIGNAL(canRedoChanged(bool)));
 	connect(mUndoStack, SIGNAL(cleanChanged(bool)), this, SIGNAL(cleanChanged(bool)));
+}
+
+Document::~Document()
+{
+	mUndoStack->clear();
+	delete mUndoStack;
+}
+
+bool Document::isModified()
+{
+	return !mUndoStack->isClean();
+}
+
+void Document::doCommand(QUndoCommand *cmd)
+{
+	mUndoStack->push(cmd);
+	emit changed();
+}
+
+void Document::undo()
+{
+	mUndoStack->undo();
+	emit changed();
+}
+
+void Document::redo()
+{
+	mUndoStack->redo();
+	emit changed();
+}
+
+bool Document::loadFromFile(const QString& path)
+{
+	QFile inFile(path);
+	if (!inFile.open(QIODevice::ReadOnly))
+	{
+		Log::instance().error(QString("Unable to open file %1 for reading").arg(path));
+		return false;
+	}
+	bool ret = loadFromFile(inFile);
+	inFile.close();
+	return ret;
+}
+
+bool Document::saveToFile(const QString &file)
+{
+	QFile outFile(file);
+	if (!outFile.open(QIODevice::WriteOnly))
+	{
+		Log::instance().error(QString("Unable to open file %1 for writing").arg(file));
+		return false;
+	}
+
+	QXmlStreamWriter writer(&outFile);
+
+	bool ret = saveToXml(writer);
+
+	outFile.close();
+	return ret;
+}
+
+/////////////////////////////// FPDOC /////////////////////////////////
+
+FPDoc::FPDoc()
+	: Document(), mFp(NULL)
+{
+}
+
+FPDoc::~FPDoc()
+{
+	clearFP();
+}
+
+void FPDoc::clearFP()
+{
+	delete mFp;
+	mFp = NULL;
+	foreach(Padstack* p, mPadstacks)
+	{
+		delete p;
+	}
+	mPadstacks.clear();
+}
+
+QList<Layer> FPDoc::layerList(LayerOrder order)
+{
+	QList<Layer> l = QList<Layer>();
+
+	if (order == ListOrder)
+	{
+		l.append(Layer(Layer::LAY_SELECTION));
+		l.append(Layer(Layer::LAY_VISIBLE_GRID));
+		l.append(Layer(Layer::LAY_CENTROID));
+		l.append(Layer(Layer::LAY_SILK_TOP));
+		l.append(Layer(Layer::LAY_SILK_BOTTOM));
+		l.append(Layer(Layer::LAY_GLUE));
+		l.append(Layer(Layer::LAY_SMCUT_TOP));
+		l.append(Layer(Layer::LAY_SMCUT_BOTTOM));
+		l.append(Layer(Layer::LAY_PASTE_TOP));
+		l.append(Layer(Layer::LAY_PASTE_BOTTOM));
+		l.append(Layer(Layer::LAY_HOLE));
+		l.append(Layer(Layer::LAY_START));
+		l.append(Layer(Layer::LAY_INNER));
+		l.append(Layer(Layer::LAY_END));
+	}
+	else
+	{
+		l.append(Layer(Layer::LAY_VISIBLE_GRID));
+		l.append(Layer(Layer::LAY_CENTROID));
+		l.append(Layer(Layer::LAY_SMCUT_BOTTOM));
+		l.append(Layer(Layer::LAY_PASTE_BOTTOM));
+		l.append(Layer(Layer::LAY_SILK_BOTTOM));
+		l.append(Layer(Layer::LAY_END));
+		l.append(Layer(Layer::LAY_INNER));
+		l.append(Layer(Layer::LAY_START));
+		l.append(Layer(Layer::LAY_HOLE));
+		l.append(Layer(Layer::LAY_SMCUT_TOP));
+		l.append(Layer(Layer::LAY_PASTE_TOP));
+		l.append(Layer(Layer::LAY_SILK_TOP));
+		l.append(Layer(Layer::LAY_GLUE));
+		l.append(Layer(Layer::LAY_SELECTION));
+	}
+
+	return l;
+}
+
+QList<PCBObject*> FPDoc::findObjs(QPoint &pt)
+{
+	QList<PCBObject*> out;
+
+	foreach(const Pin& p, mFp->getPins())
+	{
+		if (p.bbox().contains(pt))
+			out.append((PCBObject*)&p);
+	}
+	foreach(const Line& p, mFp->getLines())
+	{
+		if (p.bbox().contains(pt))
+			out.append((PCBObject*)&p);
+	}
+	foreach(const Arc& p, mFp->getArcs())
+	{
+		if (p.bbox().contains(pt))
+			out.append((PCBObject*)&p);
+	}
+
+	if (mFp->getRefText().bbox().contains(pt))
+		out.append((PCBObject*)&mFp->getRefText());
+	if (mFp->getValueText().bbox().contains(pt))
+		out.append((PCBObject*)&mFp->getValueText());
+}
+
+QList<PCBObject*> FPDoc::findObjs(QRect &rect)
+{
+	QList<PCBObject*> out;
+
+	foreach(const Pin& p, mFp->getPins())
+	{
+		if (p.bbox().intersects(rect))
+			out.append((PCBObject*)&p);
+	}
+	foreach(const Line& p, mFp->getLines())
+	{
+		if (p.bbox().intersects(rect))
+			out.append((PCBObject*)&p);
+	}
+	foreach(const Arc& p, mFp->getArcs())
+	{
+		if (p.bbox().intersects(rect))
+			out.append((PCBObject*)&p);
+	}
+	if (mFp->getRefText().bbox().intersects(rect))
+		out.append((PCBObject*)&mFp->getRefText());
+	if (mFp->getValueText().bbox().intersects(rect))
+		out.append((PCBObject*)&mFp->getValueText());
+}
+
+////////////////////////////// PCBDOC /////////////////////////////////
+
+PCBDoc::PCBDoc()
+		: Document(), mNumLayers(2), mTraceList(NULL), mBoardOutline(NULL), mDefaultPadstack(NULL)
+{
 	mTraceList = new TraceList();
 	mDefaultPadstack = new Padstack();
 	mPadstacks.append(mDefaultPadstack);
@@ -24,11 +210,6 @@ PCBDoc::PCBDoc()
 PCBDoc::~PCBDoc()
 {
 	clearDoc();
-}
-
-bool PCBDoc::isModified()
-{
-	return !mUndoStack->isClean();
 }
 
 Footprint* PCBDoc::getFootprint(const QString &name)
@@ -139,8 +320,6 @@ QList<PCBObject*> PCBDoc::findObjs(QPoint &pt)
 
 void PCBDoc::clearDoc()
 {
-	mUndoStack->clear();
-
 	delete mTraceList;
 	mTraceList = NULL;
 
@@ -177,22 +356,48 @@ void PCBDoc::clearDoc()
 	mDefaultPadstack = NULL;
 }
 
-void PCBDoc::doCommand(QUndoCommand *cmd)
-{
-	mUndoStack->push(cmd);
-	emit changed();
-}
 
-void PCBDoc::undo()
-{
-	mUndoStack->undo();
-	emit changed();
-}
 
-void PCBDoc::redo()
+QList<Layer> PCBDoc::layerList(LayerOrder order)
 {
-	mUndoStack->redo();
-	emit changed();
+	if (order == ListOrder)
+	{
+		QList<Layer> l = QList<Layer>();
+		l.append(Layer(Layer::LAY_SELECTION));
+		l.append(Layer(Layer::LAY_VISIBLE_GRID));
+		l.append(Layer(Layer::LAY_DRC));
+		l.append(Layer(Layer::LAY_BOARD_OUTLINE));
+		l.append(Layer(Layer::LAY_RAT_LINE));
+		l.append(Layer(Layer::LAY_SILK_TOP));
+		l.append(Layer(Layer::LAY_SILK_BOTTOM));
+		l.append(Layer(Layer::LAY_SMCUT_TOP));
+		l.append(Layer(Layer::LAY_SMCUT_BOTTOM));
+		l.append(Layer(Layer::LAY_HOLE));
+		l.append(Layer(Layer::LAY_TOP_COPPER));
+		for(int i = 0; i < numLayers() - 2; i++)
+			l.append(Layer((Layer::Type((int)Layer::LAY_INNER1+i))));
+		l.append(Layer(Layer::LAY_BOTTOM_COPPER));
+		return l;
+	}
+	else
+	{
+		QList<Layer> l = QList<Layer>();
+		l.append(Layer(Layer::LAY_VISIBLE_GRID));
+		l.append(Layer(Layer::LAY_BOTTOM_COPPER));
+		for(int i = numLayers() - 3; i >= 0; i--)
+			l.append(Layer(Layer::Type((int)Layer::LAY_INNER1+i)));
+		l.append(Layer(Layer::LAY_TOP_COPPER));
+		l.append(Layer(Layer::LAY_HOLE));
+		l.append(Layer(Layer::LAY_SMCUT_BOTTOM));
+		l.append(Layer(Layer::LAY_SMCUT_TOP));
+		l.append(Layer(Layer::LAY_SILK_BOTTOM));
+		l.append(Layer(Layer::LAY_SILK_TOP));
+		l.append(Layer(Layer::LAY_RAT_LINE));
+		l.append(Layer(Layer::LAY_BOARD_OUTLINE));
+		l.append(Layer(Layer::LAY_DRC));
+		l.append(Layer(Layer::LAY_SELECTION));
+		return l;
+	}
 }
 
 //////// XML PARSING /////////
@@ -229,37 +434,7 @@ bool validateFile(QIODevice &file)
 	return validator.validate(&file);
 }
 
-bool PCBDoc::loadFromFile(const QString& path)
-{
-	QFile inFile(path);
-	if (!inFile.open(QIODevice::ReadOnly))
-	{
-		Log::instance().error(QString("Unable to open file %1 for reading").arg(path));
-		return false;
-	}
-	bool ret = loadFromFile(inFile);
-	inFile.close();
-	return ret;
-}
-
-bool PCBDoc::saveToFile(const QString &file)
-{
-	QFile outFile(file);
-	if (!outFile.open(QIODevice::WriteOnly))
-	{
-		Log::instance().error(QString("Unable to open file %1 for writing").arg(file));
-		return false;
-	}
-
-	QXmlStreamWriter writer(&outFile);
-
-	bool ret = saveToXML(writer);
-
-	outFile.close();
-	return ret;
-}
-
-bool PCBDoc::saveToXML(QXmlStreamWriter &writer)
+bool PCBDoc::saveToXml(QXmlStreamWriter &writer)
 {
 	writer.setAutoFormatting(true);
 	writer.writeStartDocument();
@@ -341,6 +516,12 @@ bool PCBDoc::loadFromXml(QXmlStreamReader &reader)
 
 	QHash<int, Padstack*> padstacks;
 
+	reader.readNextStartElement();
+	if (reader.name() != "xpcbBoard")
+	{
+		Log::instance().error("Not a PCB document.");
+		return false;
+	}
 	while(reader.readNextStartElement())
 	{
 		QStringRef t = reader.name();
@@ -386,6 +567,79 @@ bool PCBDoc::loadFromXml(QXmlStreamReader &reader)
 		Log::instance().error(QString("Unable to load file: %1").arg(reader.errorString()));
 		return false;
 	}
+	return true;
+}
+
+bool FPDoc::loadFromFile(QFile &file)
+{
+	if (!validateFile(file))
+	{
+		Log::instance().error("Unable to load file: XML validation failed");
+		file.close();
+		return false;
+	}
+
+	file.reset();
+	QXmlStreamReader reader(&file);
+
+	return loadFromXml(reader);
+}
+
+bool FPDoc::loadFromXml(QXmlStreamReader &reader)
+{
+	clearFP();
+	QHash<int, Padstack*> padstacks;
+
+	reader.readNextStartElement();
+	if (reader.name() != "xpcbFootprint")
+	{
+		Log::instance().error("Not a footprint.");
+		return false;
+	}
+	while(reader.readNextStartElement())
+	{
+		QStringRef t = reader.name();
+
+		if (t == "padstacks")
+		{
+			loadPadstacks(reader, padstacks);
+			mPadstacks.append(padstacks.values());
+		}
+		else if (t == "footprint")
+		{
+			mFp = Footprint::newFromXML(reader, padstacks);
+			if (!mFp)
+			{
+				Log::instance().error("Error loading footprint");
+				return false;
+			}
+		}
+	}
+	if (reader.hasError())
+	{
+		Log::instance().error(QString("Unable to load file: %1").arg(reader.errorString()));
+		return false;
+	}
+	return true;
+}
+
+bool FPDoc::saveToXml(QXmlStreamWriter &writer)
+{
+	writer.setAutoFormatting(true);
+	writer.writeStartDocument();
+	writer.writeStartElement("xpcbFootprint");
+
+	writer.writeStartElement("padstacks");
+	foreach(Padstack* ps, mPadstacks)
+		ps->toXML(writer);
+	writer.writeEndElement();
+
+	mFp->toXML(writer);
+
+	writer.writeEndElement();
+	writer.writeEndDocument();
+
+	mUndoStack->setClean();
 	return true;
 }
 
@@ -559,7 +813,6 @@ void loadTexts(QXmlStreamReader &reader, QList<Text*> &texts)
 	Q_ASSERT(reader.isEndElement() && reader.name() == "texts");
 
 }
-
 
 
 

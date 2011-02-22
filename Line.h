@@ -11,14 +11,14 @@ class Line : public PCBObject
 public:
     Line();
 
-	virtual void draw(QPainter *painter, XPcb::PCBLAYER layer) const;
+	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	QPoint start() const { return mStart; }
 	QPoint end() const { return mEnd; }
 	int width() const { return mWidth; }
-	XPcb::PCBLAYER layer() const { return mLayer; }
+	const Layer& layer() const { return mLayer; }
 
 	static Line newFromXml(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
@@ -26,7 +26,7 @@ private:
 	QPoint mStart;
 	QPoint mEnd;
 	int mWidth;
-	XPcb::PCBLAYER mLayer;
+	Layer mLayer;
 };
 
 /// The Arc class represents silkscreen arcs.  Arcs are elliptical sections
@@ -37,7 +37,7 @@ class Arc : public PCBObject
 public:
 	Arc();
 
-	virtual void draw(QPainter *painter, XPcb::PCBLAYER layer) const;
+	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
@@ -45,7 +45,7 @@ public:
 	QPoint end() const { return mEnd; }
 	int width() const { return mWidth; }
 	bool isCw() const { return mIsCw; }
-	XPcb::PCBLAYER layer() const { return mLayer; }
+	Layer layer() const { return mLayer; }
 
 	static Arc newFromXml(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
@@ -54,7 +54,7 @@ private:
 	QPoint mEnd;
 	bool mIsCw;
 	int mWidth;
-	XPcb::PCBLAYER mLayer;
+	Layer mLayer;
 };
 
 #endif // LINE_H

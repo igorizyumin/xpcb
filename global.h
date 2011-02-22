@@ -3,6 +3,7 @@
 #pragma once
 
 #include <QString>
+#include <QColor>
 
 class XPcb
 {
@@ -17,19 +18,39 @@ public:
 		NATIVE	// native units (for text output )
 	};
 
-	enum PCBLAYER
+	static const int PCBU_PER_MIL = 254;
+	static const int PCBU_PER_MM = 10000;
+
+	static const int PCB_BOUND	= 32000*PCBU_PER_MIL;	// boundary
+
+	static int IN2PCB(double x) { return x * 1000 * PCBU_PER_MIL; }
+	static int MM2PCB(double x) {return x * PCBU_PER_MM; }
+	static int MIL2PCB(double x) { return x * PCBU_PER_MIL; }
+	static double PCB2IN(int x) { return double(x) / (1000 * PCBU_PER_MIL); }
+	static double PCB2MM(int x) {return double(x) / PCBU_PER_MM; }
+	static double PCB2MIL(int x) { return double(x) / PCBU_PER_MIL; }
+
+private:
+	XPcb() {}
+	XPcb(XPcb &) {}
+
+};
+
+class Layer
+{
+public:
+	enum Type
 	{
-		// layout layers
-		LAY_SELECTION = 0,
 		LAY_BACKGND,
+		LAY_SELECTION,
 		LAY_VISIBLE_GRID,
-		LAY_DRC_ERROR,
+		LAY_DRC,
 		LAY_BOARD_OUTLINE,
 		LAY_RAT_LINE,
 		LAY_SILK_TOP,
 		LAY_SILK_BOTTOM,
-		LAY_SM_TOP,
-		LAY_SM_BOTTOM,
+		LAY_SMCUT_TOP,
+		LAY_SMCUT_BOTTOM,
 		LAY_HOLE,
 		LAY_TOP_COPPER,
 		LAY_BOTTOM_COPPER,
@@ -47,55 +68,32 @@ public:
 		LAY_INNER12,
 		LAY_INNER13,
 		LAY_INNER14,
-		NUM_PCB_LAYERS,
-		// invisible layers
-		LAY_MASK_TOP = -100,
-		LAY_MASK_BOTTOM = -101,
-		LAY_PASTE_TOP = -102,
-		LAY_PASTE_BOTTOM = -103,
-		LAY_CURR_ACTIVE = -104,
-		LAY_UNKNOWN = -999
+		LAY_CENTROID,
+		LAY_GLUE,
+		LAY_PASTE_TOP,
+		LAY_PASTE_BOTTOM,
+		LAY_START,
+		LAY_INNER,
+		LAY_END,
+		LAY_UNKNOWN
 	};
 
-	enum FPLAYER
-	{
-		// footprint layers
-		LAY_FP_SELECTION = 0,
-		LAY_FP_BACKGND,
-		LAY_FP_VISIBLE_GRID,
-		LAY_FP_SILK_TOP,
-		LAY_FP_CENTROID,
-		LAY_FP_DOT,
-		LAY_FP_HOLE,
-		LAY_FP_TOP_MASK,
-		LAY_FP_TOP_PASTE,
-		LAY_FP_BOTTOM_MASK,
-		LAY_FP_BOTTOM_PASTE,
-		LAY_FP_TOP_COPPER,
-		LAY_FP_INNER_COPPER,
-		LAY_FP_BOTTOM_COPPER,
-		NUM_FP_LAYERS
-	};
+	Layer(Type c = LAY_UNKNOWN)
+		: mType(c) {}
+	Layer(int indx)
+		: mType((Type)indx) {}
 
-	static const int PCBU_PER_MIL = 254;
-	static const int PCBU_PER_MM = 10000;
-
-	static const int PCB_BOUND	= 32000*PCBU_PER_MIL;	// boundary
-
-	static int IN2PCB(double x) { return x * 1000 * PCBU_PER_MIL; }
-	static int MM2PCB(double x) {return x * PCBU_PER_MM; }
-	static int MIL2PCB(double x) { return x * PCBU_PER_MIL; }
-	static double PCB2IN(int x) { return double(x) / (1000 * PCBU_PER_MIL); }
-	static double PCB2MM(int x) {return double(x) / PCBU_PER_MM; }
-	static double PCB2MIL(int x) { return double(x) / PCBU_PER_MIL; }
-
-	static QString layerName(PCBLAYER layer);
-	static QString layerName(FPLAYER layer);
-
+	Type type() const { return mType; }
+	bool isPhysical() const;
+	bool isCopper() const;
+	QString name() const { return Layer::name(mType); }
+	QColor color() const { return Layer::color(mType); }
+	int toInt() const { return (int)mType; }
+	static QString name(Type c);
+	static QColor color(Type c);
+	bool operator==(const Layer& other) const { return mType == other.mType; }
+	bool operator!=(const Layer& other) const { return mType != other.mType; }
 private:
-	XPcb() {}
-	XPcb(XPcb &) {}
-
+	Type mType;
 };
-
 

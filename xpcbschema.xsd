@@ -88,6 +88,14 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
+  <xs:element name="xpcbFootprint">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="padstacks"/>
+        <xs:element ref="footprint"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
   <!-- Board properties -->
   <xs:element name="props">
     <xs:complexType>

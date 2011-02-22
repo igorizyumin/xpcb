@@ -94,7 +94,7 @@ void Net::removePin(PartPin* p)
 	mPins.remove(p);
 }
 
-void Net::draw(QPainter *painter, XPcb::PCBLAYER layer) const
+void Net::draw(QPainter *painter, const Layer& layer) const
 {
 
 }

@@ -10,6 +10,7 @@ class Arc;
 class Line;
 class Net;
 class PartPin;
+class Pin;
 class Part;
 class Footprint;
 class Text;
@@ -18,6 +19,7 @@ class Segment;
 class Padstack;
 class PCBObjectVisitor;
 class PCBDoc;
+class Layer;
 
 /// Abstract base class for PCB graphical objects
 
@@ -35,7 +37,7 @@ public:
 	/// called multiple times during a single redraw operation, once for each layer.
 	/// \param painter the painter to use
 	/// \param layer the PCB layer to draw
-	virtual void draw(QPainter *painter, XPcb::PCBLAYER layer) const = 0;
+	virtual void draw(QPainter *painter, const Layer& layer) const = 0;
 
 	/// Returns the object's bounding box
 	virtual QRect bbox() const = 0;
@@ -45,7 +47,7 @@ public:
 	int getid() const {return objID;}
 
 	/// Returns true if the object was hit.
-	virtual bool testHit(QPoint pt, XPcb::PCBLAYER l) const { return false; }
+	virtual bool testHit(QPoint pt, const Layer& l) const { return false; }
 
 	/// Returns the object's transform (from the object's coordinate system to
 	/// PCB coordinates).
@@ -69,17 +71,18 @@ private:
 class PCBObjectVisitor
 {
 public:
-	virtual void visit(Area* a) = 0;
-	virtual void visit(Arc* a) = 0;
-	virtual void visit(Line* a) = 0;
-	virtual void visit(Net* a) = 0;
-	virtual void visit(PartPin* a) = 0;
-	virtual void visit(Part* a) = 0;
-	virtual void visit(Footprint* a) = 0;
-	virtual void visit(Text* a) = 0;
-	virtual void visit(Vertex* a) = 0;
-	virtual void visit(Segment* a) = 0;
-	virtual void visit(Padstack* a) = 0;
+	virtual void visit(Area*) = 0;
+	virtual void visit(Arc*) = 0;
+	virtual void visit(Line*) = 0;
+	virtual void visit(Net*) = 0;
+	virtual void visit(PartPin*) = 0;
+	virtual void visit(Pin*) = 0;
+	virtual void visit(Part*) = 0;
+	virtual void visit(Footprint*) = 0;
+	virtual void visit(Text*) = 0;
+	virtual void visit(Vertex*) = 0;
+	virtual void visit(Segment*) = 0;
+	virtual void visit(Padstack*) = 0;
 };
 
 #endif // PCBOBJECT_H

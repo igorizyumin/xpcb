@@ -9,7 +9,7 @@
 
 Area::Area(const PCBDoc *doc) :
 		mDoc(doc), mNet(NULL), mConnectSMT(true),
-		mPoly(NULL), mLayer(XPcb::LAY_UNKNOWN), mHatchStyle(NO_HATCH)
+		mPoly(NULL), mHatchStyle(NO_HATCH)
 {
 }
 
@@ -18,7 +18,7 @@ Area::~Area()
 	delete mPoly;
 }
 
-void Area::draw(QPainter *painter, XPcb::PCBLAYER layer) const
+void Area::draw(QPainter *painter, const Layer& layer) const
 {
 	// XXX TODO draw via if needed
 }
@@ -36,7 +36,7 @@ void Area::findConnections()
 
 	this->mConnPins.clear();
 
-	XPcb::PCBLAYER layer = this->layer();
+	Layer layer = this->layer();
 	QSet<PartPin*> pins = mNet->getPins();
 
 	foreach(PartPin* pin, pins)
@@ -77,7 +77,7 @@ Area* Area::newFromXML(QXmlStreamReader &reader, const PCBDoc &doc)
 	QXmlStreamAttributes attr = reader.attributes();
 	Area* a = new Area(&doc);
 	a->mNet = doc.getNet(attr.value("net").toString());
-	a->mLayer = (XPcb::PCBLAYER) attr.value("layer").toString().toInt();
+	a->mLayer = Layer(attr.value("layer").toString().toInt());
 	QStringRef t = attr.value("hatch");
 	if (t == "none")
 		a->mHatchStyle = Area::NO_HATCH;
@@ -96,7 +96,7 @@ void Area::toXML(QXmlStreamWriter &writer)
 {
 	writer.writeStartElement("area");
 	writer.writeAttribute("net", mNet->name());
-	writer.writeAttribute("layer", QString::number(mLayer));
+	writer.writeAttribute("layer", QString::number(mLayer.toInt()));
 	switch(mHatchStyle)
 	{
 	case Area::NO_HATCH:

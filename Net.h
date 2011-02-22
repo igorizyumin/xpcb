@@ -20,7 +20,7 @@ public:
 	Net( PCBDoc *doc, const QString &name);
 	~Net();
 
-	virtual void draw(QPainter *painter, XPcb::PCBLAYER layer) const;
+	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 

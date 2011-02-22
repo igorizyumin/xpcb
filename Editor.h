@@ -60,6 +60,7 @@ public:
 	virtual void visit(Line* a);
 	virtual void visit(Net* a);
 	virtual void visit(PartPin* a);
+	virtual void visit(Pin* a);
 	virtual void visit(Part* a);
 	virtual void visit(Footprint* a);
 	virtual void visit(Text* a);

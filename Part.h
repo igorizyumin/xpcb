@@ -21,7 +21,7 @@ public:
 	PartPin(Part* parent, const Pin* pin) : mPin(pin), mPart(parent), mNet(NULL), mVertex(NULL) {}
 	~PartPin();
 
-	Pad getPadOnLayer(XPcb::PCBLAYER layer) const;
+	Pad getPadOnLayer(const Layer& layer) const;
 
 	void setNet(Net* newnet);
 	Net* getNet() {return mNet; }
@@ -34,15 +34,15 @@ public:
 	QPoint pos() const;
 	bool isSmt() const;
 
-	virtual void draw(QPainter *painter, XPcb::PCBLAYER layer) const;
+	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
-	bool testHit(const QPoint &pt, XPcb::PCBLAYER layer) const;
+	bool testHit(const QPoint &pt, const Layer& layer) const;
 
 private:
 	/// Maps a PCB layer to a pin layer (i.e. top copper -> start for parts on top side)
-	Padstack::PSLAYER mapLayer(XPcb::PCBLAYER layer) const;
+	Layer mapLayer(const Layer& layer) const;
 
 	/// Pointer to footprint pin (contains position, etc.)
 	const Pin * mPin;
@@ -65,7 +65,7 @@ public:
 	Part(PCBDoc* doc);
 	~Part();
 
-	virtual void draw(QPainter *painter, XPcb::PCBLAYER layer) const;
+	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
@@ -96,7 +96,7 @@ public:
 	void toXML(QXmlStreamWriter &writer) const;
 
 	QTransform transform() const { return mTransform; }
-	bool testHit(QPoint pt, XPcb::PCBLAYER l) const { return bbox().contains(pt); }
+	bool testHit(QPoint pt, const Layer& layer) const { return bbox().contains(pt); }
 
 private:
 	void resetFp();

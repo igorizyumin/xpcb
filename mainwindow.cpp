@@ -36,11 +36,10 @@ MainWindow::MainWindow(QWidget *parent)
 	this->actionToolbar->addWidget(m_actionbar);
 	this->gridToolbar->addWidget(m_gridwidget);
 	this->m_view = new PCBView(this);
-	this->m_ctrl = new Controller(this);
+	this->m_ctrl = new PCBController(this);
 	this->m_ctrl->registerView(m_view);
 	this->m_ctrl->registerActionBar(m_actionbar);
 	this->m_ctrl->registerLayerWidget(m_layers);
-	this->m_doc = NULL;
 	connect(this->m_view, SIGNAL(mouseMoved(QPoint)),
 					 this, SLOT(onViewCoords(QPoint)));
 	connect(this->m_gridwidget, SIGNAL(viewGridChanged(int)),
@@ -50,7 +49,6 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(this->m_gridwidget, SIGNAL(routeGridChanged(int)),
 			m_ctrl, SLOT(onRouteGridChanged(int)));
 	this->setCentralWidget(this->m_view);
-	setCurrentFile("");
 
 	// restore geometry
 	QSettings settings;
@@ -75,28 +73,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 	}
 }
 
-void MainWindow::newDoc()
-{
-	m_doc = new PCBDoc();
-	connect(this->m_doc, SIGNAL(changed()), this, SLOT(documentWasModified()));
-	connect(this->m_doc, SIGNAL(canUndoChanged(bool)), this, SLOT(onUndoAvailableChanged(bool)));
-	connect(this->m_doc, SIGNAL(canRedoChanged(bool)), this, SLOT(onRedoAvailableChanged(bool)));
-	connect(this->action_Undo, SIGNAL(triggered()), m_doc, SLOT(undo()));
-	connect(this->action_Redo, SIGNAL(triggered()), m_doc, SLOT(redo()));
-	this->m_ctrl->registerDoc(m_doc);
-	setCurrentFile("");
-}
 
-void MainWindow::closeDoc()
-{
-	if (m_doc)
-	{
-		m_ctrl->registerDoc(NULL);
-		delete m_doc;
-		m_doc = NULL;
-	}
-	setCurrentFile("");
-}
 
 void MainWindow::on_actionNew_triggered()
 {
@@ -114,7 +91,7 @@ void MainWindow::on_actionOpen_triggered()
 		QString fileName = QFileDialog::getOpenFileName(this);
 		if (!fileName.isEmpty())
 		{
-			if (!m_doc)
+			if (!doc())
 			{
 				newDoc();
 				if (!loadFile(fileName))
@@ -156,7 +133,7 @@ bool MainWindow::on_actionSave_as_triggered()
 
 bool MainWindow::maybeSave()
 {
-	if (this->m_doc && this->m_doc->isModified())
+	if (doc() && doc()->isModified())
 	{
 		QMessageBox::StandardButton ret;
 		ret = QMessageBox::warning(this, tr("xpcb"),
@@ -173,7 +150,7 @@ bool MainWindow::maybeSave()
 
 bool MainWindow::loadFile(const QString &fileName)
 {
-	if (m_doc && m_doc->loadFromFile(fileName))
+	if (doc() && doc()->loadFromFile(fileName))
 	{
 		setCurrentFile(fileName);
 		statusBar()->showMessage(tr("File loaded"), 2000);
@@ -184,7 +161,7 @@ bool MainWindow::loadFile(const QString &fileName)
 
 bool MainWindow::saveFile(const QString &fileName)
 {
-	if (m_doc && m_doc->saveToFile(fileName))
+	if (doc() && doc()->saveToFile(fileName))
 	{
 		setCurrentFile(fileName);
 		statusBar()->showMessage(tr("File saved"), 2000);
@@ -200,9 +177,9 @@ void MainWindow::setCurrentFile(const QString &fileName)
 
 
 	QString shownName = m_curFile;
-	if (m_doc && m_curFile.isEmpty())
+	if (doc() && m_curFile.isEmpty())
 		shownName = "untitled.xbrd";
-	else if (!m_doc)
+	else if (!doc())
 		shownName = "No document open";
 	setWindowFilePath(shownName);
 }
@@ -226,8 +203,8 @@ void MainWindow::onViewCoords(QPoint pt)
 
 void MainWindow::documentWasModified()
 {
-	if (m_doc)
-		setWindowModified(m_doc->isModified());
+	if (doc())
+		setWindowModified(doc()->isModified());
 	else
 		setWindowModified(false);
 }
@@ -242,3 +219,46 @@ void MainWindow::onRedoAvailableChanged(bool enabled)
 	this->action_Redo->setEnabled(enabled);
 }
 
+void MainWindow::on_action_Undo_triggered()
+{
+	if (doc()) doc()->undo();
+}
+
+void MainWindow::on_action_Redo_triggered()
+{
+	if (doc()) doc()->redo();
+}
+
+///////////////////////////// PCBEDITWINDOW ///////////////////////////////////
+
+PCBEditWindow::PCBEditWindow(QWidget *parent)
+	: MainWindow(parent), mDoc(NULL)
+{
+	setCurrentFile("");
+}
+
+void PCBEditWindow::newDoc()
+{
+	mDoc = new PCBDoc();
+	connect(this->mDoc, SIGNAL(changed()), this, SLOT(documentWasModified()));
+	connect(this->mDoc, SIGNAL(canUndoChanged(bool)), this, SLOT(onUndoAvailableChanged(bool)));
+	connect(this->mDoc, SIGNAL(canRedoChanged(bool)), this, SLOT(onRedoAvailableChanged(bool)));
+	this->m_ctrl->registerDoc(mDoc);
+	setCurrentFile("");
+}
+
+void PCBEditWindow::closeDoc()
+{
+	if (mDoc)
+	{
+		m_ctrl->registerDoc(NULL);
+		delete mDoc;
+		mDoc = NULL;
+	}
+	setCurrentFile("");
+}
+
+Document* PCBEditWindow::doc()
+{
+	return mDoc;
+}

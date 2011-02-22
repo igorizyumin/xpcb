@@ -63,7 +63,7 @@ void EditTextDialog::init(Text *t)
 	}
 }
 
-XPcb::PCBLAYER EditTextDialog::layer() const
+const Layer& EditTextDialog::layer() const
 {
 	return mLayerInd[layerBox->currentIndex()];
 }
@@ -114,18 +114,22 @@ void EditTextDialog::updateUnits()
 
 void EditTextDialog::populateLayers(int numLayers)
 {
-	layerBox->addItem(XPcb::layerName(XPcb::LAY_SILK_TOP), QVariant(XPcb::LAY_SILK_TOP));
-	mLayerInd.append(XPcb::LAY_SILK_TOP);
-	layerBox->addItem(XPcb::layerName(XPcb::LAY_SILK_BOTTOM), QVariant(XPcb::LAY_SILK_BOTTOM));
-	mLayerInd.append(XPcb::LAY_SILK_BOTTOM);
-	layerBox->addItem(XPcb::layerName(XPcb::LAY_TOP_COPPER), QVariant(XPcb::LAY_TOP_COPPER));
-	mLayerInd.append(XPcb::LAY_TOP_COPPER);
+	// generate list of layers
+	// TODO this should be obtained from the document
+	QList<Layer> layers;
+	layers.append(Layer::LAY_SILK_TOP);
+	layers.append(Layer::LAY_SILK_BOTTOM);
+	layers.append(Layer::LAY_TOP_COPPER);
 	for(int i = 0; i < numLayers - 2; i++)
 	{
-		layerBox->addItem(XPcb::layerName((XPcb::PCBLAYER)(XPcb::LAY_INNER1+i)), QVariant(XPcb::LAY_INNER1+i));
-		mLayerInd.append((XPcb::PCBLAYER)(XPcb::LAY_INNER1 + i));
+		layers.append(Layer::LAY_INNER1+i);
 	}
-	layerBox->addItem(XPcb::layerName(XPcb::LAY_BOTTOM_COPPER), QVariant(XPcb::LAY_BOTTOM_COPPER));
-	mLayerInd.append(XPcb::LAY_BOTTOM_COPPER);
+	layers.append(Layer::LAY_BOTTOM_COPPER);
+
+	foreach(const Layer& l, layers)
+	{
+		layerBox->addItem(l.name(), l.toInt());
+		mLayerInd.append(l);
+	}
 }
 

@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 	// initialize the app settings with defaults, if they do not exist
 	initSettings();
 
-    MainWindow w;
+	PCBEditWindow w;
     w.show();
 
     return a.exec();

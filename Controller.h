@@ -25,12 +25,14 @@
 #include <QUndoCommand>
 
 class PCBView;
+class Document;
 class PCBDoc;
 class PCBObject;
 class AbstractEditor;
 class LayerWidget;
 class SelFilterWidget;
 class ActionBar;
+class Layer;
 
 /// Action triggered by a function key
 class CtrlAction
@@ -58,50 +60,48 @@ public:
 
 	explicit Controller(QObject *parent = 0);
 
-	void registerDoc(PCBDoc* doc);
 	void registerView(PCBView* view);
 	void registerActionBar(ActionBar* bar);
 	void registerLayerWidget(LayerWidget* widget);
 
-	void draw(QPainter* painter, QRect &rect, XPcb::PCBLAYER layer);
+	void draw(QPainter* painter, QRect &rect, const Layer &layer);
 
-	bool docIsOpen() {return mDoc != NULL;}
+	bool docIsOpen() {return doc() != NULL;}
 
 	void selectObj(PCBObject* obj);
 	void hideObj(PCBObject* obj);
 	void unhideObj(PCBObject* obj);
 
-	PCBDoc* doc() { return mDoc; }
+	virtual Document* doc() = 0;
 	PCBView* view() {return mView; }
 
-	QPoint snapToPlaceGrid(QPoint p);
-	QPoint snapToRouteGrid(QPoint p);
+	QPoint snapToPlaceGrid(const QPoint &p) const;
+	QPoint snapToRouteGrid(const QPoint &p) const;
 
-	bool isLayerVisible(XPcb::PCBLAYER l) const;
-	XPcb::PCBLAYER activeLayer() const;
+	bool isLayerVisible(const Layer& l) const;
+	const Layer& activeLayer() const;
 
 public slots:
 	void onPlaceGridChanged(int grid) { mPlaceGrid = grid; }
 	void onRouteGridChanged(int grid) { mRouteGrid = grid; }
-private slots:
-	void onAction(int key);
+
+protected slots:
+	virtual void onAction(int key) = 0;
 	void onEditorOverlayChanged();
 	void onEditorFinished();
 	void onEditorActionsChanged();
 	void onDocumentChanged();
 
-private:
+protected:
 	virtual bool eventFilter(QObject *watched, QEvent *event);
 	void mouseMoveEvent(QMouseEvent *event);
 	void mousePressEvent(QMouseEvent *event);
 	void mouseReleaseEvent(QMouseEvent *event);
 	void updateEditor();
-	void updateActions();
+	virtual void updateActions() = 0;
 	void installEditor();
-	void onAddTextAction();
 
 	PCBView* mView;
-	PCBDoc* mDoc;
 	AbstractEditor* mEditor;
 	LayerWidget* mLayerWidget;
 	ActionBar* mActionBar;
@@ -114,6 +114,28 @@ private:
 
 	int mPlaceGrid;
 	int mRouteGrid;
+};
+
+class PCBController : public Controller
+{
+	Q_OBJECT
+public:
+	explicit PCBController(QObject *parent = 0);
+
+	void registerDoc(PCBDoc* doc);
+	virtual Document* doc();
+
+protected slots:
+	virtual void onAction(int key);
+
+protected:
+	virtual void updateActions();
+	void onAddTextAction();
+
+
+	PCBDoc* mDoc;
+
+
 };
 
 #endif // CONTROLLER_H

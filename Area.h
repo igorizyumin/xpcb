@@ -35,15 +35,15 @@ public:
 	Area(const PCBDoc *doc);
 	~Area();
 
-	virtual void draw(QPainter *painter, XPcb::PCBLAYER layer) const;
+	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 
 	/// Sets the polygon layer.
 	/// \param layer the new layer.
-	void setLayer( XPcb::PCBLAYER layer );
+	void setLayer( const Layer& layer );
 	/// \returns the current polygon layer.
-	XPcb::PCBLAYER layer() const {return mLayer;}
+	const Layer& layer() const {return mLayer;}
 
 	/// Gets the hatch style.
 	/// \returns the current hatch style
@@ -84,7 +84,7 @@ private:
 	QSet<Vertex*> mConnVtx;
 
 	/// Layer this polygon is on.
-	XPcb::PCBLAYER mLayer;
+	Layer mLayer;
 
 	/// Hatch style for drawing this polygon
 	HATCH_STYLE mHatchStyle;

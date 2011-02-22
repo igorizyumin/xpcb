@@ -1,6 +1,6 @@
 # RELAX NG schema for xpcb file format
 
-start = XPcbBoard
+start = (XPcbBoard | XPcbFp)
 
 # basic types
 # boolean value
@@ -28,6 +28,12 @@ XPcbBoard = element xpcbBoard
 { 
 	Properties, Padstacks, Footprints, Outline, 
 	Parts, Nets, Traces, Areas, Texts 
+}
+
+XPcbFp = element xpcbFootprint
+{
+	Padstacks,
+	Footprint
 }
 
 # Board properties

@@ -346,7 +346,7 @@ void PartEditor::drawOverlay(QPainter *painter)
 		painter->save();
 		painter->setBrush(Qt::NoBrush);
 		painter->setRenderHint(QPainter::Antialiasing, false);
-		mPart->draw(painter, XPcb::LAY_SELECTION);
+		mPart->draw(painter, Layer::LAY_SELECTION);
 		painter->restore();
 	}
 	else

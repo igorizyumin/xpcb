@@ -77,6 +77,10 @@ void EditorFactory::visit(PartPin* a)
 {
 }
 
+void EditorFactory::visit(Pin* a)
+{
+}
+
 void EditorFactory::visit(Part* p)
 {
 	mEditor = new PartEditor(mCtrl, p);
