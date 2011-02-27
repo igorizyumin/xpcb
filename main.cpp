@@ -14,8 +14,7 @@ void initSettings()
 	setDefaultValue(s, "colors/selection", QColor(255, 255, 255));
 	setDefaultValue(s, "colors/background", QColor(0, 0, 0));
 	setDefaultValue(s, "colors/visible grid", QColor(255, 255, 255));
-	setDefaultValue(s, "colors/highlight", QColor(255, 255, 255));
-	setDefaultValue(s, "colors/DRC error", QColor(255, 128, 64));
+	setDefaultValue(s, "colors/drc error", QColor(255, 128, 64));
 	setDefaultValue(s, "colors/board outline", QColor(0, 0, 255));
 	setDefaultValue(s, "colors/rat line", QColor(255, 0, 255));
 	setDefaultValue(s, "colors/top silk", QColor(255, 255, 0));
@@ -39,8 +38,16 @@ void initSettings()
 	setDefaultValue(s, "colors/inner 12", QColor(5, 0, 220));
 	setDefaultValue(s, "colors/inner 13", QColor(0, 150, 220));
 	setDefaultValue(s, "colors/inner 14", QColor(220, 145, 0));
-	setDefaultValue(s, "colors/inner 15", QColor(220, 83, 0));
-	setDefaultValue(s, "colors/inner 16", QColor(220, 0, 140));
+//	setDefaultValue(s, "colors/inner 15", QColor(220, 83, 0));
+//	setDefaultValue(s, "colors/inner 16", QColor(220, 0, 140));
+	setDefaultValue(s, "colors/top paste", QColor(0, 150, 0));
+	setDefaultValue(s, "colors/bottom paste", QColor(150, 0, 0));
+	setDefaultValue(s, "colors/start pad", QColor(0, 210, 0));
+	setDefaultValue(s, "colors/inner pad", QColor(220, 145, 0));
+	setDefaultValue(s, "colors/end pad", QColor(210, 0, 0));
+	setDefaultValue(s, "colors/centroid", QColor(255, 255, 255));
+	setDefaultValue(s, "colors/adhesive", QColor(231, 231, 231));
+	setDefaultValue(s, "colors/unknown layer", QColor(255, 0, 0));
 }
 
 int main(int argc, char *argv[])
@@ -53,7 +60,7 @@ int main(int argc, char *argv[])
 	// initialize the app settings with defaults, if they do not exist
 	initSettings();
 
-	PCBEditWindow w;
+	FPEditWindow w;
     w.show();
 
     return a.exec();

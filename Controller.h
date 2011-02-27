@@ -27,6 +27,7 @@
 class PCBView;
 class Document;
 class PCBDoc;
+class FPDoc;
 class PCBObject;
 class AbstractEditor;
 class LayerWidget;
@@ -134,8 +135,26 @@ protected:
 
 
 	PCBDoc* mDoc;
+};
+
+class FPController : public Controller
+{
+	Q_OBJECT
+public:
+	explicit FPController(QObject *parent = 0);
+
+	void registerDoc(FPDoc* doc);
+	virtual Document* doc();
+
+protected slots:
+	virtual void onAction(int key);
+
+protected:
+	virtual void updateActions();
+	void onAddTextAction();
 
 
+	FPDoc* mDoc;
 };
 
 #endif // CONTROLLER_H

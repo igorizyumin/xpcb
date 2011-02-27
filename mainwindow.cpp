@@ -36,24 +36,13 @@ MainWindow::MainWindow(QWidget *parent)
 	this->actionToolbar->addWidget(m_actionbar);
 	this->gridToolbar->addWidget(m_gridwidget);
 	this->m_view = new PCBView(this);
-	this->m_ctrl = new PCBController(this);
-	this->m_ctrl->registerView(m_view);
-	this->m_ctrl->registerActionBar(m_actionbar);
-	this->m_ctrl->registerLayerWidget(m_layers);
+
 	connect(this->m_view, SIGNAL(mouseMoved(QPoint)),
 					 this, SLOT(onViewCoords(QPoint)));
 	connect(this->m_gridwidget, SIGNAL(viewGridChanged(int)),
 			m_view, SLOT(visGridChanged(int)));
-	connect(this->m_gridwidget, SIGNAL(placeGridChanged(int)),
-			m_ctrl, SLOT(onPlaceGridChanged(int)));
-	connect(this->m_gridwidget, SIGNAL(routeGridChanged(int)),
-			m_ctrl, SLOT(onRouteGridChanged(int)));
-	this->setCentralWidget(this->m_view);
 
-	// restore geometry
-	QSettings settings;
-	restoreGeometry(settings.value("mainWindow/geometry").toByteArray());
-	restoreState(settings.value("mainWindow/windowState").toByteArray());
+	this->setCentralWidget(this->m_view);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -61,10 +50,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 	if (maybeSave())
 	{
 		event->accept();
-		// save geometry
-		QSettings settings;
-		settings.setValue("mainWindow/geometry", saveGeometry());
-		settings.setValue("mainWindow/windowState", saveState());
+		saveGeom();
 		QMainWindow::closeEvent(event);
 	}
 	else
@@ -72,8 +58,6 @@ void MainWindow::closeEvent(QCloseEvent *event)
 		event->ignore();
 	}
 }
-
-
 
 void MainWindow::on_actionNew_triggered()
 {
@@ -234,7 +218,17 @@ void MainWindow::on_action_Redo_triggered()
 PCBEditWindow::PCBEditWindow(QWidget *parent)
 	: MainWindow(parent), mDoc(NULL)
 {
+	this->mCtrl = new PCBController(this);
+	this->mCtrl->registerView(m_view);
+	this->mCtrl->registerActionBar(m_actionbar);
+	this->mCtrl->registerLayerWidget(m_layers);
+	connect(this->m_gridwidget, SIGNAL(placeGridChanged(int)),
+			mCtrl, SLOT(onPlaceGridChanged(int)));
+	connect(this->m_gridwidget, SIGNAL(routeGridChanged(int)),
+			mCtrl, SLOT(onRouteGridChanged(int)));
 	setCurrentFile("");
+	loadGeom();
+
 }
 
 void PCBEditWindow::newDoc()
@@ -243,7 +237,7 @@ void PCBEditWindow::newDoc()
 	connect(this->mDoc, SIGNAL(changed()), this, SLOT(documentWasModified()));
 	connect(this->mDoc, SIGNAL(canUndoChanged(bool)), this, SLOT(onUndoAvailableChanged(bool)));
 	connect(this->mDoc, SIGNAL(canRedoChanged(bool)), this, SLOT(onRedoAvailableChanged(bool)));
-	this->m_ctrl->registerDoc(mDoc);
+	mCtrl->registerDoc(mDoc);
 	setCurrentFile("");
 }
 
@@ -251,7 +245,7 @@ void PCBEditWindow::closeDoc()
 {
 	if (mDoc)
 	{
-		m_ctrl->registerDoc(NULL);
+		mCtrl->registerDoc(NULL);
 		delete mDoc;
 		mDoc = NULL;
 	}
@@ -262,3 +256,90 @@ Document* PCBEditWindow::doc()
 {
 	return mDoc;
 }
+
+Controller* PCBEditWindow::ctrl()
+{
+	return mCtrl;
+}
+
+void PCBEditWindow::loadGeom()
+{
+	// restore geometry
+	QSettings settings;
+	restoreGeometry(settings.value("mainWindow/geometry").toByteArray());
+	restoreState(settings.value("mainWindow/windowState").toByteArray());
+}
+
+void PCBEditWindow::saveGeom()
+{
+	// save geometry
+	QSettings settings;
+	settings.setValue("mainWindow/geometry", saveGeometry());
+	settings.setValue("mainWindow/windowState", saveState());
+}
+
+///////////////////////////// FPEDITWINDOW ///////////////////////////////////
+
+FPEditWindow::FPEditWindow(QWidget *parent)
+	: MainWindow(parent), mDoc(NULL)
+{
+	this->mCtrl = new FPController(this);
+	this->mCtrl->registerView(m_view);
+	this->mCtrl->registerActionBar(m_actionbar);
+	this->mCtrl->registerLayerWidget(m_layers);
+	connect(this->m_gridwidget, SIGNAL(placeGridChanged(int)),
+			mCtrl, SLOT(onPlaceGridChanged(int)));
+	connect(this->m_gridwidget, SIGNAL(routeGridChanged(int)),
+			mCtrl, SLOT(onRouteGridChanged(int)));
+	setCurrentFile("");
+	loadGeom();
+}
+
+void FPEditWindow::newDoc()
+{
+	mDoc = new FPDoc();
+	connect(this->mDoc, SIGNAL(changed()), this, SLOT(documentWasModified()));
+	connect(this->mDoc, SIGNAL(canUndoChanged(bool)), this, SLOT(onUndoAvailableChanged(bool)));
+	connect(this->mDoc, SIGNAL(canRedoChanged(bool)), this, SLOT(onRedoAvailableChanged(bool)));
+	this->mCtrl->registerDoc(mDoc);
+	setCurrentFile("");
+}
+
+void FPEditWindow::closeDoc()
+{
+	if (mDoc)
+	{
+		mCtrl->registerDoc(NULL);
+		delete mDoc;
+		mDoc = NULL;
+	}
+	setCurrentFile("");
+}
+
+Document* FPEditWindow::doc()
+{
+	return mDoc;
+}
+
+Controller* FPEditWindow::ctrl()
+{
+	return mCtrl;
+}
+
+void FPEditWindow::loadGeom()
+{
+	// restore geometry
+	QSettings settings;
+	restoreGeometry(settings.value("fpWindow/geometry").toByteArray());
+	restoreState(settings.value("fpWindow/windowState").toByteArray());
+}
+
+void FPEditWindow::saveGeom()
+{
+	// save geometry
+	QSettings settings;
+	settings.setValue("fpWindow/geometry", saveGeometry());
+	settings.setValue("fpWindow/windowState", saveState());
+}
+
+

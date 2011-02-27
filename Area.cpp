@@ -18,7 +18,7 @@ Area::~Area()
 	delete mPoly;
 }
 
-void Area::draw(QPainter *painter, const Layer& layer) const
+void Area::draw(QPainter */*painter*/, const Layer& /*layer*/) const
 {
 	// XXX TODO draw via if needed
 }

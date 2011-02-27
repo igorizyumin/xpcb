@@ -420,6 +420,11 @@ void Pin::draw(QPainter *painter, const Layer& layer) const
 Footprint::Footprint()
 	: mName("EMPTY_SHAPE"), mUnits(XPcb::MIL), mCustomCentroid(false)
 {
+	mValueText.setText("VALUE");
+	mValueText.setLayer(Layer::LAY_SILK_TOP);
+	mValueText.setPos(QPoint(0, XPcb::MIL2PCB(-120)));
+	mRefText.setText("REF");
+	mRefText.setLayer(Layer::LAY_SILK_TOP);
 }
 
 // destructor
@@ -433,6 +438,7 @@ Footprint::~Footprint()
 void Footprint::draw(QPainter *painter, FP_DRAW_LAYER layer) const
 {
 	// draw lines
+	// wtf?
 	Layer pcblayer = (layer == Footprint::LAY_START) ? Layer(Layer::LAY_SILK_TOP) : Layer(Layer::LAY_SILK_BOTTOM);
 	foreach(const Line& l, mOutlineLines)
 		l.draw(painter, pcblayer);

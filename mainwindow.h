@@ -10,8 +10,10 @@ class ActionBar;
 class PCBView;
 class Document;
 class PCBDoc;
+class FPDoc;
 class Controller;
 class PCBController;
+class FPController;
 class SelFilterWidget;
 class LayerWidget;
 
@@ -49,13 +51,17 @@ protected:
 
 	/// Returns the current document, or NULL if no document is open.
 	virtual Document* doc() = 0;
+	virtual Controller* ctrl() = 0;
+
+	/// Restores the window geometry
+	virtual void loadGeom() = 0;
+	virtual void saveGeom() = 0;
 
 	QLabel* m_statusbar_xc;
 	QLabel* m_statusbar_yc;
 	GridToolbarWidget* m_gridwidget;
 	ActionBar* m_actionbar;
 	PCBView *m_view;
-	PCBController *m_ctrl;
 	QString m_curFile;
 	SelFilterWidget *m_selmask;
 	LayerWidget *m_layers;
@@ -72,11 +78,35 @@ protected:
 	virtual void newDoc();
 	virtual void closeDoc();
 	virtual Document* doc();
+	virtual Controller* ctrl();
+	virtual void loadGeom();
+	virtual void saveGeom();
+
 
 private:
 	PCBDoc* mDoc;
+	PCBController *mCtrl;
 
+};
 
+class FPEditWindow : public MainWindow
+{
+	Q_OBJECT
+
+public:
+	FPEditWindow(QWidget *parent = 0);
+
+protected:
+	virtual void newDoc();
+	virtual void closeDoc();
+	virtual Document* doc();
+	virtual Controller* ctrl();
+	virtual void loadGeom();
+	virtual void saveGeom();
+
+private:
+	FPDoc* mDoc;
+	FPController *mCtrl;
 };
 
 #endif // MAINWINDOW_H

@@ -346,3 +346,75 @@ void PCBController::onAddTextAction()
 	mEditor = EditorFactory::instance().newTextEditor(this);
 	installEditor();
 }
+
+//////////////////////////// FPCONTROLLER /////////////////////////////////
+
+FPController::FPController(QObject *parent)
+	: Controller(parent), mDoc(NULL)
+{
+}
+
+void FPController::registerDoc(FPDoc* doc)
+{
+	if (!mDoc && doc)
+	{
+		mDoc = doc;
+		if (mLayerWidget)
+			mLayerWidget->layersChanged(mDoc->layerList());
+		connect(mDoc, SIGNAL(changed()), this, SLOT(onDocumentChanged()));
+		onDocumentChanged();
+	}
+	else if (mDoc && !doc)
+	{
+		disconnect(mDoc, SIGNAL(changed()), this, SIGNAL(onDocumentChanged()));
+		mDoc = NULL;
+		mSelectedObjs.clear();
+		mHiddenObjs.clear();
+		delete mEditor;
+		mEditor = NULL;
+		onDocumentChanged();
+	}
+	updateEditor();
+}
+
+Document* FPController::doc()
+{
+	return mDoc;
+}
+
+void FPController::onAction(int key)
+{
+	if (mEditor)
+		mEditor->action(key);
+//	else if (key == 2)
+//		onAddTextAction();
+}
+
+void FPController::updateActions()
+{
+	Q_ASSERT(mActionBar != NULL);
+
+	if (!doc())
+	{
+		mActionBar->setActions(QList<CtrlAction>());
+		return;
+	}
+
+	if (!mEditor)
+	{
+//		mActionBar->setActions(CtrlAction(2, "Add Text"));
+		mActionBar->clearActions();
+	}
+	else
+	{
+		mActionBar->setActions(mEditor->actions());
+	}
+}
+
+void FPController::onAddTextAction()
+{
+//	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
+
+//	mEditor = EditorFactory::instance().newTextEditor(this);
+//	installEditor();
+}

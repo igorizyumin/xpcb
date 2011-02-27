@@ -47,7 +47,7 @@ public:
 	int getid() const {return objID;}
 
 	/// Returns true if the object was hit.
-	virtual bool testHit(QPoint pt, const Layer& l) const { return false; }
+	virtual bool testHit(QPoint /* pt */, const Layer& /*l*/) const { return false; }
 
 	/// Returns the object's transform (from the object's coordinate system to
 	/// PCB coordinates).

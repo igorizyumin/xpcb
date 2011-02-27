@@ -99,7 +99,7 @@ void PartEditor::action(int key)
 	}
 }
 
-bool PartEditor::eventFilter(QObject *watched, QEvent *event)
+bool PartEditor::eventFilter(QObject */*watched*/, QEvent *event)
 {
 	event->accept();
 	if (event->type() == QEvent::MouseMove)
@@ -370,7 +370,7 @@ void PartEditor::drawOverlay(QPainter *painter)
 
 
 PartMoveCmd::PartMoveCmd(QUndoCommand *parent, Part *obj, QPoint newPos, int newAngle, Part::SIDE newSide)
-	: QUndoCommand(parent), mPart(obj), mPrevPos(obj->pos()), mNewPos(newPos), mNewAngle(newAngle),
+	: QUndoCommand(parent), mPart(obj), mNewPos(newPos), mPrevPos(obj->pos()), mNewAngle(newAngle),
 	mPrevAngle(obj->angle()), mNewSide(newSide), mPrevSide(obj->side())
 {
 }

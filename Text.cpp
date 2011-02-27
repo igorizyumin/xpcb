@@ -11,7 +11,7 @@
 
 Text::Text()
 	: PCBObject(), mAngle(0), mIsMirrored(false), mIsNegative(false),
-	mFontSize(0), mStrokeWidth(0), mParent(NULL), mIsDirty(true)
+	mFontSize(XPcb::MIL2PCB(100)), mStrokeWidth(XPcb::MIL2PCB(10)), mParent(NULL), mIsDirty(true)
 {
 }
 
@@ -198,7 +198,7 @@ void TextEditor::action(int key)
 	}
 }
 
-bool TextEditor::eventFilter(QObject *watched, QEvent *event)
+bool TextEditor::eventFilter(QObject */*watched*/, QEvent *event)
 {
 	event->accept();
 	if (event->type() == QEvent::MouseMove)

@@ -84,8 +84,9 @@ bool Document::saveToFile(const QString &file)
 /////////////////////////////// FPDOC /////////////////////////////////
 
 FPDoc::FPDoc()
-	: Document(), mFp(NULL)
+	: Document()
 {
+	mFp = new Footprint();
 }
 
 FPDoc::~FPDoc()
@@ -170,23 +171,30 @@ QList<PCBObject*> FPDoc::findObjs(QPoint &pt)
 		out.append((PCBObject*)&mFp->getRefText());
 	if (mFp->getValueText().bbox().contains(pt))
 		out.append((PCBObject*)&mFp->getValueText());
+
+	return out;
 }
 
 QList<PCBObject*> FPDoc::findObjs(QRect &rect)
 {
+	Q_ASSERT(mFp);
 	QList<PCBObject*> out;
 
-	foreach(const Pin& p, mFp->getPins())
+	QList<Pin> pins = mFp->getPins();
+	QList<Line> lines = mFp->getLines();
+	QList<Arc> arcs = mFp->getArcs();
+
+	foreach(const Pin& p, pins)
 	{
 		if (p.bbox().intersects(rect))
 			out.append((PCBObject*)&p);
 	}
-	foreach(const Line& p, mFp->getLines())
+	foreach(const Line& p, lines)
 	{
 		if (p.bbox().intersects(rect))
 			out.append((PCBObject*)&p);
 	}
-	foreach(const Arc& p, mFp->getArcs())
+	foreach(const Arc& p, arcs)
 	{
 		if (p.bbox().intersects(rect))
 			out.append((PCBObject*)&p);
@@ -195,6 +203,8 @@ QList<PCBObject*> FPDoc::findObjs(QRect &rect)
 		out.append((PCBObject*)&mFp->getRefText());
 	if (mFp->getValueText().bbox().intersects(rect))
 		out.append((PCBObject*)&mFp->getValueText());
+
+	return out;
 }
 
 ////////////////////////////// PCBDOC /////////////////////////////////

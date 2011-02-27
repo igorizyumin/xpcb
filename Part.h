@@ -96,7 +96,7 @@ public:
 	void toXML(QXmlStreamWriter &writer) const;
 
 	QTransform transform() const { return mTransform; }
-	bool testHit(QPoint pt, const Layer& layer) const { return bbox().contains(pt); }
+	bool testHit(QPoint pt, const Layer& /*layer*/) const { return bbox().contains(pt); }
 
 private:
 	void resetFp();

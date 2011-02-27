@@ -57,27 +57,27 @@ AbstractEditor* EditorFactory::newTextEditor(Controller *ctrl)
 	return new TextEditor(ctrl, NULL);
 }
 
-void EditorFactory::visit(Area* a)
+void EditorFactory::visit(Area*)
 {
 }
 
-void EditorFactory::visit(Arc* a)
+void EditorFactory::visit(Arc*)
 {
 }
 
-void EditorFactory::visit(Line* a)
+void EditorFactory::visit(Line*)
 {
 }
 
-void EditorFactory::visit(Net* a)
+void EditorFactory::visit(Net*)
 {
 }
 
-void EditorFactory::visit(PartPin* a)
+void EditorFactory::visit(PartPin*)
 {
 }
 
-void EditorFactory::visit(Pin* a)
+void EditorFactory::visit(Pin*)
 {
 }
 
@@ -86,7 +86,7 @@ void EditorFactory::visit(Part* p)
 	mEditor = new PartEditor(mCtrl, p);
 }
 
-void EditorFactory::visit(Footprint* a)
+void EditorFactory::visit(Footprint*)
 {
 }
 
@@ -95,14 +95,14 @@ void EditorFactory::visit(Text *t)
 	mEditor = new TextEditor(mCtrl, t);
 }
 
-void EditorFactory::visit(Vertex* a)
+void EditorFactory::visit(Vertex*)
 {
 }
 
-void EditorFactory::visit(Segment* a)
+void EditorFactory::visit(Segment*)
 {
 }
 
-void EditorFactory::visit(Padstack* a)
+void EditorFactory::visit(Padstack*)
 {
 }

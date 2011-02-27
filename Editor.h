@@ -33,7 +33,7 @@ public:
 	virtual void init() {}
 	virtual void drawOverlay(QPainter* painter) = 0;
 	virtual QList<CtrlAction> actions() const { return QList<CtrlAction>(); }
-	virtual void action(int key) {}
+	virtual void action(int /*key*/) {}
 
 signals:
 	void actionsChanged();

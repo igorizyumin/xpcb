@@ -6,9 +6,8 @@
 #include <QXmlStreamWriter>
 #include "PCBObject.h"
 #include "Text.h"
+#include "Line.h"
 
-class Line;
-class Arc;
 class Footprint;
 
 /// A pad is a padstack component; it describes the
@@ -159,10 +158,10 @@ public:
 	int numPins() const;
 	const Pin* getPin(const QString & pin) const;
 	const Pin* getPin(int i) {return &mPins.at(i);}
-	const QList<Pin>& getPins() { return mPins; }
+	const QList<Pin> getPins() { return mPins; }
 
-	const QList<Arc>& getArcs() { return mOutlineArcs; }
-	const QList<Line>& getLines() { return mOutlineLines; }
+	const QList<Arc> getArcs() { return mOutlineArcs; }
+	const QList<Line> getLines() { return mOutlineLines; }
 
 	QRect getPinBounds() const;
 

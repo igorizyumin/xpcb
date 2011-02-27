@@ -75,6 +75,7 @@ void PCBView::paintEvent(QPaintEvent *e)
 		QListIterator<Layer> i(layers);
 		while(i.hasNext())
 		{
+			Q_ASSERT(painter.isActive());
 			Layer curr;
 			// find first copper layer to draw current active layer
 			if (!activeDrawn && !i.peekNext().isCopper() && i.hasPrevious() && i.peekPrevious().isCopper())
@@ -178,12 +179,12 @@ void PCBView::keyPressEvent(QKeyEvent *event)
 		event->ignore();
 }
 
-void PCBView::enterEvent(QEvent *event)
+void PCBView::enterEvent(QEvent */*event*/)
 {
 	setFocus(Qt::MouseFocusReason);
 }
 
-void PCBView::leaveEvent(QEvent *event)
+void PCBView::leaveEvent(QEvent */*event*/)
 {
 	clearFocus();
 }

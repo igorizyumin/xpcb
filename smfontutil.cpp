@@ -16,8 +16,8 @@
 #include <QPainter>
 #include <QList>
 
-static QString smffile = ":/Hershey.smf";
-static QString xtbfile = ":/Hershey.xtb";
+static const QString smffile = ":/Hershey.smf";
+static const QString xtbfile = ":/Hershey.xtb";
 
 #define BASE_CHARACTER_WIDTH 16.0
 #define BASE_CHARACTER_HEIGHT 22.0

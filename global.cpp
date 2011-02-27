@@ -34,6 +34,9 @@ bool Layer::isCopper() const
 
 QString Layer::name(Type c)
 {
+	// Note: remember to update the defaults in main.cpp when changing
+	// the names.
+	// TODO Need a better system in place for retrieving colors.
 	switch(c)
 	{
 	case LAY_BACKGND:
@@ -55,7 +58,7 @@ QString Layer::name(Type c)
 	case LAY_SMCUT_TOP:
 		return "top sm cutout";
 	case LAY_SMCUT_BOTTOM:
-		return "bottom sm cutout";
+		return "bot sm cutout";
 	case LAY_HOLE:
 		return "drilled hole";
 	case LAY_TOP_COPPER:
@@ -100,8 +103,14 @@ QString Layer::name(Type c)
 		return "inner pad";
 	case LAY_END:
 		return "end pad";
+	case LAY_CENTROID:
+		return "centroid";
+	case LAY_GLUE:
+		return "adhesive";
+	case LAY_UNKNOWN:
+		return "unknown layer";
 	}
-	return "unknown layer";
+	return "INVALID";
 }
 
 QColor Layer::color(Type c)

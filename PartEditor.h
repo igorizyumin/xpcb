@@ -120,7 +120,7 @@ class PartEditCmd : public QUndoCommand
 {
 public:
 	PartEditCmd(QUndoCommand *parent, Part* p, PartState& newState)
-		: mPart(p), mPrevState(PartState(p)), mNewState(newState) {}
+		: QUndoCommand(parent), mPart(p), mPrevState(PartState(p)), mNewState(newState) {}
 
 	virtual void undo();
 	virtual void redo();

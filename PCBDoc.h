@@ -154,6 +154,9 @@ public:
 	virtual QList<PCBObject*> findObjs(QPoint &pt);
 	virtual QList<PCBObject*> findObjs(QRect &rect);
 
+	virtual void addText(Text* /*t*/) {}
+	virtual void removeText(Text* /*t*/) {}
+
 private:
 	void clearFP();
 

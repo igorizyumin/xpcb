@@ -16,6 +16,7 @@ public:
 
 	void setActions(QList<CtrlAction> actions);
 	void setActions(CtrlAction action);
+	void clearActions();
 
 signals:
 	void triggered(int key);
