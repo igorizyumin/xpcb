@@ -207,6 +207,21 @@ QList<PCBObject*> FPDoc::findObjs(QRect &rect)
 	return out;
 }
 
+QList<Padstack*> FPDoc::padstacks()
+{
+	return mPadstacks;
+}
+
+void FPDoc::addPadstack(Padstack* ps)
+{
+	mPadstacks.append(ps);
+}
+
+void FPDoc::removePadstack(Padstack *ps)
+{
+
+}
+
 ////////////////////////////// PCBDOC /////////////////////////////////
 
 PCBDoc::PCBDoc()
@@ -408,6 +423,16 @@ QList<Layer> PCBDoc::layerList(LayerOrder order)
 		l.append(Layer(Layer::LAY_SELECTION));
 		return l;
 	}
+}
+
+void PCBDoc::addPadstack(Padstack* ps)
+{
+	mPadstacks.append(ps);
+}
+
+void PCBDoc::removePadstack(Padstack *ps)
+{
+
 }
 
 //////// XML PARSING /////////

@@ -8,11 +8,12 @@
 
 /////////////////////// PAD /////////////////////////
 // class pad
-Pad::Pad() :
-		mShape(PAD_NONE),
-		mWidth(0),
-		mHeight(0),
-		mConnFlag(PAD_CONNECT_DEFAULT)
+Pad::Pad(PADSHAPE shape, int width, int height, int radius, PADCONNTYPE connType) :
+		mShape(shape),
+		mWidth(width),
+		mLength(height),
+		mRadius(radius),
+		mConnFlag(connType)
 {
 }
 
@@ -20,7 +21,7 @@ bool Pad::operator==(const Pad & p) const
 { 
 	return( mShape==p.mShape
 			&& mWidth==p.mWidth
-			&& mHeight==p.mHeight
+			&& mLength==p.mLength
 			); 
 }
 
@@ -49,13 +50,13 @@ Pad Pad::newFromXML(QXmlStreamReader &reader)
 	{
 		p.mShape = PAD_RECT;
 		p.mWidth = attr.value("width").toString().toInt();
-		p.mHeight = attr.value("height").toString().toInt();
+		p.mLength = attr.value("height").toString().toInt();
 	}
 	else if (t == "obround")
 	{
 		p.mShape = PAD_OBROUND;
 		p.mWidth = attr.value("width").toString().toInt();
-		p.mHeight = attr.value("height").toString().toInt();
+		p.mLength = attr.value("height").toString().toInt();
 	}
 	// read until the end of this element
 	do
@@ -84,12 +85,12 @@ void Pad::toXML(QXmlStreamWriter &writer) const
 	case PAD_RECT:
 		writer.writeAttribute("shape", "rect");
 		writer.writeAttribute("width", QString::number(mWidth));
-		writer.writeAttribute("height", QString::number(mHeight));
+		writer.writeAttribute("height", QString::number(mLength));
 		break;
 	case PAD_OBROUND:
 		writer.writeAttribute("shape", "obround");
 		writer.writeAttribute("width", QString::number(mWidth));
-		writer.writeAttribute("height", QString::number(mHeight));
+		writer.writeAttribute("height", QString::number(mLength));
 		break;
 	default:
 		break;
@@ -105,6 +106,7 @@ bool Pad::testHit( const QPoint& pt )
 	switch( mShape )
 	{
 	case PAD_NONE:
+	case PAD_DEFAULT:
 		break;
 	case PAD_ROUND:
 	case PAD_OCTAGON:
@@ -113,8 +115,9 @@ bool Pad::testHit( const QPoint& pt )
 		break;
 	case PAD_SQUARE:
 	case PAD_RECT:
+	case PAD_RRECT:
 	case PAD_OBROUND:
-		if( abs(pt.x()) < (mWidth/2) && abs(pt.y()) < (mHeight/2) )
+		if( abs(pt.x()) < (mWidth/2) && abs(pt.y()) < (mLength/2) )
 			return true;
 		break;
 	}
@@ -136,7 +139,7 @@ QRect Pad::bbox() const
 	case PAD_SQUARE:
 	case PAD_RECT:
 	case PAD_OBROUND:
-		return QRect(-mWidth/2, -mHeight/2, mWidth, mHeight);
+		return QRect(-mWidth/2, -mLength/2, mWidth, mLength);
 	}
 }
 
@@ -151,7 +154,7 @@ void Pad::draw(QPainter *painter) const
 		painter->drawRect(QRect(-mWidth/2, -mWidth/2, mWidth, mWidth));
 		break;
 	case PAD_RECT:
-		painter->drawRect(QRect(-mWidth/2, -mHeight/2, mWidth, mHeight));
+		painter->drawRect(QRect(-mWidth/2, -mLength/2, mWidth, mLength));
 		break;
 	case PAD_OCTAGON:
 		{
@@ -163,20 +166,20 @@ void Pad::draw(QPainter *painter) const
 		}
 		break;
 	case PAD_OBROUND:
-		if (mWidth > mHeight)
+		if (mWidth > mLength)
 		{
 			// draw horizontal oval
-			int wr = 0.5* (mWidth - mHeight);
-			painter->drawRect(-wr, -mHeight/2, 2*wr, mHeight);
-			painter->drawPie(-mWidth/2, -mHeight/2, mHeight, mHeight, -1440, -2880);
-			painter->drawPie(wr-mHeight/2, -mHeight/2, mHeight, mHeight, 1440, -2880);
+			int wr = 0.5* (mWidth - mLength);
+			painter->drawRect(-wr, -mLength/2, 2*wr, mLength);
+			painter->drawPie(-mWidth/2, -mLength/2, mLength, mLength, -1440, -2880);
+			painter->drawPie(wr-mLength/2, -mLength/2, mLength, mLength, 1440, -2880);
 		}
 		else
 		{
 			// draw vertical oval
-			int wr = 0.5* (mHeight - mWidth);
+			int wr = 0.5* (mLength - mWidth);
 			painter->drawRect(-mWidth/2, -wr, mWidth, 2*wr);
-			painter->drawPie(-mWidth/2, -mHeight/2, mWidth, mWidth, 0, 2880);
+			painter->drawPie(-mWidth/2, -mLength/2, mWidth, mWidth, 0, 2880);
 			painter->drawPie(-mWidth/2, wr-mWidth/2, mWidth, mWidth, 0, -2880);
 		}
 		break;
@@ -194,7 +197,7 @@ Padstack::Padstack() :
 
 bool Padstack::operator==(const Padstack &p) const
 { 
-	return( name == p.name
+	return( mName == p.mName
 			&& hole_size==p.hole_size 
 			&& start==p.start
 			&& start_mask==p.start_mask
@@ -211,7 +214,7 @@ Padstack* Padstack::newFromXML(QXmlStreamReader &reader)
 	Q_ASSERT(reader.isStartElement() && reader.name() == "padstack");
 	Padstack *p = new Padstack();
 	if (reader.attributes().hasAttribute("name"))
-		p->name = reader.attributes().value("name").toString();
+		p->mName = reader.attributes().value("name").toString();
 	p->hole_size = reader.attributes().value("holesize").toString().toInt();
 	reader.readNextStartElement();
 	do
@@ -274,7 +277,7 @@ void Padstack::draw(QPainter *painter, const Layer& layer) const
 void Padstack::toXML(QXmlStreamWriter &writer) const
 {
 	writer.writeStartElement("padstack");
-	writer.writeAttribute("name", name);
+	writer.writeAttribute("name", mName);
 	writer.writeAttribute("id", QString::number(getid()));
 	writer.writeAttribute("holesize", QString::number(hole_size));
 
@@ -371,7 +374,7 @@ bool Pin::testHit(const QPoint &pt, const Layer& layer) const
 	// check if we hit a thru-hole
 	QPoint delta( pt - pos() );
 	double dist = sqrt( delta.x()*delta.x() + delta.y()*delta.y() );
-	if( dist < ps->getHole()/2 )
+	if( dist < ps->holeSize()/2 )
 		return true;
 
 	Pad pad = getPadOnLayer(layer);
@@ -386,11 +389,11 @@ Pad Pin::getPadOnLayer(const Layer& layer) const
 	Padstack *ps = padstack();
 
 	if (layer == Layer::LAY_START)
-		return ps->getStartPad();
+		return ps->startPad();
 	else if (layer == Layer::LAY_END)
-		return ps->getEndPad();
+		return ps->endPad();
 	else if (layer == Layer::LAY_INNER)
-		return ps->getInnerPad();
+		return ps->innerPad();
 	return Pad();
 }
 

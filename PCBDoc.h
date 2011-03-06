@@ -74,6 +74,13 @@ public:
 	/// Remove text object from document.
 	virtual void removeText(Text* t) = 0;
 
+
+	/// Returns a list of all padstacks used in the document.
+	virtual QList<Padstack*> padstacks() = 0;
+	/// Adds the provided padstack to the document.
+	virtual void addPadstack(Padstack* ps) = 0;
+	/// Removes the provided padstack from the document.
+	virtual void removePadstack(Padstack* ps) = 0;
 signals:
 	void changed();
 	void cleanChanged(bool clean);
@@ -121,6 +128,10 @@ public:
 
 	int numLayers() const { return mNumLayers; }
 
+	virtual QList<Padstack*> padstacks() { return mPadstacks; }
+	virtual void addPadstack(Padstack* ps);
+	virtual void removePadstack(Padstack* ps);
+
 private:
 	void clearDoc();
 
@@ -156,6 +167,10 @@ public:
 
 	virtual void addText(Text* /*t*/) {}
 	virtual void removeText(Text* /*t*/) {}
+
+	virtual QList<Padstack*> padstacks();
+	virtual void addPadstack(Padstack* ps);
+	virtual void removePadstack(Padstack* ps);
 
 private:
 	void clearFP();

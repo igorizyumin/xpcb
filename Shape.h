@@ -18,24 +18,27 @@ public:
 	// pad shapes
 	enum PADSHAPE {
 		PAD_NONE = 0,
+		PAD_DEFAULT,
 		PAD_ROUND,
 		PAD_SQUARE,
 		PAD_RECT,
+		PAD_RRECT,
 		PAD_OBROUND,
 		PAD_OCTAGON,
 	};
 
 	/// Describes how to connect a pad to copper areas.
 	enum PADCONNTYPE {
-		PAD_CONNECT_DEFAULT = 0,	///< use global setting
-		PAD_CONNECT_NEVER,			///< never connect pad to area
-		PAD_CONNECT_THERMAL,		///< connect pad using a thermal structure
-		PAD_CONNECT_NOTHERMAL		///< flood pad with copper
+		CONN_DEFAULT = 0,	///< use global setting
+		CONN_NEVER,			///< never connect pad to area
+		CONN_THERMAL,		///< connect pad using a thermal structure
+		CONN_NOTHERMAL		///< flood pad with copper
 	};
 
-	Pad();
+	Pad(PADSHAPE shape = PAD_NONE, int width = 0, int length = 0, int radius = 0, PADCONNTYPE connType = CONN_DEFAULT);
 	bool operator==(const Pad &p) const;
 	bool isNull() const { return mShape == PAD_NONE; }
+	bool isDefault() const { return mShape == PAD_DEFAULT; }
 
 	static Pad newFromXML(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
@@ -43,8 +46,10 @@ public:
 
 	PADSHAPE shape() {return mShape;}
 	int width() {return mWidth;}
-	int height() {return mHeight;}
+	int length() {return mLength;}
+	int radius() {return mRadius;}
 	PADCONNTYPE connFlag() {return mConnFlag;}
+	void setConnFlag(PADCONNTYPE flag) { mConnFlag = flag; }
 
 	bool testHit( const QPoint & pt );
 
@@ -53,7 +58,7 @@ public:
 
 private:
 	PADSHAPE mShape;
-	int mWidth, mHeight;
+	int mWidth, mLength, mRadius;
 	PADCONNTYPE mConnFlag;
 };
 
@@ -69,15 +74,19 @@ public:
 	static Padstack* newFromXML(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 
-	QString getName() const {return name; }
-	int getHole() const {return hole_size;}
-	Pad getStartPad() const {return start;}
-	Pad getEndPad() const {return end;}
-	Pad getInnerPad() const {return inner;}
-	Pad getStartMask() const {return start_mask;}
-	Pad getEndMask() const {return end_mask; }
-	Pad getStartPaste() const {return start_paste;}
-	Pad getEndPaste() const {return end_paste;}
+	QString name() const {return mName; }
+	void setName(QString name) { mName = name; }
+
+	int holeSize() const {return hole_size;}
+	void setHoleSize(int size) { hole_size = size; }
+
+	Pad& startPad() {return start;}
+	Pad& endPad() {return end;}
+	Pad& innerPad() {return inner;}
+	Pad& startMask() {return start_mask;}
+	Pad& endMask() {return end_mask; }
+	Pad& startPaste() {return start_paste;}
+	Pad& endPaste() {return end_paste;}
 	bool isSmt() const {return hole_size == 0;}
 	QRect bbox() const;
 	void draw(QPainter *painter, const Layer& layer) const;
@@ -87,7 +96,7 @@ public:
 private:
 	/// Padstack name; optional; only used for library padstacks
 	/// (i.e. VIA_15MIL)
-	QString name;
+	QString mName;
 	int hole_size;		// 0 = no hole (i.e SMT)
 	Pad start, start_mask, start_paste;
 	Pad end, end_mask, end_paste;

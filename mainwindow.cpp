@@ -75,14 +75,10 @@ void MainWindow::on_actionOpen_triggered()
 		QString fileName = QFileDialog::getOpenFileName(this);
 		if (!fileName.isEmpty())
 		{
-			if (!doc())
-			{
-				newDoc();
-				if (!loadFile(fileName))
-					closeDoc();
-			}
-			else
-				loadFile(fileName);
+			closeDoc();
+			newDoc();
+			if (!loadFile(fileName))
+				closeDoc();
 		}
 	}
 }

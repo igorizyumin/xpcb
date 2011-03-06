@@ -47,10 +47,10 @@ void Area::findConnections()
 		if (pad.isNull())
 			continue; // no pad on this layer
 
-		if( pad.connFlag() == Pad::PAD_CONNECT_NEVER )
+		if( pad.connFlag() == Pad::CONN_NEVER )
 			continue;	// pad never allowed to connect
 
-		if( pad.connFlag() == Pad::PAD_CONNECT_DEFAULT
+		if( pad.connFlag() == Pad::CONN_DEFAULT
 			&& pin->isSmt() && !mConnectSMT )
 			continue;	// SMT pad, not allowed to connect to this area
 

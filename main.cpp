@@ -1,5 +1,7 @@
 #include <QtGui/QApplication>
 #include "mainwindow.h"
+#include "ManagePadstacksDialog.h"
+#include "PCBDoc.h"
 #include <QSettings>
 
 inline void setDefaultValue(QSettings &s, QString key, QVariant value)
@@ -61,7 +63,7 @@ int main(int argc, char *argv[])
 	initSettings();
 
 	FPEditWindow w;
-    w.show();
+	w.show();
 
     return a.exec();
 }

@@ -5,9 +5,8 @@
 #include <QString>
 #include <QColor>
 
-class XPcb
+namespace XPcb
 {
-public:
 	// units for length
 	enum UNIT
 	{
@@ -18,21 +17,17 @@ public:
 		NATIVE	// native units (for text output )
 	};
 
-	static const int PCBU_PER_MIL = 254;
-	static const int PCBU_PER_MM = 10000;
+	const int PCBU_PER_MIL = 254;
+	const int PCBU_PER_MM = 10000;
 
-	static const int PCB_BOUND	= 32000*PCBU_PER_MIL;	// boundary
+	const int PCB_BOUND	= 32000*PCBU_PER_MIL;	// boundary
 
-	static int IN2PCB(double x) { return x * 1000 * PCBU_PER_MIL; }
-	static int MM2PCB(double x) {return x * PCBU_PER_MM; }
-	static int MIL2PCB(double x) { return x * PCBU_PER_MIL; }
-	static double PCB2IN(int x) { return double(x) / (1000 * PCBU_PER_MIL); }
-	static double PCB2MM(int x) {return double(x) / PCBU_PER_MM; }
-	static double PCB2MIL(int x) { return double(x) / PCBU_PER_MIL; }
-
-private:
-	XPcb() {}
-	XPcb(XPcb &) {}
+	inline int IN2PCB(double x) { return x * 1000 * PCBU_PER_MIL; }
+	inline int MM2PCB(double x) {return x * PCBU_PER_MM; }
+	inline int MIL2PCB(double x) { return x * PCBU_PER_MIL; }
+	inline double PCB2IN(int x) { return double(x) / (1000 * PCBU_PER_MIL); }
+	inline double PCB2MM(int x) {return double(x) / PCBU_PER_MM; }
+	inline double PCB2MIL(int x) { return double(x) / PCBU_PER_MIL; }
 
 };
 
