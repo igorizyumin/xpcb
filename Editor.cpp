@@ -18,6 +18,7 @@
 #include "Editor.h"
 #include "Text.h"
 #include "PartEditor.h"
+#include "PinEditor.h"
 #include "Controller.h"
 
 AbstractEditor::AbstractEditor(Controller *ctrl) :
@@ -25,6 +26,36 @@ AbstractEditor::AbstractEditor(Controller *ctrl) :
 {
 
 }
+
+bool AbstractEditor::eventFilter(QObject * /*watched*/, QEvent *event)
+{
+	event->accept();
+	if (event->type() == QEvent::MouseMove)
+	{
+		mouseMoveEvent(static_cast<QMouseEvent*>(event));
+	}
+	else if (event->type() == QEvent::MouseButtonPress)
+	{
+		mousePressEvent(static_cast<QMouseEvent*>(event));
+	}
+	else if (event->type() == QEvent::MouseButtonRelease)
+	{
+		mouseReleaseEvent(static_cast<QMouseEvent*>(event));
+	}
+	else if (event->type() == QEvent::KeyPress)
+	{
+		keyPressEvent(static_cast<QKeyEvent*>(event));
+	}
+	else
+	{
+		event->ignore();
+		return false;
+	}
+	return event->isAccepted();
+}
+
+
+
 
 EditorFactory* EditorFactory::mInst = NULL;
 
@@ -57,6 +88,11 @@ AbstractEditor* EditorFactory::newTextEditor(Controller *ctrl)
 	return new TextEditor(ctrl, NULL);
 }
 
+AbstractEditor* EditorFactory::newPinEditor(FPController *ctrl)
+{
+	return new PinEditor(ctrl, NULL);
+}
+
 void EditorFactory::visit(Area*)
 {
 }
@@ -77,8 +113,9 @@ void EditorFactory::visit(PartPin*)
 {
 }
 
-void EditorFactory::visit(Pin*)
+void EditorFactory::visit(Pin* pin)
 {
+	mEditor = new PinEditor((FPController*)mCtrl, pin);
 }
 
 void EditorFactory::visit(Part* p)

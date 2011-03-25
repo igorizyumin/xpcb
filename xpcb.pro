@@ -45,7 +45,9 @@ SOURCES += PCBView.cpp \
 	PartEditor.cpp \
     global.cpp \
     EditPadstackDialog.cpp \
-    ManagePadstacksDialog.cpp
+    ManagePadstacksDialog.cpp \
+    EditPinDialog.cpp \
+    PinEditor.cpp
 
 unittest {
 	QT += testlib
@@ -86,7 +88,9 @@ HEADERS  += PCBView.h \
     EditPartDialog.h \
 	PartEditor.h \
     EditPadstackDialog.h \
-    ManagePadstacksDialog.h
+    ManagePadstacksDialog.h \
+    EditPinDialog.h \
+    PinEditor.h
 
 FORMS    += GridToolbarWidget.ui \
     AboutDialog.ui \
@@ -96,7 +100,8 @@ FORMS    += GridToolbarWidget.ui \
     SelFilterWidget.ui \
     EditPartDialog.ui \
     EditPadstackDialog.ui \
-    ManagePadstacksDialog.ui
+    ManagePadstacksDialog.ui \
+    EditPinDialog.ui
 
 RESOURCES += \
     qtfreepcb.qrc

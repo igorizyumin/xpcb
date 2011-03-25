@@ -386,8 +386,8 @@ void FPController::onAction(int key)
 {
 	if (mEditor)
 		mEditor->action(key);
-//	else if (key == 2)
-//		onAddTextAction();
+	else if (key == 1)
+		onAddPinAction();
 }
 
 void FPController::updateActions()
@@ -402,8 +402,7 @@ void FPController::updateActions()
 
 	if (!mEditor)
 	{
-//		mActionBar->setActions(CtrlAction(2, "Add Text"));
-		mActionBar->clearActions();
+		mActionBar->setActions(CtrlAction(1, "Add Pin"));
 	}
 	else
 	{
@@ -411,10 +410,10 @@ void FPController::updateActions()
 	}
 }
 
-void FPController::onAddTextAction()
+void FPController::onAddPinAction()
 {
-//	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
+	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
 
-//	mEditor = EditorFactory::instance().newTextEditor(this);
-//	installEditor();
+	mEditor = EditorFactory::instance().newPinEditor(this);
+	installEditor();
 }

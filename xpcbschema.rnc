@@ -106,7 +106,7 @@ Pin = element pin
 }
 
 # pad definition
-PadDef = element pad { (RoundPad | SquarePad | RectPad | ObroundPad | OctagonPad) }
+PadDef = element pad { (RoundPad | SquarePad | RectPad | ObroundPad | OctagonPad | DefaultPad) }
 RoundPad = (attribute shape {"round"},
 	attribute width {Dimension})
 SquarePad = (attribute shape {"square"},
@@ -119,6 +119,7 @@ ObroundPad  = (attribute shape {"obround"},
 	attribute height {Dimension})
 OctagonPad = (attribute shape {"octagon"},
 	attribute width {Dimension})
+DefaultPad = (attribute shape {"default"})
 
 PartText = (CoordsAttr,
 	RotAttr,

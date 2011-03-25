@@ -145,13 +145,14 @@ public:
 
 	void registerDoc(FPDoc* doc);
 	virtual Document* doc();
+	FPDoc* fpDoc() { return mDoc; }
 
 protected slots:
 	virtual void onAction(int key);
 
 protected:
 	virtual void updateActions();
-	void onAddTextAction();
+	void onAddPinAction();
 
 
 	FPDoc* mDoc;

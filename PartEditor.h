@@ -38,7 +38,10 @@ public:
 	virtual void action(int key);
 
 protected:
-	virtual bool eventFilter(QObject *watched, QEvent *event);
+	virtual void mouseMoveEvent(QMouseEvent* event);
+	virtual void mousePressEvent(QMouseEvent* event);
+	virtual void mouseReleaseEvent(QMouseEvent* event);
+	virtual void keyPressEvent(QKeyEvent *event);
 
 private:
 	void actionEdit();
@@ -48,10 +51,7 @@ private:
 	void actionChangeSide();
 	void newPart();
 	enum State {SELECTED, MOVE, ADD_MOVE, EDIT_MOVE};
-	void mouseMoveEvent(QMouseEvent* event);
-	void mousePressEvent(QMouseEvent* event);
-	void mouseReleaseEvent(QMouseEvent* event);
-	void keyPressEvent(QKeyEvent *event);
+
 	void startMove();
 	void finishEdit();
 	void finishNew();

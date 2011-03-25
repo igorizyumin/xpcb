@@ -172,6 +172,11 @@ public:
 	virtual void addPadstack(Padstack* ps);
 	virtual void removePadstack(Padstack* ps);
 
+	void addPin(Pin* p);
+	void removePin(Pin* p);
+
+	Footprint* footprint() { return mFp; }
+
 private:
 	void clearFP();
 

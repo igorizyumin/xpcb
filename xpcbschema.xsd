@@ -266,10 +266,11 @@
             <xs:enumeration value="rect"/>
             <xs:enumeration value="obround"/>
             <xs:enumeration value="octagon"/>
+            <xs:enumeration value="default"/>
           </xs:restriction>
         </xs:simpleType>
       </xs:attribute>
-      <xs:attribute name="width" use="required" type="Dimension"/>
+      <xs:attribute name="width" type="Dimension"/>
       <xs:attribute name="height" type="Dimension"/>
     </xs:complexType>
   </xs:element>
@@ -324,6 +325,15 @@
       </xs:simpleType>
     </xs:attribute>
     <xs:attribute name="width" use="required" type="Dimension"/>
+  </xs:attributeGroup>
+  <xs:attributeGroup name="DefaultPad">
+    <xs:attribute name="shape" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:token">
+          <xs:enumeration value="default"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
   </xs:attributeGroup>
   <xs:attributeGroup name="PartText">
     <xs:attributeGroup ref="CoordsAttr"/>

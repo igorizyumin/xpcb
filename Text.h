@@ -105,7 +105,10 @@ public:
 	virtual void action(int key);
 
 protected:
-	virtual bool eventFilter(QObject *watched, QEvent *event);
+	virtual void mouseMoveEvent(QMouseEvent* event);
+	virtual void mousePressEvent(QMouseEvent* event);
+	virtual void mouseReleaseEvent(QMouseEvent* event);
+	virtual void keyPressEvent(QKeyEvent *event);
 
 private slots:
 	void actionEdit();
@@ -114,12 +117,9 @@ private slots:
 	void actionRotate();
 
 private:
-	void newText();
 	enum State {SELECTED, MOVE, ADD_MOVE, EDIT_MOVE};
-	void mouseMoveEvent(QMouseEvent* event);
-	void mousePressEvent(QMouseEvent* event);
-	void mouseReleaseEvent(QMouseEvent* event);
-	void keyPressEvent(QKeyEvent *event);
+
+	void newText();
 	void startMove();
 	void finishEdit();
 	void finishNew();

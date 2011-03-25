@@ -151,10 +151,10 @@ QList<PCBObject*> FPDoc::findObjs(QPoint &pt)
 {
 	QList<PCBObject*> out;
 
-	foreach(const Pin& p, mFp->getPins())
+	foreach(Pin* p, mFp->pins())
 	{
-		if (p.bbox().contains(pt))
-			out.append((PCBObject*)&p);
+		if (p->bbox().contains(pt))
+			out.append(p);
 	}
 	foreach(const Line& p, mFp->getLines())
 	{
@@ -180,14 +180,14 @@ QList<PCBObject*> FPDoc::findObjs(QRect &rect)
 	Q_ASSERT(mFp);
 	QList<PCBObject*> out;
 
-	QList<Pin> pins = mFp->getPins();
+	QList<Pin*> pins = mFp->pins();
 	QList<Line> lines = mFp->getLines();
 	QList<Arc> arcs = mFp->getArcs();
 
-	foreach(const Pin& p, pins)
+	foreach(Pin* p, pins)
 	{
-		if (p.bbox().intersects(rect))
-			out.append((PCBObject*)&p);
+		if (p->bbox().intersects(rect))
+			out.append(p);
 	}
 	foreach(const Line& p, lines)
 	{
@@ -219,7 +219,17 @@ void FPDoc::addPadstack(Padstack* ps)
 
 void FPDoc::removePadstack(Padstack *ps)
 {
+	// TODO !
+}
 
+void FPDoc::addPin(Pin *p)
+{
+	mFp->addPin(p);
+}
+
+void FPDoc::removePin(Pin *p)
+{
+	mFp->removePin(p);
 }
 
 ////////////////////////////// PCBDOC /////////////////////////////////

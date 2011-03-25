@@ -118,13 +118,18 @@ public:
 	Padstack* padstack() const { return mPadstack; }
 	QString name() const { return mName; }
 
+	void setName(QString name) { mName = name; }
+	void setPos(QPoint pos) { mPos = pos; markDirty(); }
+	void setAngle(int angle) { mAngle = angle; markDirty(); }
+	void setPadstack(Padstack* ps) { mPadstack = ps; }
+
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 
-	virtual bool testHit(const QPoint &pt, const Layer& layer) const;
+	virtual bool testHit(QPoint pt, const Layer& layer) const;
 
-	static Pin newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks, Footprint* fp);
+	static Pin* newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks, Footprint* fp);
 	void toXML(QXmlStreamWriter &writer) const;
 
 	Pad getPadOnLayer(const Layer& layer) const;
@@ -132,7 +137,8 @@ public:
 	virtual QTransform transform() const { return mFpTransform; }
 
 private:
-	void updateTransform();
+	void updateTransform() const;
+	void markDirty() const { mIsDirty = true; }
 	/// Pin name (i.e. "1", "B2", "GATE")
 	QString mName;
 	/// Position relative to parent footprint
@@ -140,7 +146,8 @@ private:
 	/// Rotation angle (CW)
 	int mAngle;
 	/// Transform to part coordinates
-	QTransform mFpTransform;
+	mutable QTransform mFpTransform;
+	mutable bool mIsDirty;
 	/// Padstack used for this pin
 	Padstack* mPadstack;
 	/// Parent footprint
@@ -166,8 +173,10 @@ public:
 
 	int numPins() const;
 	const Pin* getPin(const QString & pin) const;
-	const Pin* getPin(int i) {return &mPins.at(i);}
-	const QList<Pin> getPins() { return mPins; }
+	const Pin* getPin(int i) {return mPins.at(i);}
+	const QList<Pin*> pins() { return mPins; }
+	void addPin(Pin* p) { mPins.append(p); }
+	void removePin(Pin* p) { mPins.removeOne(p); }
 
 	const QList<Arc> getArcs() { return mOutlineArcs; }
 	const QList<Line> getLines() { return mOutlineLines; }
@@ -208,7 +217,7 @@ private:
 	/// If true, centroid is user-defined
 	bool mCustomCentroid;
 	/// Footprint pins
-	QList<Pin> mPins;
+	QList<Pin*> mPins;
 	/// Silkscreen lines (used for part outline)
 	QList<Line> mOutlineLines;
 	/// Silkscreen lines (used for part outline)

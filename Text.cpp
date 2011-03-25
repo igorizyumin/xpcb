@@ -198,33 +198,6 @@ void TextEditor::action(int key)
 	}
 }
 
-bool TextEditor::eventFilter(QObject */*watched*/, QEvent *event)
-{
-	event->accept();
-	if (event->type() == QEvent::MouseMove)
-	{
-		mouseMoveEvent(static_cast<QMouseEvent*>(event));
-	}
-	else if (event->type() == QEvent::MouseButtonPress)
-	{
-		mousePressEvent(static_cast<QMouseEvent*>(event));
-	}
-	else if (event->type() == QEvent::MouseButtonRelease)
-	{
-		mouseReleaseEvent(static_cast<QMouseEvent*>(event));
-	}
-	else if (event->type() == QEvent::KeyPress)
-	{
-		keyPressEvent(static_cast<QKeyEvent*>(event));
-	}
-	else
-	{
-		event->ignore();
-		return false;
-	}
-	return event->isAccepted();
-}
-
 void TextEditor::mouseMoveEvent(QMouseEvent *event)
 {
 	if (mState == MOVE || mState == EDIT_MOVE || mState == ADD_MOVE)

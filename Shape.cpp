@@ -58,6 +58,10 @@ Pad Pad::newFromXML(QXmlStreamReader &reader)
 		p.mWidth = attr.value("width").toString().toInt();
 		p.mLength = attr.value("height").toString().toInt();
 	}
+	else if (t == "default")
+	{
+		p.mShape = PAD_DEFAULT;
+	}
 	// read until the end of this element
 	do
 			reader.readNext();
@@ -92,6 +96,8 @@ void Pad::toXML(QXmlStreamWriter &writer) const
 		writer.writeAttribute("width", QString::number(mWidth));
 		writer.writeAttribute("height", QString::number(mLength));
 		break;
+	case PAD_DEFAULT:
+		writer.writeAttribute("shape", "default");
 	default:
 		break;
 	}
@@ -269,6 +275,8 @@ void Padstack::draw(QPainter *painter, const Layer& layer) const
 									   QPoint(hole_size/2, hole_size/2)));
 		}
 		break;
+	case Layer::LAY_SELECTION:
+		painter->drawRect(bbox());
 	default:
 		break;
 	}
@@ -334,19 +342,19 @@ QRect Padstack::bbox() const
 
 /////////////////////// PIN /////////////////////////
 
-Pin Pin::newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> & padstacks, Footprint *fp)
+Pin* Pin::newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> & padstacks, Footprint *fp)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "pin");
 	QXmlStreamAttributes attr = reader.attributes();
 
-	Pin p(fp);
-	p.mName = attr.value("name").toString();
-	p.mPos = QPoint(attr.value("x").toString().toInt(), attr.value("y").toString().toInt());
-	p.mAngle = attr.value("rot").toString().toInt();
-	p.updateTransform();
+	Pin* p = new Pin(fp);
+	p->mName = attr.value("name").toString();
+	p->mPos = QPoint(attr.value("x").toString().toInt(), attr.value("y").toString().toInt());
+	p->mAngle = attr.value("rot").toString().toInt();
+	p->updateTransform();
 	int psind = attr.value("padstack").toString().toInt();
 	if (padstacks.contains(psind))
-		p.mPadstack = padstacks.value(psind);
+		p->mPadstack = padstacks.value(psind);
 	else
 	{
 		Log::instance().error("Error creating pin: missing padstack");
@@ -368,7 +376,7 @@ void Pin::toXML(QXmlStreamWriter &writer) const
 	writer.writeEndElement();
 }
 
-bool Pin::testHit(const QPoint &pt, const Layer& layer) const
+bool Pin::testHit(QPoint pt, const Layer& layer) const
 {
 	Padstack *ps = padstack();
 	// check if we hit a thru-hole
@@ -379,7 +387,7 @@ bool Pin::testHit(const QPoint &pt, const Layer& layer) const
 
 	Pad pad = getPadOnLayer(layer);
 	if (!pad.isNull())
-		return pad.testHit(pt);
+		return pad.testHit(delta);
 
 	return false;
 }
@@ -402,7 +410,7 @@ QRect Pin::bbox() const
 	return mFpTransform.mapRect(padstack()->bbox());
 }
 
-void Pin::updateTransform()
+void Pin::updateTransform() const
 {
 	mFpTransform.reset();
 	mFpTransform.translate(mPos.x(), mPos.y());
@@ -411,6 +419,8 @@ void Pin::updateTransform()
 
 void Pin::draw(QPainter *painter, const Layer& layer) const
 {
+	if (mIsDirty)
+		updateTransform();
 	painter->save();
 	painter->setTransform(mFpTransform, true);
 	mPadstack->draw(painter, layer);
@@ -505,7 +515,7 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader, const QHash<int, Pads
 		{
 			while(reader.readNextStartElement())
 			{
-				Pin pin = Pin::newFromXML(reader, padstacks, fp);
+				Pin* pin = Pin::newFromXML(reader, padstacks, fp);
 				fp->mPins.append(pin);
 			}
 		}
@@ -563,8 +573,8 @@ void Footprint::toXML(QXmlStreamWriter &writer) const
 		a.toXML(writer);
 
 	writer.writeStartElement("pins");
-	foreach(const Pin& p, mPins)
-		p.toXML(writer);
+	foreach(Pin* p, mPins)
+		p->toXML(writer);
 	writer.writeEndElement();
 
 	writer.writeStartElement("refText");
@@ -593,10 +603,10 @@ int Footprint::numPins() const
 
 const Pin* Footprint::getPin( const QString & name ) const
 {	
-	foreach(const Pin& p, mPins)
+	foreach(Pin* p, mPins)
 	{
-		if (p.name() == name)
-			return &p;
+		if (p->name() == name)
+			return p;
 	}
 	return NULL;
 }
@@ -615,9 +625,9 @@ QPoint Footprint::getDefaultCentroid()
 QRect Footprint::getPinBounds() const
 {
 	QRect r;
-	foreach(const Pin& p, mPins)
+	foreach(Pin* p, mPins)
 	{
-		r |= p.bbox();
+		r |= p->bbox();
 	}
 	return r;
 }

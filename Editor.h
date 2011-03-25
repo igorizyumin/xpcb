@@ -43,6 +43,12 @@ signals:
 public slots:
 
 protected:
+	virtual bool eventFilter(QObject *watched, QEvent *event);
+	virtual void mouseMoveEvent(QMouseEvent* event) { event->ignore(); }
+	virtual void mousePressEvent(QMouseEvent* event) { event->ignore(); }
+	virtual void mouseReleaseEvent(QMouseEvent* event) { event->ignore(); }
+	virtual void keyPressEvent(QKeyEvent *event) { event->ignore(); }
+
 	Controller *mCtrl;
 };
 
@@ -53,6 +59,7 @@ public:
 
 	AbstractEditor* newEditor(PCBObject* obj, Controller *ctrl);
 	AbstractEditor* newTextEditor(Controller *ctrl);
+	AbstractEditor* newPinEditor(FPController* ctrl);
 
 
 	virtual void visit(Area* a);
