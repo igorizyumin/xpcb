@@ -62,8 +62,8 @@ void Net::toXML(QXmlStreamWriter &writer) const
 	foreach(PartPin* p, mPins)
 	{
 		writer.writeStartElement("pinRef");
-		writer.writeAttribute("partref", p->getPart()->refdes());
-		writer.writeAttribute("pinname", p->getName());
+		writer.writeAttribute("partref", p->part()->refdes());
+		writer.writeAttribute("pinname", p->name());
 		writer.writeEndElement();
 	}
 	writer.writeEndElement();
@@ -102,4 +102,20 @@ void Net::draw(QPainter */*painter*/, const Layer& /*layer*/) const
 QRect Net::bbox() const
 {
 	return QRect();
+}
+
+QSharedPointer<PCBObjState> Net::getState() const
+{
+	return QSharedPointer<PCBObjState>(new NetState(*this));
+}
+
+bool Net::loadState(QSharedPointer<PCBObjState> &state)
+{
+	// convert to part state
+	QSharedPointer<NetState> s = state.dynamicCast<NetState>();
+	if (s.isNull()) return false;
+	mIsVisible = s->vis;
+	mName = s->name;
+	mPins = s->pins;
+	return true;
 }

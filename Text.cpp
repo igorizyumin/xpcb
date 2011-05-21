@@ -133,6 +133,25 @@ void Text::toXML(QXmlStreamWriter &writer) const
 	writer.writeEndElement();
 }
 
+bool Text::loadState(QSharedPointer<PCBObjState> &state)
+{
+	// convert to text state
+	QSharedPointer<TextState> s = state.dynamicCast<TextState>();
+	if (s.isNull())
+		return false;
+	// restore state
+	mPos = s->pos;
+	mLayer = s->layer;
+	mAngle = s->angle;
+	mIsMirrored = s->ismirrored;
+	mIsNegative = s->isnegative;
+	mFontSize = s->fontsize;
+	mStrokeWidth = s->width;
+	mText = s->text;
+	changed();
+	return true;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // EDITOR
 

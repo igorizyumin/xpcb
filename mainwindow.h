@@ -16,6 +16,7 @@ class PCBController;
 class FPController;
 class SelFilterWidget;
 class LayerWidget;
+class Plugin;
 
 /// The MainWindow class represents a single open PCB editor window
 class MainWindow : public QMainWindow, private Ui::MainWindowClass
@@ -72,7 +73,7 @@ class PCBEditWindow : public MainWindow
 	Q_OBJECT
 
 public:
-	PCBEditWindow(QWidget *parent = 0);
+	PCBEditWindow(QWidget *parent = 0, QList<Plugin*> plugins = QList<Plugin*>());
 
 protected:
 	virtual void newDoc();
@@ -94,7 +95,7 @@ class FPEditWindow : public MainWindow
 	Q_OBJECT
 
 public:
-	FPEditWindow(QWidget *parent = 0);
+	FPEditWindow(QWidget *parent = 0, QList<Plugin*> plugins = QList<Plugin*>());
 
 protected:
 	virtual void newDoc();

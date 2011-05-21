@@ -3,13 +3,13 @@
 #include <QXmlStreamWriter>
 
 Line::Line()
-	: mWidth(0)
+	: mWidth(0), mType(LINE)
 {
 }
 
 Line Line::newFromXml(QXmlStreamReader &reader)
 {
-	Q_ASSERT(reader.isStartElement() && reader.name() == "line");
+	Q_ASSERT(reader.isStartElement() && (reader.name() == "line" || reader.name() == "arc"));
 
 	QXmlStreamAttributes attr = reader.attributes();
 
@@ -22,6 +22,13 @@ Line Line::newFromXml(QXmlStreamReader &reader)
 	l.mEnd = QPoint(
 			attr.value("x2").toString().toInt(),
 			attr.value("y2").toString().toInt());
+	if (attr.hasAttribute("dir"))
+	{
+		l.mType = (attr.value("dir") == "cw") ? ARC_CW : ARC_CCW;
+	}
+	else
+		l.mType = LINE;
+
 
 	do
 			reader.readNext();
@@ -32,13 +39,18 @@ Line Line::newFromXml(QXmlStreamReader &reader)
 
 void Line::toXML(QXmlStreamWriter &writer) const
 {
-	writer.writeStartElement("line");
+	if (mType == LINE)
+		writer.writeStartElement("line");
+	else
+		writer.writeStartElement("arc");
 	writer.writeAttribute("width", QString::number(mWidth));
 	writer.writeAttribute("layer", QString::number(mLayer.toInt()));
 	writer.writeAttribute("x1", QString::number(mStart.x()));
 	writer.writeAttribute("y1", QString::number(mStart.y()));
 	writer.writeAttribute("x2", QString::number(mEnd.x()));
 	writer.writeAttribute("y2", QString::number(mEnd.y()));
+	if (mType != LINE)
+		writer.writeAttribute("dir", mType == ARC_CW ? "cw" : "ccw");
 	writer.writeEndElement();
 
 }
@@ -52,7 +64,10 @@ void Line::draw(QPainter *painter, const Layer& layer) const
 	pen.setWidth(mWidth);
 	painter->setPen(pen);
 
-	painter->drawLine(mStart, mEnd);
+	if (mType == LINE)
+		painter->drawLine(mStart, mEnd);
+	else
+		drawArc(painter, mStart, mEnd, mType);
 }
 
 QRect Line::bbox() const
@@ -60,68 +75,25 @@ QRect Line::bbox() const
 	return QRect(mStart, mEnd).adjusted(-mWidth, -mWidth, mWidth, mWidth);
 }
 
-///////////////////////// ARC /////////////////////////////////////////
-
-Arc::Arc()
-	: mIsCw(false), mWidth(0)
+void Line::drawArc(QPainter* painter, QPoint start, QPoint end, LineType type)
 {
-}
-
-Arc Arc::newFromXml(QXmlStreamReader &reader)
-{
-	Q_ASSERT(reader.isStartElement() && reader.name() == "arc");
-
-	QXmlStreamAttributes attr = reader.attributes();
-
-	Arc a;
-	a.mWidth = attr.value("width").toString().toInt();
-	a.mLayer = Layer(attr.value("layer").toString().toInt());
-	a.mStart = QPoint(
-			attr.value("x1").toString().toInt(),
-			attr.value("y1").toString().toInt());
-	a.mEnd = QPoint(
-			attr.value("x2").toString().toInt(),
-			attr.value("y2").toString().toInt());
-	a.mIsCw = attr.value("dir") == "cw";
-
-	do
-			reader.readNext();
-	while(!reader.isEndElement());
-
-	return a;
-}
-
-void Arc::toXML(QXmlStreamWriter &writer) const
-{
-	writer.writeStartElement("arc");
-	writer.writeAttribute("width", QString::number(mWidth));
-	writer.writeAttribute("layer", QString::number(mLayer.toInt()));
-	writer.writeAttribute("x1", QString::number(mStart.x()));
-	writer.writeAttribute("y1", QString::number(mStart.y()));
-	writer.writeAttribute("x2", QString::number(mEnd.x()));
-	writer.writeAttribute("y2", QString::number(mEnd.y()));
-	writer.writeAttribute("dir", mIsCw ? "cw" : "ccw");
-	writer.writeEndElement();
-}
-
-void Arc::draw(QPainter *painter, const Layer& layer) const
-{
-	if (layer != mLayer && layer != Layer::LAY_SELECTION) return;
 	int x1, x2, y1, y2;
+	Q_ASSERT(type != LINE);
+
 	// make x/y always be clockwise values
-	if (mIsCw)
+	if (type == ARC_CW)
 	{
-		x1 = mStart.x();
-		y1 = mStart.y();
-		x2 = mEnd.x();
-		y2 = mEnd.y();
+		x1 = start.x();
+		y1 = start.y();
+		x2 = end.x();
+		y2 = end.y();
 	}
 	else
 	{
-		x2 = mStart.x();
-		y2 = mStart.y();
-		x1 = mEnd.x();
-		y1 = mEnd.y();
+		x2 = start.x();
+		y2 = start.y();
+		x1 = end.x();
+		y1 = end.y();
 	}
 	QRect r;
 	int startAngle;
@@ -151,13 +123,21 @@ void Arc::draw(QPainter *painter, const Layer& layer) const
 		r = QRect(2*x2-x1, y2, 2*(x1-x2), 2*(y1-y2));
 		startAngle = 0;
 	}
-	QPen pen = painter->pen();
-	pen.setWidth(mWidth);
-	painter->setPen(pen);
+
 	painter->drawArc(r, startAngle, 90*16);
 }
 
-QRect Arc::bbox() const
+bool Line::loadState(QSharedPointer<PCBObjState> &state)
 {
-	return QRect(mStart, mEnd).adjusted(-mWidth, -mWidth, mWidth, mWidth);
+	// convert to line state
+	QSharedPointer<LineState> ls = state.dynamicCast<LineState>();
+	if (ls.isNull())
+		return false;
+	// restore state
+	mStart = ls->start;
+	mEnd = ls->end;
+	mWidth = ls->width;
+	mLayer = ls->layer;
+	mType = ls->type;
+	return true;
 }

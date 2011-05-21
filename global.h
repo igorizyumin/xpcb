@@ -76,14 +76,14 @@ public:
 	Layer(Type c = LAY_UNKNOWN)
 		: mType(c) {}
 	Layer(int indx)
-		: mType((Type)indx) {}
+		: mType(static_cast<Type>(indx)) {}
 
 	Type type() const { return mType; }
 	bool isPhysical() const;
 	bool isCopper() const;
 	QString name() const { return Layer::name(mType); }
 	QColor color() const { return Layer::color(mType); }
-	int toInt() const { return (int)mType; }
+	int toInt() const { return static_cast<int>(mType); }
 	static QString name(Type c);
 	static QColor color(Type c);
 	bool operator==(const Layer& other) const { return mType == other.mType; }

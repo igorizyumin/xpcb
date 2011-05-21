@@ -8,6 +8,7 @@
 #include "Part.h"
 #include "Net.h"
 #include "Text.h"
+#include "Polygon.h"
 
 class Document : public QObject
 {
@@ -144,7 +145,7 @@ private:
 	QList<Area*> mAreas;
 	QList<Footprint*> mFootprints;
 	QList<Padstack*> mPadstacks;
-	Polygon * mBoardOutline;
+	Polygon mBoardOutline;
 	Padstack* mDefaultPadstack;
 };
 
@@ -165,8 +166,8 @@ public:
 	virtual QList<PCBObject*> findObjs(QPoint &pt);
 	virtual QList<PCBObject*> findObjs(QRect &rect);
 
-	virtual void addText(Text* /*t*/) {}
-	virtual void removeText(Text* /*t*/) {}
+	virtual void addText(Text* t) { mFp->addText(t); }
+	virtual void removeText(Text* t) { mFp->removeText(t); }
 
 	virtual QList<Padstack*> padstacks();
 	virtual void addPadstack(Padstack* ps);

@@ -114,7 +114,7 @@ void PinEditor::mouseReleaseEvent(QMouseEvent *event)
 	if (mState == MOVE)
 	{
 		mState = SELECTED;
-		PinMoveCmd* cmd = new PinMoveCmd(NULL, (FPDoc*) mCtrl->doc(), mPins[0], mPos, mAngle);
+		PinMoveCmd* cmd = new PinMoveCmd(NULL, dynamic_cast<FPDoc*>(mCtrl->doc()), mPins[0], mPos, mAngle);
 		mCtrl->doc()->doCommand(cmd);
 		foreach(Pin* p, mPins)
 			mCtrl->unhideObj(p);
@@ -210,8 +210,7 @@ void PinEditor::newPin()
 		return;
 	}
 
-	// TODO fix pointer cast
-	mPins = mDialog->makePins(((FPDoc*)mCtrl->doc())->footprint());
+	mPins = mDialog->makePins(dynamic_cast<FPDoc*>(mCtrl->doc())->footprint());
 
 	if (mDialog->dragToPos())
 	{
@@ -262,8 +261,7 @@ void PinEditor::finishNew(bool setPos)
 			p->setAngle(mAngle);
 		}
 	}
-	// TODO get rid of pointer cast!! nasty
-	NewPinCmd *cmd = new NewPinCmd(NULL, (FPDoc*)mCtrl->doc(), mPins);
+	NewPinCmd *cmd = new NewPinCmd(NULL, dynamic_cast<FPDoc*>(mCtrl->doc()), mPins);
 	mCtrl->doc()->doCommand(cmd);
 	foreach(Pin* p, mPins)
 		mCtrl->unhideObj(p);

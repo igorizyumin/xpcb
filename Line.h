@@ -6,55 +6,64 @@
 class QXmlStreamReader;
 class QXmlStreamWriter;
 
+class LineState;
+
+/// The Line class represents silkscreen line segments and arcs.
+/// Lines are defined by a start and an end point.  Arcs are elliptical sections
+/// that always have a 90 degree sweep.  An arc is defined by its start and
+/// end points and an orientation flag (clockwise/counterclockwise).
 class Line : public PCBObject
 {
 public:
+	enum LineType { LINE, ARC_CW, ARC_CCW };
+
     Line();
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
+	virtual QSharedPointer<PCBObjState> getState() const { return QSharedPointer<PCBObjState>(new LineState(*this)); }
+	virtual bool loadState(QSharedPointer<PCBObjState> &state);
 
 	QPoint start() const { return mStart; }
+	void setStart(QPoint p) { mStart = p; }
 	QPoint end() const { return mEnd; }
+	void setEnd(QPoint p) { mEnd = p; }
 	int width() const { return mWidth; }
+	void setWidth(int width) { mWidth = width; }
 	const Layer& layer() const { return mLayer; }
+	void setLayer(const Layer& l) { mLayer = l; }
+	LineType type() const { return mType; }
+	void setType(LineType t) { mType = t; }
 
 	static Line newFromXml(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
+
+	static void drawArc(QPainter* painter, QPoint start, QPoint end, LineType type);
+
 private:
+	class LineState : public PCBObjState
+	{
+	public:
+		virtual ~LineState() {}
+	private:
+		friend class Line;
+		LineState(const Line &l)
+			: start(l.start()), end(l.end()), width(l.width()),
+			layer(l.layer()), type(l.type())
+		{}
+
+		QPoint start, end;
+		int width;
+		Layer layer;
+		Line::LineType type;
+	};
+
 	QPoint mStart;
 	QPoint mEnd;
 	int mWidth;
 	Layer mLayer;
-};
-
-/// The Arc class represents silkscreen arcs.  Arcs are elliptical sections
-/// that always have a 90 degree sweep.  An arc is defined by its start and
-/// end points and an orientation flag (clockwise/counterclockwise).
-class Arc : public PCBObject
-{
-public:
-	Arc();
-
-	virtual void draw(QPainter *painter, const Layer& layer) const;
-	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
-
-	QPoint start() const { return mStart; }
-	QPoint end() const { return mEnd; }
-	int width() const { return mWidth; }
-	bool isCw() const { return mIsCw; }
-	Layer layer() const { return mLayer; }
-
-	static Arc newFromXml(QXmlStreamReader &reader);
-	void toXML(QXmlStreamWriter &writer) const;
-private:
-	QPoint mStart;
-	QPoint mEnd;
-	bool mIsCw;
-	int mWidth;
-	Layer mLayer;
+	LineType mType;
 };
 
 #endif // LINE_H

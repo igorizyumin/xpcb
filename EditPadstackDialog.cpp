@@ -27,14 +27,14 @@ int getShapeIndex(Pad::PADSHAPE shape, bool hasDefault)
 	if (!hasDefault) // for copper selector box (no default option)
 	{
 		if (shape == Pad::PAD_NONE) return 0;
-		return (int)shape-1;
+		return static_cast<int>(shape)-1;
 	}
 	else
 	{
 		// swap none and default
 		if (shape == Pad::PAD_NONE) return 1;
 		if (shape == Pad::PAD_DEFAULT) return 0;
-		return (int)shape;
+		return static_cast<int>(shape);
 	}
 }
 
@@ -42,13 +42,13 @@ Pad::PADSHAPE getShape(int index, bool hasDefault)
 {
 	if (!hasDefault)
 	{
-		return (Pad::PADSHAPE)(index + 1);
+		return static_cast<Pad::PADSHAPE>(index + 1);
 	}
 	else
 	{
 		if (index == 0) return Pad::PAD_DEFAULT;
 		if (index == 1) return Pad::PAD_NONE;
-		return (Pad::PADSHAPE)index;
+		return static_cast<Pad::PADSHAPE>(index);
 	}
 }
 

@@ -6,7 +6,6 @@
 
 // Forward declarations for visitor abstract class
 class Area;
-class Arc;
 class Line;
 class Net;
 class PartPin;
@@ -20,6 +19,7 @@ class Padstack;
 class PCBObjectVisitor;
 class PCBDoc;
 class Layer;
+class PCBObjState;
 
 /// Abstract base class for PCB graphical objects
 
@@ -61,6 +61,12 @@ public:
 	/// does nothing.
 	virtual void parentChanged() {}
 
+	/// Returns a snapshot of this object's state (the memento pattern).
+	virtual QSharedPointer<PCBObjState> getState() const = 0;
+	/// Restores this object's state from the supplied object. Returns true
+	/// if successful, false otherwise.
+	virtual bool loadState(QSharedPointer<PCBObjState> &state) = 0;
+
 	static int getNextID();
 private:
 	int objID;
@@ -72,7 +78,6 @@ class PCBObjectVisitor
 {
 public:
 	virtual void visit(Area*) = 0;
-	virtual void visit(Arc*) = 0;
 	virtual void visit(Line*) = 0;
 	virtual void visit(Net*) = 0;
 	virtual void visit(PartPin*) = 0;
@@ -83,6 +88,16 @@ public:
 	virtual void visit(Vertex*) = 0;
 	virtual void visit(Segment*) = 0;
 	virtual void visit(Padstack*) = 0;
+};
+
+/// Abstract base class for PCBObject mementos
+class PCBObjState
+{
+public:
+	// needed to make object polymorphic
+	virtual ~PCBObjState() {};
+protected:
+	PCBObjState() {};
 };
 
 #endif // PCBOBJECT_H

@@ -85,7 +85,7 @@ Footprint = element footprint
 	element source { xsd:string }?,
 	element desc { xsd:string }?,
 	element centroid { CoordsAttr, attribute custom {Bool}? },
-	(Line | Arc)*,
+	(Line | Arc | Text)*,
 	Pins,
 	RefText,
 	ValueText

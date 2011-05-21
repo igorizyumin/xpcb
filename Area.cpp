@@ -15,7 +15,6 @@ Area::Area(const PCBDoc *doc) :
 
 Area::~Area()
 {
-	delete mPoly;
 }
 
 void Area::draw(QPainter */*painter*/, const Layer& /*layer*/) const
@@ -31,7 +30,7 @@ QRect Area::bbox() const
 
 void Area::findConnections()
 {
-	if (!this->mNet || !this->mPoly || !this->mDoc)
+	if (!this->mNet || !this->mDoc)
 		return;
 
 	this->mConnPins.clear();
@@ -55,7 +54,7 @@ void Area::findConnections()
 			continue;	// SMT pad, not allowed to connect to this area
 
 		// add to list if pad is inside copper area
-		if( mPoly->testPointInside(pin->pos()) )
+		if( mPoly.testPointInside(pin->pos()) )
 			this->mConnPins.insert(pin);
 	}
 
@@ -66,8 +65,7 @@ void Area::findConnections()
 
 bool Area::pointInside(const QPoint &p) const
 {
-	if (!mPoly) return false;
-	return mPoly->testPointInside(p);
+	return mPoly.testPointInside(p);
 }
 
 Area* Area::newFromXML(QXmlStreamReader &reader, const PCBDoc &doc)
@@ -110,6 +108,6 @@ void Area::toXML(QXmlStreamWriter &writer)
 		break;
 	}
 	writer.writeAttribute("connectSmt", mConnectSMT ? "1" : "0");
-	mPoly->toXML(writer);
+	mPoly.toXML(writer);
 	writer.writeEndElement();
 }

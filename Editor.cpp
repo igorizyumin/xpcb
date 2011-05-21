@@ -97,10 +97,6 @@ void EditorFactory::visit(Area*)
 {
 }
 
-void EditorFactory::visit(Arc*)
-{
-}
-
 void EditorFactory::visit(Line*)
 {
 }
@@ -115,7 +111,7 @@ void EditorFactory::visit(PartPin*)
 
 void EditorFactory::visit(Pin* pin)
 {
-	mEditor = new PinEditor((FPController*)mCtrl, pin);
+	mEditor = new PinEditor(dynamic_cast<FPController*>(mCtrl), pin);
 }
 
 void EditorFactory::visit(Part* p)

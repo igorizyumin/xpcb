@@ -138,7 +138,7 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 		QXmlStreamAttributes attr = reader.attributes();
 		int start = attr.value("start").toString().toInt();
 		int end = attr.value("end").toString().toInt();
-		Layer layer((Layer::Type)attr.value("layer").toString().toInt());
+		Layer layer(static_cast<Layer::Type>(attr.value("layer").toString().toInt()));
 		int width = attr.value("width").toString().toInt();
 
 		Segment* s = new Segment(this,

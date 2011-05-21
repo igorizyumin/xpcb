@@ -134,7 +134,7 @@ inline bool operator!=(const GRID2 & a, const GRID2 & b)
 
 inline INT64 operator%(const GRID2 & a, const GRID2 & b)
 {
-	return (INT64)a.x * b.y - (INT64)a.y * b.x;
+	return static_cast<INT64>(a.x) * b.y - static_cast<INT64>(a.y) * b.x;
 }
 
 } // namespace POLYBOOLEAN

@@ -222,6 +222,7 @@
         <xs:choice minOccurs="0" maxOccurs="unbounded">
           <xs:element ref="line"/>
           <xs:element ref="arc"/>
+          <xs:element ref="text"/>
         </xs:choice>
         <xs:element ref="pins"/>
         <xs:element ref="refText"/>

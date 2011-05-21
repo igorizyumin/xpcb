@@ -24,12 +24,13 @@ public:
 	Pad getPadOnLayer(const Layer& layer) const;
 
 	void setNet(Net* newnet);
-	Net* getNet() {return mNet; }
+	Net* net() const {return mNet; }
 
 	void setVertex(Vertex* vertex);
-	Part* getPart() { return mPart; }
-	QString getName() {return mPin->name(); }
-	const Pin* fpPin() { return mPin; }
+	Vertex* vertex() const { return mVertex; }
+	Part* part() const { return mPart; }
+	QString name() const {return mPin->name(); }
+	const Pin* fpPin() const { return mPin; }
 
 	QPoint pos() const;
 	bool isSmt() const;
@@ -37,10 +38,29 @@ public:
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
+	virtual QSharedPointer<PCBObjState> getState() const;
+	virtual bool loadState(QSharedPointer<PCBObjState> &state);
 
 	bool testHit(const QPoint &pt, const Layer& layer) const;
 
 private:
+	class PartPinState : public PCBObjState
+	{
+	public:
+		virtual ~PartPinState() {}
+	private:
+		friend class PartPin;
+		PartPinState(const PartPin &p)
+			: pin(p.fpPin()), part(p.part()), net(p.net()),
+			vertex(p.vertex())
+		{}
+
+		const Pin* pin;
+		Part* part;
+		Net* net;
+		Vertex* vertex;
+	};
+
 	/// Maps a PCB layer to a pin layer (i.e. top copper -> start for parts on top side)
 	Layer mapLayer(const Layer& layer) const;
 
@@ -68,6 +88,8 @@ public:
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
+	virtual QSharedPointer<PCBObjState> getState() const;
+	virtual bool loadState(QSharedPointer<PCBObjState> &state);
 
 	QString refdes() const { return mRefdes->text(); }
 	QString value() const { return mValue->text(); }
@@ -76,9 +98,9 @@ public:
 	Text* valueText() const { return mValue; }
 	bool valueVisible() const { return mValueVisible; }
 	QPoint pos() const { return mPos; }
-	int angle() { return mAngle; }
-	SIDE side() { return mSide; }
-	bool locked() { return mLocked; }
+	int angle() const { return mAngle; }
+	SIDE side() const { return mSide; }
+	bool locked() const { return mLocked; }
 
 	void setPos(QPoint pos) { mPos = pos; updateTransform(); }
 	void setAngle(int angle) { mAngle = angle; updateTransform(); }
@@ -87,9 +109,10 @@ public:
 	void setRefVisible(bool vis) { mRefVisible = vis; }
 	void setValueVisible(bool vis) { mValueVisible = vis; }
 
-	Footprint* footprint() { return mFp;}
+	Footprint* footprint() const { return mFp;}
 	void setFootprint( Footprint * fp );
 
+	QList<PartPin*> pins() const { return mPins; }
 	PartPin* getPin(const QString &name);
 
 	static Part* newFromXML(QXmlStreamReader &reader, PCBDoc* doc);
@@ -98,7 +121,33 @@ public:
 	QTransform transform() const { return mTransform; }
 	bool testHit(QPoint pt, const Layer& /*layer*/) const { return bbox().contains(pt); }
 
+	PCBDoc* doc() const {return mDoc; }
 private:
+	class PartState : public PCBObjState
+	{
+	public:
+		virtual ~PartState() {}
+	private:
+		friend class Part;
+		PartState(const Part &p)
+			: transform(p.transform()), pos(p.pos()), angle(p.angle()),
+			side(p.side()), locked(p.locked()), refVis(p.refVisible()),
+			valVis(p.valueVisible()), fp(p.footprint()), pins(p.pins()),
+			doc(p.doc())
+		{}
+
+		QTransform transform;
+		QPoint pos;
+		int angle;
+		SIDE side;
+		bool locked;
+		bool refVis;
+		bool valVis;
+		Footprint* fp;
+		QList<PartPin*> pins;
+		PCBDoc* doc;
+	};
+
 	void resetFp();
 	void updateTransform();
 

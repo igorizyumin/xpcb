@@ -133,7 +133,7 @@ int SMFontUtil::LoadFontData(void)
 		return 1;
 	}
 
-	infile.read((char*)&numChars, 4);
+	infile.read(reinterpret_cast<char*>(&numChars), 4);
 	if (numChars <= 0)
 	{
 		Q_ASSERT(0);
@@ -193,7 +193,7 @@ int SMFontUtil::LoadXlationData(void)
 			{
 				if(!infile.atEnd())
 				{
-					infile.read((char*)(&k), 4);
+					infile.read(reinterpret_cast<char*>(&k), 4);
 					cXlationTable[i][j] = k;
 				}
 			}
@@ -204,7 +204,7 @@ int SMFontUtil::LoadXlationData(void)
 			{
 				if(!infile.atEnd())
 				{
-					infile.read((char*)(&k), 4);
+					infile.read(reinterpret_cast<char*>(&k), 4);
 					cXlationTable[i][j] = k;
 				}
 			}
@@ -250,7 +250,7 @@ void SMFontUtil::SaveXlationData(void)
 		for(j=0; j<128; j++)
 		{
 			k = cXlationTable[i][j];
-			outfile.write((const char*)(&k), 4);
+			outfile.write(reinterpret_cast<char*>(&k), 4);
 		}
 	}
 	for(i=0; i<12; i++)
@@ -258,7 +258,7 @@ void SMFontUtil::SaveXlationData(void)
 		for(j=128; j<256; j++)
 		{
 			k = cXlationTable[i][j];
-			outfile.write((const char*)(&k), 4);
+			outfile.write(reinterpret_cast<const char*>(&k), 4);
 		}
 	}
 	outfile.close();
@@ -294,7 +294,7 @@ void SMFontUtil::SaveFontData(void)
 	QFile outfile(smffile);
 	numChars = SMCharList.size();
 	if (!outfile.open(QIODevice::WriteOnly)) return;
-	outfile.write((const char*)(&numChars), 4);
+	outfile.write(reinterpret_cast<const char*>(&numChars), 4);
 	for(quint32 i = 0; i < numChars; i++)
 	{
 		SMCharList[i]->Write(outfile);
@@ -330,11 +330,11 @@ int SMFontUtil::GetCharID(unsigned char pCharValue,
 {
 	int index;
 	int charindex;
-	index = (int)pFont;
+	index = static_cast<int>(pFont);
 	charindex = pCharValue;
 	if(index < 0)
 		return(-1);
-	if(index > (int)GOTHIC)
+	if(index > static_cast<int>(GOTHIC))
 		return(-1);
 	return(cXlationTable[index][charindex]);
 }
@@ -546,7 +546,7 @@ void SMFontUtil::GetStrokes(const QString &text, int fontSize, int strokeWidth, 
 {
 	bbox = QRect();
 	strokes.clear();
-	double scale = (double)fontSize/22.0;
+	double scale = static_cast<double>(fontSize)/22.0;
 
 	// get strokes for all characters
 	for (int i = 0; i < text.size(); i++)

@@ -71,6 +71,23 @@ void PartPin::setNet(Net *newnet)
 		mNet->addPin(this);
 }
 
+QSharedPointer<PCBObjState> PartPin::getState() const
+{
+	return QSharedPointer<PCBObjState>(new PartPinState(*this));
+}
+
+bool PartPin::loadState(QSharedPointer<PCBObjState> &state)
+{
+	// convert to part state
+	QSharedPointer<PartPinState> s = state.dynamicCast<PartPinState>();
+	if (s.isNull()) return false;
+	mPin = s->pin;
+	mPart = s->part;
+	mNet = s->net;
+	mVertex = s->vertex;
+	return true;
+}
+
 ///////////////////// PART /////////////////////
 Part::Part(PCBDoc *doc)
 	: mAngle(0), mSide(SIDE_TOP), mLocked(false), mRefdes(NULL), mRefVisible(false), mValue(NULL),
@@ -296,9 +313,31 @@ PartPin* Part::getPin(const QString &name)
 {
 	foreach(PartPin* p, mPins)
 	{
-		if (p->getName() == name)
+		if (p->name() == name)
 			return p;
 	}
 	return NULL;
 }
 
+QSharedPointer<PCBObjState> Part::getState() const
+{
+	return QSharedPointer<PCBObjState>(new PartState(*this));
+}
+
+bool Part::loadState(QSharedPointer<PCBObjState> &state)
+{
+	// convert to part state
+	QSharedPointer<PartState> s = state.dynamicCast<PartState>();
+	if (s.isNull()) return false;
+	mTransform = s->transform;
+	mPos = s->pos;
+	mAngle = s->angle;
+	mSide = s->side;
+	mLocked = s->locked;
+	mRefVisible = s->refVis;
+	mValueVisible = s->valVis;
+	mFp = s->fp;
+	mPins = s->pins;
+	mDoc = s->doc;
+	return true;
+}

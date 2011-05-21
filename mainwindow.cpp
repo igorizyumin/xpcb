@@ -15,6 +15,7 @@
 #include "EditTextDialog.h"
 #include "SelFilterWidget.h"
 #include "LayerWidget.h"
+#include "Plugin.h"
 
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
@@ -211,7 +212,7 @@ void MainWindow::on_action_Redo_triggered()
 
 ///////////////////////////// PCBEDITWINDOW ///////////////////////////////////
 
-PCBEditWindow::PCBEditWindow(QWidget *parent)
+PCBEditWindow::PCBEditWindow(QWidget *parent, QList<Plugin*> plugins)
 	: MainWindow(parent), mDoc(NULL)
 {
 	this->mCtrl = new PCBController(this);
@@ -223,6 +224,12 @@ PCBEditWindow::PCBEditWindow(QWidget *parent)
 	connect(this->m_gridwidget, SIGNAL(routeGridChanged(int)),
 			mCtrl, SLOT(onRouteGridChanged(int)));
 	setCurrentFile("");
+
+	foreach(Plugin* p, plugins)
+	{
+		p->installWidgets(*this);
+	}
+
 	loadGeom();
 
 }
@@ -276,7 +283,7 @@ void PCBEditWindow::saveGeom()
 
 ///////////////////////////// FPEDITWINDOW ///////////////////////////////////
 
-FPEditWindow::FPEditWindow(QWidget *parent)
+FPEditWindow::FPEditWindow(QWidget *parent, QList<Plugin*> plugins)
 	: MainWindow(parent), mDoc(NULL)
 {
 	this->mCtrl = new FPController(this);
@@ -288,6 +295,12 @@ FPEditWindow::FPEditWindow(QWidget *parent)
 	connect(this->m_gridwidget, SIGNAL(routeGridChanged(int)),
 			mCtrl, SLOT(onRouteGridChanged(int)));
 	setCurrentFile("");
+
+	foreach(Plugin* p, plugins)
+	{
+		p->installWidgets(*this);
+	}
+
 	loadGeom();
 }
 

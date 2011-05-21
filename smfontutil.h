@@ -47,7 +47,7 @@ public:
 	void SetCharID(unsigned char pCharValue,
 		FONT_TYPE pFont, int ID)
 	{
-		cXlationTable[(int)pFont][(int)pCharValue] = ID;
+		cXlationTable[static_cast<int>(pFont)][static_cast<int>(pCharValue)] = ID;
 	}
 
 	SMCharacter * GetCharacter(int pCharID)

@@ -396,9 +396,9 @@ void XmlLoadTest::testNet()
 	QCOMPARE(pins.size(), 3);
 	foreach(PartPin* pin, pins)
 	{
-		QVERIFY( ( (pin->getPart()->refdes() == "P1") && (pin->getName() == "1") ) ||
-				 ( (pin->getPart()->refdes() == "P1") && (pin->getName() == "2") ) ||
-				 ( (pin->getPart()->refdes() == "P2") && (pin->getName() == "1") ) );
+		QVERIFY( ( (pin->part()->refdes() == "P1") && (pin->name() == "1") ) ||
+				 ( (pin->part()->refdes() == "P1") && (pin->name() == "2") ) ||
+				 ( (pin->part()->refdes() == "P2") && (pin->name() == "1") ) );
 	}
 	delete n;
 }

@@ -14,7 +14,7 @@ CONFIG(unittest) {
 	TARGET = xpcb
 }
 
-TEMPLATE = app
+TEMPLATE = lib
 
 
 SOURCES += PCBView.cpp \
@@ -47,7 +47,9 @@ SOURCES += PCBView.cpp \
     EditPadstackDialog.cpp \
     ManagePadstacksDialog.cpp \
     EditPinDialog.cpp \
-    PinEditor.cpp
+    PinEditor.cpp \
+    LineEditor.cpp \
+    Plugin.cpp
 
 unittest {
 	QT += testlib
@@ -90,7 +92,9 @@ HEADERS  += PCBView.h \
     EditPadstackDialog.h \
     ManagePadstacksDialog.h \
     EditPinDialog.h \
-    PinEditor.h
+    PinEditor.h \
+    LineEditor.h \
+    Plugin.h
 
 FORMS    += GridToolbarWidget.ui \
     AboutDialog.ui \
@@ -108,3 +112,4 @@ RESOURCES += \
 
 INCLUDEPATH += ../xpcb/polyboolean/
 LIBS += -L../xpcb/polyboolean/ -lpolyboolean
+QMAKE_CXXFLAGS_DEBUG += -Wold-style-cast

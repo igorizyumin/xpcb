@@ -76,6 +76,7 @@ class Polygon
 public:
 	Polygon();
 	Polygon(const POLYBOOLEAN::PAREA *area);
+	Polygon(const Polygon&);
 	~Polygon();
 
 	// functions for modifying polygon
@@ -126,7 +127,7 @@ public:
 	/// deleting the PAREA using PAREA::Del.
 	POLYBOOLEAN::PAREA* getParea() const;
 
-	static Polygon* newFromXML(QXmlStreamReader &reader);
+	static Polygon newFromXML(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 
 private:

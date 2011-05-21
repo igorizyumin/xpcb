@@ -153,6 +153,8 @@ protected slots:
 protected:
 	virtual void updateActions();
 	void onAddPinAction();
+	void onAddTextAction();
+
 
 
 	FPDoc* mDoc;

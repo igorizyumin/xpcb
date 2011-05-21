@@ -71,7 +71,7 @@ void EditPartDialog::init(Part *p)
 		this->authorEdit->setText(p->footprint()->author());
 		this->sourceEdit->setText(p->footprint()->source());
 		this->setPosRadio->setChecked(true);
-		this->sideBox->setCurrentIndex((int)p->side());
+		this->sideBox->setCurrentIndex(static_cast<int>(p->side()));
 		this->angleBox->setCurrentIndex(p->angle() / 90);
 		this->xPos->setValue(XPcb::PCB2MIL(p->pos().x()));
 		this->yPos->setValue(XPcb::PCB2MIL(p->pos().y()));

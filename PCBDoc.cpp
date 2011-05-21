@@ -156,21 +156,21 @@ QList<PCBObject*> FPDoc::findObjs(QPoint &pt)
 		if (p->bbox().contains(pt))
 			out.append(p);
 	}
+	foreach(Text* p, mFp->texts())
+	{
+		if (p->bbox().contains(pt))
+			out.append(p);
+	}
 	foreach(const Line& p, mFp->getLines())
 	{
 		if (p.bbox().contains(pt))
-			out.append((PCBObject*)&p);
-	}
-	foreach(const Arc& p, mFp->getArcs())
-	{
-		if (p.bbox().contains(pt))
-			out.append((PCBObject*)&p);
+			out.append(const_cast<Line*>(&p));
 	}
 
 	if (mFp->getRefText().bbox().contains(pt))
-		out.append((PCBObject*)&mFp->getRefText());
+		out.append(const_cast<Text*>(&mFp->getRefText()));
 	if (mFp->getValueText().bbox().contains(pt))
-		out.append((PCBObject*)&mFp->getValueText());
+		out.append(const_cast<Text*>(&mFp->getValueText()));
 
 	return out;
 }
@@ -182,9 +182,14 @@ QList<PCBObject*> FPDoc::findObjs(QRect &rect)
 
 	QList<Pin*> pins = mFp->pins();
 	QList<Line> lines = mFp->getLines();
-	QList<Arc> arcs = mFp->getArcs();
+	QList<Text*> texts = mFp->texts();
 
 	foreach(Pin* p, pins)
+	{
+		if (p->bbox().intersects(rect))
+			out.append(p);
+	}
+	foreach(Text* p, texts)
 	{
 		if (p->bbox().intersects(rect))
 			out.append(p);
@@ -192,17 +197,12 @@ QList<PCBObject*> FPDoc::findObjs(QRect &rect)
 	foreach(const Line& p, lines)
 	{
 		if (p.bbox().intersects(rect))
-			out.append((PCBObject*)&p);
-	}
-	foreach(const Arc& p, arcs)
-	{
-		if (p.bbox().intersects(rect))
-			out.append((PCBObject*)&p);
+			out.append(const_cast<Line*>(&p));
 	}
 	if (mFp->getRefText().bbox().intersects(rect))
-		out.append((PCBObject*)&mFp->getRefText());
+		out.append(const_cast<Text*>(&mFp->getRefText()));
 	if (mFp->getValueText().bbox().intersects(rect))
-		out.append((PCBObject*)&mFp->getValueText());
+		out.append(const_cast<Text*>(&mFp->getValueText()));
 
 	return out;
 }
@@ -358,9 +358,6 @@ void PCBDoc::clearDoc()
 	delete mTraceList;
 	mTraceList = NULL;
 
-	delete mBoardOutline;
-	mBoardOutline = NULL;
-
 	foreach(Net* n, mNets)
 		delete n;
 	mNets.clear();
@@ -385,8 +382,7 @@ void PCBDoc::clearDoc()
 		delete n;
 	mPadstacks.clear();
 
-	delete mBoardOutline;
-	mBoardOutline = NULL;
+	mBoardOutline = Polygon();
 
 	mDefaultPadstack = NULL;
 }
@@ -410,7 +406,7 @@ QList<Layer> PCBDoc::layerList(LayerOrder order)
 		l.append(Layer(Layer::LAY_HOLE));
 		l.append(Layer(Layer::LAY_TOP_COPPER));
 		for(int i = 0; i < numLayers() - 2; i++)
-			l.append(Layer((Layer::Type((int)Layer::LAY_INNER1+i))));
+			l.append(Layer((Layer::Type(Layer::LAY_INNER1+i))));
 		l.append(Layer(Layer::LAY_BOTTOM_COPPER));
 		return l;
 	}
@@ -420,7 +416,7 @@ QList<Layer> PCBDoc::layerList(LayerOrder order)
 		l.append(Layer(Layer::LAY_VISIBLE_GRID));
 		l.append(Layer(Layer::LAY_BOTTOM_COPPER));
 		for(int i = numLayers() - 3; i >= 0; i--)
-			l.append(Layer(Layer::Type((int)Layer::LAY_INNER1+i)));
+			l.append(Layer(Layer::Type(Layer::LAY_INNER1+i)));
 		l.append(Layer(Layer::LAY_TOP_COPPER));
 		l.append(Layer(Layer::LAY_HOLE));
 		l.append(Layer(Layer::LAY_SMCUT_BOTTOM));
@@ -450,7 +446,7 @@ void PCBDoc::removePadstack(Padstack *ps)
 void loadProps(QXmlStreamReader &reader, QString &name, XPcb::UNIT &units, int &defaultps, int &numLayers);
 void loadPadstacks(QXmlStreamReader &reader, QHash<int, Padstack*> &padstacks);
 void loadFootprints(QXmlStreamReader &reader, QList<Footprint*> &footprints, const QHash<int, Padstack*> &padstacks);
-void loadOutline(QXmlStreamReader &reader, Polygon *& poly);
+void loadOutline(QXmlStreamReader &reader, Polygon & poly);
 void loadParts(QXmlStreamReader &reader, QList<Part*>& parts, PCBDoc* doc);
 void loadNets(QXmlStreamReader &reader, QList<Net*>& nets, PCBDoc* doc, const QHash<int, Padstack*> &padstacks);
 void loadAreas(QXmlStreamReader &reader, QList<Area*>& areas, PCBDoc *doc);
@@ -503,8 +499,7 @@ bool PCBDoc::saveToXml(QXmlStreamWriter &writer)
 	writer.writeEndElement();
 
 	writer.writeStartElement("outline");
-	if (mBoardOutline)
-		this->mBoardOutline->toXML(writer);
+	this->mBoardOutline.toXML(writer);
 	writer.writeEndElement();
 
 	writer.writeStartElement("parts");
@@ -775,16 +770,12 @@ void loadFootprints(QXmlStreamReader &reader, QList<Footprint*> &footprints, con
 
 }
 
-void loadOutline(QXmlStreamReader &reader, Polygon *& poly)
+void loadOutline(QXmlStreamReader &reader, Polygon& poly)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "outline");
 	if (!reader.readNextStartElement())
 		return;
 	poly = Polygon::newFromXML(reader);
-	if (!poly)
-	{
-		Log::instance().error("Error loading board outline");
-	}
 	do
 			reader.readNext();
 	while(!reader.isEndElement());

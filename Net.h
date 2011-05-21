@@ -23,19 +23,36 @@ public:
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
+	virtual QSharedPointer<PCBObjState> getState() const;
+	virtual bool loadState(QSharedPointer<PCBObjState> &state);
 
-	QString name() {return mName;}
+	QString name() const {return mName;}
 	void addPin( PartPin * pin);
 	void removePin( PartPin * pin);
-	QSet<PartPin*> getPins() { return mPins; }
-	Padstack* getViaPs() { return mViaPS; }
-	bool visible() { return mIsVisible; }
+	QSet<PartPin*> getPins() const { return mPins; }
+	Padstack* getViaPs() const { return mViaPS; }
+	bool visible() const { return mIsVisible; }
 	void setVisible(bool v) { mIsVisible = v; }
 
 	static Net* newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
 						   const QHash<int, Padstack*> &padstacks);
 	void toXML(QXmlStreamWriter &writer) const;
 private:
+	class NetState : public PCBObjState
+	{
+	public:
+		virtual ~NetState() {}
+	private:
+		friend class Net;
+		NetState(const Net &p)
+			: vis(p.visible()), name(p.name()), pins(p.getPins())
+		{}
+
+		bool vis;
+		QString name;
+		QSet<PartPin*> pins;
+	};
+
 	bool mIsVisible;
 	PCBDoc * mDoc;	// PCB document
 	QString mName;		// net name

@@ -28,6 +28,8 @@ public:
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual bool testHit(QPoint pt, const Layer& l) const { return bbox().contains(pt) && mLayer == l; }
+	virtual QSharedPointer<PCBObjState> getState() const { return QSharedPointer<PCBObjState>(new TextState(*this)); }
+	virtual bool loadState(QSharedPointer<PCBObjState> &state);
 
 	// i/o
 	static Text* newFromXML(QXmlStreamReader &reader);
@@ -66,6 +68,26 @@ protected:
 	void rebuild() const;
 
 private:
+	class TextState : public PCBObjState
+	{
+	public:
+		virtual ~TextState() {}
+	private:
+		friend class Text;
+		TextState(const Text &t)
+			: pos(t.pos()), layer(t.layer()), angle(t.angle()),
+			ismirrored(t.isMirrored()), isnegative(t.isNegative()),
+			fontsize(t.fontSize()), width(t.strokeWidth()),
+			text(t.text())
+		{}
+
+		QPoint pos;
+		Layer layer;
+		int angle;
+		bool ismirrored, isnegative;
+		int fontsize, width;
+		QString text;
+	};
 	// member variables
 	QPoint mPos;
 	Layer mLayer;
@@ -84,7 +106,7 @@ private:
 	/// Untransformed stroke bounding box
 	mutable QRect mStrokeBBox;
 
-	/// Indicates that the stroke array has not been rebuilt
+	/// Indicates that the stroke list has not been rebuilt
 	/// after a change.
 	mutable bool mIsDirty;
 

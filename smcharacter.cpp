@@ -111,13 +111,13 @@ SMCharacter::~SMCharacter()
 //------------------------------------------------------------------
 void SMCharacter::Read(QFile & infile)
 {
-	infile.read((char*)(&cVertexCount), 4);
+	infile.read(reinterpret_cast<char*>(&cVertexCount), 4);
 	Q_ASSERT(cVertexCount > 0);
 	cVertex = new CharVertex[cVertexCount];
 	Q_ASSERT(cVertex);
 	if (cVertex)
 	{
-		infile.read((char*)cVertex,sizeof(CharVertex)*cVertexCount);
+		infile.read(reinterpret_cast<char*>(cVertex),sizeof(CharVertex)*cVertexCount);
 	}
 }
 
@@ -147,8 +147,8 @@ void SMCharacter::Read(QFile & infile)
 //------------------------------------------------------------------
 void SMCharacter::Write(QFile & outfile)
 {
-	outfile.write((const char*)(&cVertexCount), 4);
-	outfile.write((const char*)cVertex,sizeof(CharVertex)*cVertexCount);
+	outfile.write(reinterpret_cast<const char*>(&cVertexCount), 4);
+	outfile.write(reinterpret_cast<const char*>(cVertex),sizeof(CharVertex)*cVertexCount);
 }
 
 

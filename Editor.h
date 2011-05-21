@@ -63,7 +63,6 @@ public:
 
 
 	virtual void visit(Area* a);
-	virtual void visit(Arc* a);
 	virtual void visit(Line* a);
 	virtual void visit(Net* a);
 	virtual void visit(PartPin* a);

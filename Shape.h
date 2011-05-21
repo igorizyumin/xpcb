@@ -111,7 +111,7 @@ class Pin : public PCBObject
 {
 public:
 
-	Pin(Footprint* fp) : mAngle(0), mPadstack(NULL), mFootprint(fp) {}
+	Pin(Footprint* fp) : mAngle(0), mIsDirty(true), mPadstack(NULL), mFootprint(fp) {}
 
 	int angle() const { return mAngle; }
 	QPoint pos() const { return mPos; }
@@ -126,6 +126,8 @@ public:
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
+	virtual QSharedPointer<PCBObjState> getState() const;
+	virtual bool loadState(QSharedPointer<PCBObjState> &state);
 
 	virtual bool testHit(QPoint pt, const Layer& layer) const;
 
@@ -137,6 +139,23 @@ public:
 	virtual QTransform transform() const { return mFpTransform; }
 
 private:
+	class PinState : public PCBObjState
+	{
+	public:
+		virtual ~PinState() {}
+	private:
+		friend class Pin;
+		PinState(const Pin &p)
+			: name(p.name()), pos(p.pos()), angle(p.angle()),
+			ps(p.padstack())
+		{}
+
+		QString name;
+		QPoint pos;
+		int angle;
+		Padstack* ps;
+	};
+
 	void updateTransform() const;
 	void markDirty() const { mIsDirty = true; }
 	/// Pin name (i.e. "1", "B2", "GATE")
@@ -178,7 +197,10 @@ public:
 	void addPin(Pin* p) { mPins.append(p); }
 	void removePin(Pin* p) { mPins.removeOne(p); }
 
-	const QList<Arc> getArcs() { return mOutlineArcs; }
+	const QList<Text*> texts() { return mTexts; }
+	void addText(Text* t) { mTexts.append(t); }
+	void removeText(Text* t) { mTexts.removeOne(t); }
+
 	const QList<Line> getLines() { return mOutlineLines; }
 
 	QRect getPinBounds() const;
@@ -220,8 +242,6 @@ private:
 	QList<Pin*> mPins;
 	/// Silkscreen lines (used for part outline)
 	QList<Line> mOutlineLines;
-	/// Silkscreen lines (used for part outline)
-	QList<Arc> mOutlineArcs;
 	/// Silkscreen text
 	QList<Text*> mTexts;
 };

@@ -4,13 +4,13 @@
 #include <QSet>
 #include "global.h"
 #include "PCBObject.h"
+#include "Polygon.h"
 
 class PartPin;
 class Vertex;
 class Net;
 class TraceList;
 class PCBDoc;
-class Polygon;
 class QXmlStreamReader;
 class QXmlStreamWriter;
 
@@ -27,7 +27,7 @@ class Area : public PCBObject
 {
 public:
 	/// A list of the possible fill styles for the polygon when drawing.
-	enum HATCH_STYLE { NO_HATCH,		///< No hatch lines; only the outline is drawn.
+	enum HatchStyle { NO_HATCH,		///< No hatch lines; only the outline is drawn.
 					   DIAGONAL_FULL,	///< The polygon is filled with diagonal hatch lines.
 					   DIAGONAL_EDGE	///< Short diagonal hatch lines are drawn on the inside part of the edges.
 				   };
@@ -38,6 +38,8 @@ public:
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
+	virtual QSharedPointer<PCBObjState> getState() const { return QSharedPointer<PCBObjState>(); }
+	virtual bool loadState(QSharedPointer<PCBObjState> &state) { return false; }
 
 	/// Sets the polygon layer.
 	/// \param layer the new layer.
@@ -47,14 +49,14 @@ public:
 
 	/// Gets the hatch style.
 	/// \returns the current hatch style
-	HATCH_STYLE hatchStyle() const { return mHatchStyle; }
+	HatchStyle hatchStyle() const { return mHatchStyle; }
 	/// Sets the hatch style.
 	/// \param hatch the new hatch style.
-	void setHatchStyle( HATCH_STYLE hatch ) { mHatchStyle = hatch; }
+	void setHatchStyle( HatchStyle hatch ) { mHatchStyle = hatch; }
 
 	bool connSmt() { return mConnectSMT; }
 	Net* net() { return mNet; }
-	Polygon* poly() { return mPoly; }
+	Polygon& poly() { return mPoly; }
 
 	/// Check if a point is within the area boundaries.
 	/// \returns true if p is inside area.
@@ -76,7 +78,7 @@ private:
 	/// Whether to connect SMT pads to this area
 	bool mConnectSMT;
 
-	Polygon *mPoly;
+	Polygon mPoly;
 
 	/// List of connected pins
 	QSet<PartPin*> mConnPins;
@@ -87,7 +89,7 @@ private:
 	Layer mLayer;
 
 	/// Hatch style for drawing this polygon
-	HATCH_STYLE mHatchStyle;
+	HatchStyle mHatchStyle;
 
 };
 

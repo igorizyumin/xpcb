@@ -204,6 +204,11 @@ Polygon::Polygon(const PAREA *area)
 	}
 }
 
+Polygon::Polygon(const Polygon &other)
+	: mOutline(other.mOutline), mHoles(other.mHoles), mPbDirty(true), mArea(NULL)
+{
+}
+
 Polygon::~Polygon()
 {
 	if (mArea)
@@ -340,23 +345,23 @@ PAREA* Polygon::getParea() const
 	return mArea->Copy();
 }
 
-Polygon* Polygon::newFromXML(QXmlStreamReader &reader)
+Polygon Polygon::newFromXML(QXmlStreamReader &reader)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "polygon");
 
-	Polygon *poly = new Polygon();
+	Polygon poly;
 
 	reader.readNextStartElement();
 	Q_ASSERT(reader.name() == "outline");
 	reader.readNextStartElement();
-	poly->mOutline = PolyContour::newFromXML(reader);
+	poly.mOutline = PolyContour::newFromXML(reader);
 	while(reader.readNextStartElement())
 	{
 		Q_ASSERT(reader.name() == "hole");
 		QStringRef t = reader.name();
 
 		reader.readNextStartElement();
-		poly->mHoles.append(PolyContour::newFromXML(reader));
+		poly.mHoles.append(PolyContour::newFromXML(reader));
 	}
 
 	return poly;

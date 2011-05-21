@@ -106,7 +106,7 @@ void Pad::toXML(QXmlStreamWriter &writer) const
 
 bool Pad::testHit( const QPoint& pt )
 {
-	double dist = sqrt(pt.x()*pt.x() + pt.y()*pt.y());
+	double dist = sqrt(pow(pt.x(), 2) + pow(pt.y(), 2));
 
 	// check if we hit the pad
 	switch( mShape )
@@ -427,6 +427,22 @@ void Pin::draw(QPainter *painter, const Layer& layer) const
 	painter->restore();
 }
 
+QSharedPointer<PCBObjState> Pin::getState() const
+{
+	return QSharedPointer<PCBObjState>(new PinState(*this));
+}
+
+bool Pin::loadState(QSharedPointer<PCBObjState> &state)
+{
+	// convert to part state
+	QSharedPointer<PinState> s = state.dynamicCast<PinState>();
+	if (s.isNull()) return false;
+	mName = s->name;
+	mPos = s->pos;
+	mAngle = s->angle;
+	mPadstack = s->ps;
+	return true;
+}
 
 /////////////////////// FOOTPRINT /////////////////////////
 
@@ -455,8 +471,6 @@ void Footprint::draw(QPainter *painter, FP_DRAW_LAYER layer) const
 	Layer pcblayer = (layer == Footprint::LAY_START) ? Layer(Layer::LAY_SILK_TOP) : Layer(Layer::LAY_SILK_BOTTOM);
 	foreach(const Line& l, mOutlineLines)
 		l.draw(painter, pcblayer);
-	foreach(const Arc& a, mOutlineArcs)
-		a.draw(painter, pcblayer);
 	foreach(Text* t, mTexts)
 		t->draw(painter, pcblayer);
 }
@@ -503,13 +517,13 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader, const QHash<int, Pads
 					reader.readNext();
 			while(!reader.isEndElement());
 		}
-		else if (el == "line")
+		else if (el == "line" || el == "arc")
 		{
 			fp->mOutlineLines.append(Line::newFromXml(reader));
 		}
-		else if (el == "arc")
+		else if (el == "text")
 		{
-			fp->mOutlineArcs.append(Arc::newFromXml(reader));
+			fp->mTexts.append(Text::newFromXML(reader));
 		}
 		else if (el == "pins")
 		{
@@ -569,8 +583,8 @@ void Footprint::toXML(QXmlStreamWriter &writer) const
 
 	foreach(const Line& l, mOutlineLines)
 		l.toXML(writer);
-	foreach(const Arc& a, mOutlineArcs)
-		a.toXML(writer);
+	foreach(Text* t, mTexts)
+		t->toXML(writer);
 
 	writer.writeStartElement("pins");
 	foreach(Pin* p, mPins)
@@ -683,10 +697,6 @@ QRect Footprint::bbox() const
 	foreach(const Line& l, mOutlineLines)
 	{
 		r |= l.bbox();
-	}
-	foreach(const Arc& a, mOutlineArcs)
-	{
-		r |= a.bbox();
 	}
 	foreach(Text* t, mTexts)
 	{
