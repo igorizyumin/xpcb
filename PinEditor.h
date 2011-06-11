@@ -24,14 +24,14 @@ class EditPinDialog;
 
 class PinEditor : public AbstractEditor
 {
+	Q_OBJECT
 public:
 	PinEditor(FPController* ctrl, Pin* pin = NULL);
 	virtual ~PinEditor();
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
-	virtual QList<CtrlAction> actions() const;
-	virtual void action(int key);
+	virtual QList<const CtrlAction*> actions() const;
 
 protected:
 	virtual void mouseMoveEvent(QMouseEvent* event);
@@ -39,12 +39,14 @@ protected:
 	virtual void mouseReleaseEvent(QMouseEvent* event);
 	virtual void keyPressEvent(QKeyEvent *event);
 
-private:
-	void newPin();
+private slots:
 	void actionEdit();
 	void actionMove();
 	void actionDelete();
 	void actionRotate();
+
+private:
+	void newPin();
 	void startMove();
 	void finishEdit();
 	void finishNew(bool setPos = false);
@@ -60,6 +62,11 @@ private:
 	int mAngle;
 	QPoint mStartPos;
 	int mStartAngle;
+
+	CtrlAction mRotateAction;
+	CtrlAction mEditAction;
+	CtrlAction mMoveAction;
+	CtrlAction mDelAction;
 };
 
 class NewPinCmd : public QUndoCommand

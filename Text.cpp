@@ -156,9 +156,16 @@ bool Text::loadState(QSharedPointer<PCBObjState> &state)
 // EDITOR
 
 TextEditor::TextEditor(Controller *ctrl, Text *text)
-	: AbstractEditor(ctrl), mState(SELECTED), mText(text), mDialog(NULL), mAngleDelta(0)
+		: AbstractEditor(ctrl), mState(SELECTED), mText(text), mDialog(NULL), mAngleDelta(0),
+		mRotateAction(2, "Rotate Text"),
+		mEditAction(0, "Edit Text"),
+		mMoveAction(3, "Move Text"),
+		mDeleteAction(7, "Delete Text")
 {
-
+	connect(&mRotateAction, SIGNAL(execFired()), SLOT(actionRotate()));
+	connect(&mEditAction, SIGNAL(execFired()), SLOT(actionEdit()));
+	connect(&mMoveAction, SIGNAL(execFired()), SLOT(actionMove()));
+	connect(&mDeleteAction, SIGNAL(execFired()), SLOT(actionDelete()));
 }
 
 void TextEditor::init()
@@ -176,45 +183,24 @@ TextEditor::~TextEditor()
 		delete mDialog;
 }
 
-QList<CtrlAction> TextEditor::actions() const
+QList<const CtrlAction*> TextEditor::actions() const
 {
-	QList<CtrlAction> out;
+		QList<const CtrlAction*> out;
 
 	switch(mState)
 	{
 	case MOVE:
 	case ADD_MOVE:
 	case EDIT_MOVE:
-		out.append(CtrlAction(2, "Rotate Text"));
+				out.append(&mRotateAction);
 		break;
 	case SELECTED:
-		out.append(CtrlAction(0, "Edit Text"));
-		out.append(CtrlAction(3, "Move Text"));
-		out.append(CtrlAction(7, "Delete Text"));
+				out.append(&mEditAction);
+				out.append(&mMoveAction);
+				out.append(&mDeleteAction);
 		break;
 	}
 	return out;
-}
-
-void TextEditor::action(int key)
-{
-	switch(mState)
-	{
-	case MOVE:
-	case ADD_MOVE:
-	case EDIT_MOVE:
-		if (key == 2)
-			actionRotate();
-		break;
-	case SELECTED:
-		if (key == 0)
-			actionEdit();
-		else if (key == 3)
-			actionMove();
-		else if (key == 7)
-			actionDelete();
-		break;
-	}
 }
 
 void TextEditor::mouseMoveEvent(QMouseEvent *event)

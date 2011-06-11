@@ -161,7 +161,6 @@ public slots:
 	void onRouteGridChanged(int grid);
 
 protected slots:
-	virtual void onAction(int key) = 0;
 	void onEditorOverlayChanged();
 	void onEditorFinished();
 	void onEditorActionsChanged();

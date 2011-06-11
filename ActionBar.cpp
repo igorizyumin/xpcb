@@ -13,27 +13,25 @@ ActionBar::ActionBar(QWidget *parent) :
 	{
 		QShortcut *s = new QShortcut(keys[i], this);
 		connect(s, SIGNAL(activated()), buttons[i], SLOT(animateClick()));
-		connect(buttons[i], SIGNAL(clicked()), &mMapper, SLOT(map()));
-		mMapper.setMapping(buttons[i], i);
 	}
-	connect(&mMapper, SIGNAL(mapped(int)), this, SIGNAL(triggered(int)));
 }
 
-void ActionBar::setActions(QList<CtrlAction> actions)
+void ActionBar::setActions(QList<const CtrlAction*> actions)
 {
 	QPushButton* buttons[8] = {this->butF1, this->butF2, this->butF3, this->butF4,
 							   this->butF5, this->butF6, this->butF7, this->butF8 };
 	clearActions();
-	foreach(const CtrlAction& a, actions)
+	foreach(const CtrlAction* a, actions)
 	{
-		buttons[a.key()]->setText(wrapText(a.text()));
-		buttons[a.key()]->setEnabled(true);
+		buttons[a->key()]->setText(wrapText(a->text()));
+		buttons[a->key()]->setEnabled(true);
+		connect(buttons[a->key()], SIGNAL(clicked()), a, SLOT(exec()));
 	}
 }
 
-void ActionBar::setActions(CtrlAction action)
+void ActionBar::setActions(const CtrlAction* action)
 {
-	QList<CtrlAction> l;
+	QList<const CtrlAction*> l;
 	l.append(action);
 	setActions(l);
 }
@@ -46,6 +44,7 @@ void ActionBar::clearActions()
 	{
 		buttons[i]->setText("");
 		buttons[i]->setEnabled(false);
+		buttons[i]->disconnect(SIGNAL(clicked()));
 	}
 }
 

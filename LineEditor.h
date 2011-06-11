@@ -28,7 +28,7 @@ public:
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
-	virtual QList<CtrlAction> actions() const;
+	virtual QList<const CtrlAction*> actions() const;
 	virtual void action(int key);
 
 protected:

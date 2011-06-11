@@ -34,15 +34,25 @@ class LayerWidget;
 class SelFilterWidget;
 class ActionBar;
 class Layer;
+class Controller;
 
 /// Action triggered by a function key
-class CtrlAction
+class CtrlAction : public QObject
 {
+	Q_OBJECT
+
 public:
 	CtrlAction(int key, QString text) : mKey(key), mText(text) {}
 
 	int key() const { return mKey; }
 	QString text() const { return mText; }
+	void setText(QString text) { mText = text; }
+
+public slots:
+	void exec() { emit execFired(); }
+
+signals:
+	void execFired();
 
 private:
 	int mKey;
@@ -82,12 +92,15 @@ public:
 	bool isLayerVisible(const Layer& l) const;
 	const Layer& activeLayer() const;
 
+	void registerAction(CtrlAction* action) { mActions.append(action); updateActions(); }
+	void installEditor(AbstractEditor* editor);
+
+
 public slots:
 	void onPlaceGridChanged(int grid) { mPlaceGrid = grid; }
 	void onRouteGridChanged(int grid) { mRouteGrid = grid; }
 
 protected slots:
-	virtual void onAction(int key) = 0;
 	void onEditorOverlayChanged();
 	void onEditorFinished();
 	void onEditorActionsChanged();
@@ -99,8 +112,7 @@ protected:
 	void mousePressEvent(QMouseEvent *event);
 	void mouseReleaseEvent(QMouseEvent *event);
 	void updateEditor();
-	virtual void updateActions() = 0;
-	void installEditor();
+	void updateActions();
 
 	PCBView* mView;
 	AbstractEditor* mEditor;
@@ -112,6 +124,9 @@ protected:
 
 	/// Hidden objects
 	QList<PCBObject*> mHiddenObjs;
+
+	/// List of registered actions
+	QList<const CtrlAction*> mActions;
 
 	int mPlaceGrid;
 	int mRouteGrid;
@@ -127,14 +142,12 @@ public:
 	virtual Document* doc();
 
 protected slots:
-	virtual void onAction(int key);
-
-protected:
-	virtual void updateActions();
 	void onAddTextAction();
 
 
+protected:
 	PCBDoc* mDoc;
+	CtrlAction mAddTextAction;
 };
 
 class FPController : public Controller
@@ -148,16 +161,14 @@ public:
 	FPDoc* fpDoc() { return mDoc; }
 
 protected slots:
-	virtual void onAction(int key);
-
-protected:
-	virtual void updateActions();
 	void onAddPinAction();
 	void onAddTextAction();
 
-
-
+protected:
 	FPDoc* mDoc;
+	CtrlAction mAddPinAction;
+	CtrlAction mAddTextAction;
+
 };
 
 #endif // CONTROLLER_H

@@ -27,7 +27,7 @@ public:
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual QSharedPointer<PCBObjState> getState() const { return QSharedPointer<PCBObjState>(); }
-	virtual bool loadState(QSharedPointer<PCBObjState> &state) { return false; }
+	virtual bool loadState(QSharedPointer<PCBObjState> & /*state*/) { return false; }
 
 	QPoint pos() const {return mPos;}
 
@@ -67,7 +67,7 @@ public:
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual QSharedPointer<PCBObjState> getState() const { return QSharedPointer<PCBObjState>(); }
-	virtual bool loadState(QSharedPointer<PCBObjState> &state) { return false; }
+	virtual bool loadState(QSharedPointer<PCBObjState> &/*state*/) { return false; }
 
 	int width() const {return mWidth;}
 	void setWidth(int w) {mWidth = w;}

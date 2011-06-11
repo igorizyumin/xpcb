@@ -42,7 +42,6 @@ void Controller::registerView(PCBView* view)
 void Controller::registerActionBar(ActionBar* bar)
 {
 	mActionBar = bar;
-	connect(mActionBar, SIGNAL(triggered(int)), this, SLOT(onAction(int)));
 	updateActions();
 }
 
@@ -193,16 +192,18 @@ void Controller::updateEditor()
 	mHiddenObjs.clear();
 	if (mSelectedObjs.size() == 1)
 	{
-		mEditor = EditorFactory::instance().newEditor(mSelectedObjs[0], this);
-		installEditor();
+		installEditor(EditorFactory::instance().newEditor(mSelectedObjs[0], this));
 	}
 	else
 		updateActions();
 }
 
-void Controller::installEditor()
+void Controller::installEditor(AbstractEditor* editor)
 {
-	Q_ASSERT(mEditor != NULL);
+	Q_ASSERT(mEditor == NULL);
+	if (!editor) return;
+
+	mEditor = editor;
 
 	mView->installEventFilter(mEditor);
 	connect(mEditor, SIGNAL(overlayChanged()), this, SLOT(onEditorOverlayChanged()));
@@ -211,8 +212,6 @@ void Controller::installEditor()
 	updateActions();
 	mEditor->init();
 }
-
-
 
 void Controller::selectObj(PCBObject *obj)
 {
@@ -275,12 +274,34 @@ const Layer& Controller::activeLayer() const
 	return mLayerWidget->activeLayer();
 }
 
+void Controller::updateActions()
+{
+	if (!mActionBar) return;
+
+	if (!doc())
+	{
+		mActionBar->clearActions();
+		return;
+	}
+
+	if (!mEditor)
+	{
+		mActionBar->setActions(mActions);
+	}
+	else
+	{
+		mActionBar->setActions(mEditor->actions());
+	}
+}
+
 
 //////////////////////////// PCBCONTROLLER /////////////////////////////////
 
 PCBController::PCBController(QObject *parent)
-	: Controller(parent), mDoc(NULL)
+		: Controller(parent), mDoc(NULL), mAddTextAction(2, "Add Text")
 {
+	connect(&mAddTextAction, SIGNAL(execFired()), this, SLOT(onAddTextAction()));
+	registerAction(&mAddTextAction);
 }
 
 void PCBController::registerDoc(PCBDoc* doc)
@@ -311,47 +332,24 @@ Document* PCBController::doc()
 	return mDoc;
 }
 
-void PCBController::onAction(int key)
-{
-	if (mEditor)
-		mEditor->action(key);
-	else if (key == 2)
-		onAddTextAction();
-}
-
-void PCBController::updateActions()
-{
-	Q_ASSERT(mActionBar != NULL);
-
-	if (!doc())
-	{
-		mActionBar->setActions(QList<CtrlAction>());
-		return;
-	}
-
-	if (!mEditor)
-	{
-		mActionBar->setActions(CtrlAction(2, "Add Text"));
-	}
-	else
-	{
-		mActionBar->setActions(mEditor->actions());
-	}
-}
-
 void PCBController::onAddTextAction()
 {
 	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
 
-	mEditor = EditorFactory::instance().newTextEditor(this);
-	installEditor();
+	installEditor(EditorFactory::instance().newTextEditor(this));
 }
 
 //////////////////////////// FPCONTROLLER /////////////////////////////////
 
 FPController::FPController(QObject *parent)
-	: Controller(parent), mDoc(NULL)
+		: Controller(parent), mDoc(NULL),
+		mAddPinAction(3, "Add Pin"),
+		mAddTextAction(1, "Add Text")
 {
+	connect(&mAddPinAction, SIGNAL(execFired()), SLOT(onAddPinAction()));
+	connect(&mAddTextAction, SIGNAL(execFired()), SLOT(onAddTextAction()));
+	registerAction(&mAddPinAction);
+	registerAction(&mAddTextAction);
 }
 
 void FPController::registerDoc(FPDoc* doc)
@@ -382,51 +380,16 @@ Document* FPController::doc()
 	return mDoc;
 }
 
-void FPController::onAction(int key)
-{
-	if (mEditor)
-		mEditor->action(key);
-	else if (key == 1)
-		onAddTextAction();
-	else if (key == 3)
-		onAddPinAction();
-}
-
-void FPController::updateActions()
-{
-	Q_ASSERT(mActionBar != NULL);
-
-	if (!doc())
-	{
-		mActionBar->setActions(QList<CtrlAction>());
-		return;
-	}
-
-	if (!mEditor)
-	{
-		QList<CtrlAction> l;
-		l.append(CtrlAction(3, "Add Pin"));
-		l.append(CtrlAction(1, "Add Text"));
-		mActionBar->setActions(l);
-	}
-	else
-	{
-		mActionBar->setActions(mEditor->actions());
-	}
-}
-
 void FPController::onAddPinAction()
 {
 	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
 
-	mEditor = EditorFactory::instance().newPinEditor(this);
-	installEditor();
+	installEditor(EditorFactory::instance().newPinEditor(this));
 }
 
 void FPController::onAddTextAction()
 {
 	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
 
-	mEditor = EditorFactory::instance().newTextEditor(this);
-	installEditor();
+	installEditor(EditorFactory::instance().newTextEditor(this));
 }

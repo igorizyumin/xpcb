@@ -26,9 +26,24 @@
 
 
 PartEditor::PartEditor(Controller *ctrl, Part *part)
-	: AbstractEditor(ctrl), mState(SELECTED), mPart(part), mDialog(NULL), mAngle(part->angle())
+	: AbstractEditor(ctrl), mState(SELECTED), mPart(part), mDialog(NULL), mAngle(part->angle()),
+	mChangeSideAction(1, "Change Side"),
+	mRotateCWAction(2, "Rotate CW"),
+	mRotateCCWAction(3, "Rotate CCW"),
+	mEditAction(0, "Edit Part"),
+	mEditFPAction(1, "Edit Footprint"),
+	mLockAction(2, part->locked() ? "Unlock Part" : "Lock Part"),
+	mMoveAction(3, "Move Part"),
+	mDelAction(7, "Delete Part")
 {
-
+	connect(&mChangeSideAction, SIGNAL(execFired()), SLOT(actionChangeSide()));
+	connect(&mRotateCWAction, SIGNAL(execFired()), SLOT(actionRotate()));
+	connect(&mRotateCCWAction, SIGNAL(execFired()), SLOT(actionRotateCCW()));
+	connect(&mEditAction, SIGNAL(execFired()), SLOT(actionEdit()));
+//	connect(&mEditFPAction, SIGNAL(execFired()), SLOT(actionEdit()));
+	connect(&mLockAction, SIGNAL(execFired()), SLOT(actionLock()));
+	connect(&mMoveAction, SIGNAL(execFired()), SLOT(actionMove()));
+	connect(&mDelAction, SIGNAL(execFired()), SLOT(actionDelete()));
 }
 
 void PartEditor::init()
@@ -44,59 +59,29 @@ PartEditor::~PartEditor()
 		delete mDialog;
 }
 
-QList<CtrlAction> PartEditor::actions() const
+QList<const CtrlAction*> PartEditor::actions() const
 {
-	QList<CtrlAction> out;
+	QList<const CtrlAction*> out;
 
 	switch(mState)
 	{
 	case MOVE:
 	case ADD_MOVE:
 	case EDIT_MOVE:
-		out.append(CtrlAction(1, "Change Side"));
-		out.append(CtrlAction(2, "Rotate CW"));
-		out.append(CtrlAction(3, "Rotate CCW"));
+		out.append(&mChangeSideAction);
+		out.append(&mRotateCWAction);
+		out.append(&mRotateCCWAction);
 		break;
 	case SELECTED:
-		out.append(CtrlAction(0, "Edit Part"));
-		out.append(CtrlAction(1, "Edit Footprint"));
-		out.append(CtrlAction(2, mPart->locked() ? "Unlock Part" : "Lock Part"));
-		out.append(CtrlAction(3, "Move Part"));
-		out.append(CtrlAction(7, "Delete Part"));
+		mLockAction.setText(mPart->locked() ? "Unlock Part" : "Lock Part");
+		out.append(&mEditAction);
+		out.append(&mEditFPAction);
+		out.append(&mLockAction);
+		out.append(&mMoveAction);
+		out.append(&mDelAction);
 		break;
 	}
 	return out;
-}
-
-void PartEditor::action(int key)
-{
-	switch(mState)
-	{
-	case MOVE:
-	case ADD_MOVE:
-	case EDIT_MOVE:
-		if (key == 1)
-			actionChangeSide();
-		else if (key == 2)
-			actionRotate(true);
-		else if (key == 3)
-			actionRotate(false);
-		break;
-	case SELECTED:
-		if (key == 0)
-			actionEdit();
-		else if (key == 2)
-		{
-			// lock / unlock part
-			mPart->setLocked(!mPart->locked());
-			emit actionsChanged();
-		}
-		else if (key == 3)
-			actionMove();
-		else if (key == 7)
-			actionDelete();
-		break;
-	}
 }
 
 void PartEditor::mouseMoveEvent(QMouseEvent *event)
@@ -196,6 +181,12 @@ void PartEditor::actionMove()
 	QCursor::setPos(mCtrl->view()->mapToGlobal(mCtrl->view()->transform().map(mPos)));
 	emit actionsChanged();
 	emit overlayChanged();
+}
+
+void PartEditor::actionLock()
+{
+	mPart->setLocked(!mPart->locked());
+	emit actionsChanged();
 }
 
 void PartEditor::startMove()

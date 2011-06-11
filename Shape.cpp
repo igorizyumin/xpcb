@@ -116,10 +116,10 @@ bool Pad::testHit( const QPoint& pt )
 		break;
 	case PAD_ROUND:
 	case PAD_OCTAGON:
+	case PAD_SQUARE:
 		if( dist < (mWidth/2) )
 			return true;
 		break;
-	case PAD_SQUARE:
 	case PAD_RECT:
 	case PAD_RRECT:
 	case PAD_OBROUND:
@@ -141,8 +141,8 @@ QRect Pad::bbox() const
 		return QRect();
 	case PAD_ROUND:
 	case PAD_OCTAGON:
-		return QRect(-mWidth/2, -mWidth/2, mWidth, mWidth);
 	case PAD_SQUARE:
+		return QRect(-mWidth/2, -mWidth/2, mWidth, mWidth);
 	case PAD_RECT:
 	case PAD_OBROUND:
 		return QRect(-mWidth/2, -mLength/2, mWidth, mLength);

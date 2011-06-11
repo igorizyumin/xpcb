@@ -123,8 +123,7 @@ public:
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
-	virtual QList<CtrlAction> actions() const;
-	virtual void action(int key);
+        virtual QList<const CtrlAction*> actions() const;
 
 protected:
 	virtual void mouseMoveEvent(QMouseEvent* event);
@@ -152,6 +151,11 @@ private:
 	QPoint mPos;
 	QRect mBox;
 	int mAngleDelta;
+
+        CtrlAction mRotateAction;
+        CtrlAction mEditAction;
+        CtrlAction mMoveAction;
+        CtrlAction mDeleteAction;
 };
 
 class TextMoveCmd : public QUndoCommand

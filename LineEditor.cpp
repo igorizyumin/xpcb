@@ -30,8 +30,9 @@ LineEditor::~LineEditor()
 
 }
 
-QList<CtrlAction> LineEditor::actions() const
+QList<const CtrlAction*> LineEditor::actions() const
 {
+#if 0
 	QList<CtrlAction> out;
 
 	switch(mState)
@@ -52,6 +53,7 @@ QList<CtrlAction> LineEditor::actions() const
 		break;
 	}
 	return out;
+#endif
 }
 
 void LineEditor::drawOverlay(QPainter *painter)

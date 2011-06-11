@@ -32,8 +32,7 @@ public:
 	explicit AbstractEditor(Controller *ctrl);
 	virtual void init() {}
 	virtual void drawOverlay(QPainter* painter) = 0;
-	virtual QList<CtrlAction> actions() const { return QList<CtrlAction>(); }
-	virtual void action(int /*key*/) {}
+	virtual QList<const CtrlAction*> actions() const { return QList<const CtrlAction*>(); }
 
 signals:
 	void actionsChanged();
@@ -52,8 +51,9 @@ protected:
 	Controller *mCtrl;
 };
 
-class EditorFactory : public PCBObjectVisitor
+class EditorFactory : public QObject, public PCBObjectVisitor
 {
+	Q_OBJECT
 public:
 	static EditorFactory& instance();
 

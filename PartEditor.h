@@ -34,8 +34,7 @@ public:
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
-	virtual QList<CtrlAction> actions() const;
-	virtual void action(int key);
+	virtual QList<const CtrlAction*> actions() const;
 
 protected:
 	virtual void mouseMoveEvent(QMouseEvent* event);
@@ -43,12 +42,16 @@ protected:
 	virtual void mouseReleaseEvent(QMouseEvent* event);
 	virtual void keyPressEvent(QKeyEvent *event);
 
-private:
+private slots:
 	void actionEdit();
 	void actionDelete();
 	void actionMove();
 	void actionRotate(bool cw = true);
+	void actionRotateCCW() { actionRotate(false); }
+	void actionLock();
 	void actionChangeSide();
+
+private:
 	void newPart();
 	enum State {SELECTED, MOVE, ADD_MOVE, EDIT_MOVE};
 
@@ -63,6 +66,15 @@ private:
 	QRect mBox;
 	int mAngle;
 	Part::SIDE mSide;
+
+	CtrlAction mChangeSideAction;
+	CtrlAction mRotateCWAction;
+	CtrlAction mRotateCCWAction;
+	CtrlAction mEditAction;
+	CtrlAction mEditFPAction;
+	mutable CtrlAction mLockAction;
+	CtrlAction mMoveAction;
+	CtrlAction mDelAction;
 };
 
 class PartState

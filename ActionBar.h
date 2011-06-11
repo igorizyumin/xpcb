@@ -14,18 +14,12 @@ class ActionBar : public QWidget, private Ui::ActionBar
 public:
     explicit ActionBar(QWidget *parent = 0);
 
-	void setActions(QList<CtrlAction> actions);
-	void setActions(CtrlAction action);
+        void setActions(QList<const CtrlAction*> actions);
+        void setActions(const CtrlAction* action);
 	void clearActions();
 
-signals:
-	void triggered(int key);
-
 private:
-//	QList<QAction*> mActions;
 	QString wrapText(QString text);
-	QSignalMapper mMapper;
-
 };
 
 #endif // ACTIONBAR_H

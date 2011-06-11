@@ -25,8 +25,17 @@
 
 PinEditor::PinEditor(FPController* ctrl, Pin* pin)
 	: AbstractEditor(ctrl), mState(SELECTED), mDialog(NULL),
-	mAngle(0)
+	mAngle(0),
+	mRotateAction(2, "Rotate"),
+	mEditAction(0, "Edit Pin"),
+	mMoveAction(3, "Move Pin"),
+	mDelAction(7, "Delete Pin")
 {
+	connect(&mRotateAction, SIGNAL(execFired()), SLOT(actionRotate()));
+	connect(&mEditAction, SIGNAL(execFired()), SLOT(actionEdit()));
+	connect(&mMoveAction, SIGNAL(execFired()), SLOT(actionMove()));
+	connect(&mDelAction, SIGNAL(execFired()), SLOT(actionDelete()));
+
 	if (pin)
 		mPins.append(pin);
 }
@@ -44,45 +53,24 @@ void PinEditor::init()
 		newPin();
 }
 
-QList<CtrlAction> PinEditor::actions() const
+QList<const CtrlAction*> PinEditor::actions() const
 {
-	QList<CtrlAction> out;
+	QList<const CtrlAction*> out;
 
 	switch(mState)
 	{
 	case MOVE:
 	case ADD_MOVE:
 	case EDIT_MOVE:
-		out.append(CtrlAction(2, "Rotate"));
+		out.append(&mRotateAction);
 		break;
 	case SELECTED:
-		out.append(CtrlAction(0, "Edit Pin"));
-		out.append(CtrlAction(3, "Move Pin"));
-		out.append(CtrlAction(7, "Delete Pin"));
+		out.append(&mEditAction);
+		out.append(&mMoveAction);
+		out.append(&mDelAction);
 		break;
 	}
 	return out;
-}
-
-void PinEditor::action(int key)
-{
-	switch(mState)
-	{
-	case MOVE:
-	case ADD_MOVE:
-	case EDIT_MOVE:
-		if (key == 2)
-			actionRotate();
-		break;
-	case SELECTED:
-		if (key == 0)
-			actionEdit();
-		else if (key == 3)
-			actionMove();
-		else if (key == 7)
-			actionDelete();
-		break;
-	}
 }
 
 void PinEditor::mouseMoveEvent(QMouseEvent *event)

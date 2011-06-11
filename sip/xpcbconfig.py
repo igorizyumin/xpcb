@@ -5,7 +5,7 @@ from PyQt4 import pyqtconfig
 # the final configuration module.
 _pkg_config = {
     'xpcb_sip_dir':    '/usr/share/sip',
-    'xpcb_sip_flags':  '-x VendorID -t WS_X11 -x PyQt_NoPrintRangeBug -t Qt_4_7_1 -x Py_v3 -g'
+    'xpcb_sip_flags':  '-x VendorID -t WS_X11 -x PyQt_NoPrintRangeBug -t Qt_4_6_3 -x Py_v3 -g'
 }
 
 _default_macros = None

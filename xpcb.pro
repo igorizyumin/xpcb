@@ -59,7 +59,7 @@ unittest {
 
 	HEADERS += xpcbtests/tst_XmlLoadTest.h xpcbtests/tst_TextTest.h
 } else {
-	SOURCES += main.cpp
+	SOURCES +=
 }
 
 HEADERS  += PCBView.h \

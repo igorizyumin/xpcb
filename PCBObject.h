@@ -95,9 +95,9 @@ class PCBObjState
 {
 public:
 	// needed to make object polymorphic
-	virtual ~PCBObjState() {};
+	virtual ~PCBObjState() {}
 protected:
-	PCBObjState() {};
+	PCBObjState() {}
 };
 
 #endif // PCBOBJECT_H

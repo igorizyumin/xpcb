@@ -39,7 +39,7 @@ public:
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual QSharedPointer<PCBObjState> getState() const { return QSharedPointer<PCBObjState>(); }
-	virtual bool loadState(QSharedPointer<PCBObjState> &state) { return false; }
+	virtual bool loadState(QSharedPointer<PCBObjState> &/*state*/) { return false; }
 
 	/// Sets the polygon layer.
 	/// \param layer the new layer.
