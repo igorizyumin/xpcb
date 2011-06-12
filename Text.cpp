@@ -174,7 +174,7 @@ void TextEditor::init()
 	if (!mText)
 		newText();
 	else
-		mCtrl->hideObj(mText);
+		ctrl()->hideObj(mText);
 }
 
 TextEditor::~TextEditor()
@@ -207,7 +207,7 @@ void TextEditor::mouseMoveEvent(QMouseEvent *event)
 {
 	if (mState == MOVE || mState == EDIT_MOVE || mState == ADD_MOVE)
 	{
-		mPos = mCtrl->snapToPlaceGrid(mCtrl->view()->transform().inverted().map(event->pos()));
+		mPos = ctrl()->snapToPlaceGrid(ctrl()->view()->transform().inverted().map(event->pos()));
 		emit overlayChanged();
 	}
 
@@ -230,7 +230,7 @@ void TextEditor::mouseReleaseEvent(QMouseEvent *event)
 		event->accept();
 		mState = SELECTED;
 		TextMoveCmd* cmd = new TextMoveCmd(NULL, mText, mPos, mAngleDelta);
-		mCtrl->doc()->doCommand(cmd);
+		ctrl()->doc()->doCommand(cmd);
 		emit actionsChanged();
 		emit overlayChanged();
 	}
@@ -279,7 +279,7 @@ void TextEditor::actionMove()
 
 	mState = MOVE;
 	startMove();
-	QCursor::setPos(mCtrl->view()->mapToGlobal(mCtrl->view()->transform().map(mPos)));
+	QCursor::setPos(ctrl()->view()->mapToGlobal(ctrl()->view()->transform().map(mPos)));
 	emit actionsChanged();
 	emit overlayChanged();
 }
@@ -293,8 +293,8 @@ void TextEditor::startMove()
 
 void TextEditor::actionDelete()
 {
-	TextDeleteCmd* cmd = new TextDeleteCmd(NULL, mText, mCtrl->doc());
-	mCtrl->doc()->doCommand(cmd);
+	TextDeleteCmd* cmd = new TextDeleteCmd(NULL, mText, ctrl()->doc());
+	ctrl()->doc()->doCommand(cmd);
 	emit editorFinished();
 }
 
@@ -308,7 +308,7 @@ void TextEditor::actionRotate()
 void TextEditor::newText()
 {
 	if (!mDialog)
-		mDialog = new EditTextDialog(mCtrl->view());
+		mDialog = new EditTextDialog(ctrl()->view());
 	mDialog->init();
 	if (mDialog->exec() == QDialog::Rejected || mDialog->text().isEmpty())
 	{
@@ -336,7 +336,7 @@ void TextEditor::newText()
 void TextEditor::actionEdit()
 {
 	if (!mDialog)
-		mDialog = new EditTextDialog(mCtrl->view());
+		mDialog = new EditTextDialog(ctrl()->view());
 	mDialog->init(mText);
 	if (mDialog->exec() == QDialog::Accepted)
 	{
@@ -361,10 +361,10 @@ void TextEditor::finishNew()
 {
 	mText->setPos(mPos);
 	mText->setAngle(mText->angle() + mAngleDelta);
-	TextNewCmd *cmd = new TextNewCmd(NULL, mText, mCtrl->doc());
-	mCtrl->doc()->doCommand(cmd);
-	mCtrl->selectObj(mText);
-	mCtrl->hideObj(mText);
+	TextNewCmd *cmd = new TextNewCmd(NULL, mText, ctrl()->doc());
+	ctrl()->doc()->doCommand(cmd);
+	ctrl()->selectObj(mText);
+	ctrl()->hideObj(mText);
 	mState = SELECTED;
 	emit overlayChanged();
 }
@@ -377,7 +377,7 @@ void TextEditor::finishEdit()
 	TextEditCmd *cmd = new TextEditCmd(NULL, mText, mPos, mDialog->layer(),
 									   (mText->angle() + mAngleDelta) % 360, mDialog->isMirrored(), mDialog->isNegative(),
 									   mDialog->textHeight(), width, mDialog->text());
-	mCtrl->doc()->doCommand(cmd);
+	ctrl()->doc()->doCommand(cmd);
 	emit overlayChanged();
 }
 

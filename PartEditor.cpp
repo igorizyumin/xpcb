@@ -88,7 +88,7 @@ void PartEditor::mouseMoveEvent(QMouseEvent *event)
 {
 	if (mState == MOVE || mState == EDIT_MOVE || mState == ADD_MOVE)
 	{
-		mPos = mCtrl->snapToPlaceGrid(mCtrl->view()->transform().inverted().map(event->pos()));
+		mPos = ctrl()->snapToPlaceGrid(ctrl()->view()->transform().inverted().map(event->pos()));
 		emit overlayChanged();
 	}
 
@@ -108,9 +108,9 @@ void PartEditor::mouseReleaseEvent(QMouseEvent *event)
 {
 	if (mState != SELECTED)
 	{
-		mCtrl->unhideObj(mPart);
-		mCtrl->unhideObj(mPart->refdesText());
-		mCtrl->unhideObj(mPart->valueText());
+		ctrl()->unhideObj(mPart);
+		ctrl()->unhideObj(mPart->refdesText());
+		ctrl()->unhideObj(mPart->valueText());
 		event->accept();
 
 	}
@@ -118,7 +118,7 @@ void PartEditor::mouseReleaseEvent(QMouseEvent *event)
 	{
 		mState = SELECTED;
 		PartMoveCmd* cmd = new PartMoveCmd(NULL, mPart, mPos, mAngle, mSide);
-		mCtrl->doc()->doCommand(cmd);
+		ctrl()->doc()->doCommand(cmd);
 		emit actionsChanged();
 		emit overlayChanged();
 	}
@@ -150,9 +150,9 @@ void PartEditor::keyPressEvent(QKeyEvent *event)
 		}
 		else
 		{
-			mCtrl->unhideObj(mPart);
-			mCtrl->unhideObj(mPart->refdesText());
-			mCtrl->unhideObj(mPart->valueText());
+			ctrl()->unhideObj(mPart);
+			ctrl()->unhideObj(mPart->refdesText());
+			ctrl()->unhideObj(mPart->valueText());
 			mState = SELECTED;
 			emit actionsChanged();
 			emit overlayChanged();
@@ -170,7 +170,7 @@ void PartEditor::actionMove()
 	{
 		QMessageBox b(QMessageBox::Question, "Part locked",
 					  "The part is locked; do you want to unlock it?",
-					  QMessageBox::Yes | QMessageBox::No, this->mCtrl->view());
+					  QMessageBox::Yes | QMessageBox::No, this->ctrl()->view());
 		b.setDefaultButton(QMessageBox::Yes);
 		int result = b.exec();
 		if (result == QMessageBox::No) return;
@@ -178,7 +178,7 @@ void PartEditor::actionMove()
 	}
 	mState = MOVE;
 	startMove();
-	QCursor::setPos(mCtrl->view()->mapToGlobal(mCtrl->view()->transform().map(mPos)));
+	QCursor::setPos(ctrl()->view()->mapToGlobal(ctrl()->view()->transform().map(mPos)));
 	emit actionsChanged();
 	emit overlayChanged();
 }
@@ -195,15 +195,15 @@ void PartEditor::startMove()
 	mAngle = mPart->angle();
 	mSide = mPart->side();
 	mBox = mPart->transform().inverted().mapRect(mPart->bbox());
-	mCtrl->hideObj(mPart);
-	mCtrl->hideObj(mPart->refdesText());
-	mCtrl->hideObj(mPart->valueText());
+	ctrl()->hideObj(mPart);
+	ctrl()->hideObj(mPart->refdesText());
+	ctrl()->hideObj(mPart->valueText());
 }
 
 void PartEditor::actionDelete()
 {
-//	TextDeleteCmd* cmd = new TextDeleteCmd(NULL, mText, mCtrl->doc());
-//	mCtrl->doc()->doCommand(cmd);
+//	TextDeleteCmd* cmd = new TextDeleteCmd(NULL, mText, ctrl()->doc());
+//	ctrl()->doc()->doCommand(cmd);
 //	emit editorFinished();
 }
 
@@ -252,7 +252,7 @@ void PartEditor::newPart()
 void PartEditor::actionEdit()
 {
 	if (!mDialog)
-		mDialog = new EditPartDialog(mCtrl->view());
+		mDialog = new EditPartDialog(ctrl()->view());
 	mDialog->init(mPart);
 	if (mDialog->exec() == QDialog::Accepted)
 	{
@@ -278,10 +278,10 @@ void PartEditor::finishNew()
 {
 //	mText->setPos(mPos);
 //	mText->setAngle(mText->angle() + mAngleDelta);
-//	TextNewCmd *cmd = new TextNewCmd(NULL, mText, mCtrl->doc());
-//	mCtrl->doc()->doCommand(cmd);
-//	mCtrl->selectObj(mText);
-//	mCtrl->hideObj(mText);
+//	TextNewCmd *cmd = new TextNewCmd(NULL, mText, ctrl()->doc());
+//	ctrl()->doc()->doCommand(cmd);
+//	ctrl()->selectObj(mText);
+//	ctrl()->hideObj(mText);
 //	mState = SELECTED;
 	emit overlayChanged();
 }
@@ -298,7 +298,7 @@ void PartEditor::finishEdit()
 	psnew.valueVisible = mDialog->valueVisible();
 	psnew.side = mSide;
 	PartEditCmd *cmd = new PartEditCmd(NULL, mPart, psnew);
-	mCtrl->doc()->doCommand(cmd);
+	ctrl()->doc()->doCommand(cmd);
 	emit overlayChanged();
 }
 

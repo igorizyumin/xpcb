@@ -48,6 +48,8 @@ protected:
 	virtual void mouseReleaseEvent(QMouseEvent* event) { event->ignore(); }
 	virtual void keyPressEvent(QKeyEvent *event) { event->ignore(); }
 
+	Controller* ctrl() { return mCtrl; }
+private:
 	Controller *mCtrl;
 };
 

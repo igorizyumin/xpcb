@@ -123,6 +123,25 @@ public slots:
 	virtual void redo();
 };
 
+class CtrlAction : QObject
+{
+%TypeHeaderCode
+#include "Controller.h"
+%End
+public:
+	CtrlAction(int key, QString text);
+
+	int key() const;
+	QString text() const;
+	void setText(QString text);
+
+public slots:
+	void exec();
+
+signals:
+	void execFired();
+};
+
 class Controller : QObject /Abstract/
 {
 %TypeHeaderCode
@@ -155,6 +174,9 @@ public:
 
 	bool isLayerVisible(const Layer& l) const;
 	const Layer& activeLayer() const;
+	
+	void registerAction(CtrlAction* action);
+	void installEditor(AbstractEditor* editor);
 
 public slots:
 	void onPlaceGridChanged(int grid);
@@ -172,8 +194,7 @@ protected:
 	void mousePressEvent(QMouseEvent *event);
 	void mouseReleaseEvent(QMouseEvent *event);
 	void updateEditor();
-	virtual void updateActions() = 0;
-	void installEditor();
+	void updateActions();
 };
 
 class PCBView : QWidget
@@ -298,4 +319,31 @@ public:
 
 };
 
+class AbstractEditor : QObject /Abstract/
+{
+%TypeHeaderCode
+#include "Editor.h"
+%End
+public:
+	explicit AbstractEditor(Controller *ctrl);
+	virtual void init();
+	virtual void drawOverlay(QPainter* painter) = 0;
+	virtual QList<const CtrlAction*> actions() const;
+
+signals:
+	void actionsChanged();
+	void overlayChanged();
+	void editorFinished();
+
+public slots:
+
+protected:
+	virtual bool eventFilter(QObject *watched, QEvent *event);
+	virtual void mouseMoveEvent(QMouseEvent* event);
+	virtual void mousePressEvent(QMouseEvent* event);
+	virtual void mouseReleaseEvent(QMouseEvent* event);
+	virtual void keyPressEvent(QKeyEvent *event);
+	
+	Controller* ctrl();
+};
 

@@ -85,7 +85,7 @@ void LineEditor::mouseMoveEvent(QMouseEvent *event)
 		mState == LINE_NEW_FIRST ||
 		mState == LINE_NEW_SECOND)
 	{
-		mPos = mCtrl->snapToPlaceGrid(mCtrl->view()->transform().inverted().map(event->pos()));
+		mPos = ctrl()->snapToPlaceGrid(ctrl()->view()->transform().inverted().map(event->pos()));
 		emit overlayChanged();
 	}
 

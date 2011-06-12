@@ -77,7 +77,7 @@ void PinEditor::mouseMoveEvent(QMouseEvent *event)
 {
 	if (mState == MOVE || mState == EDIT_MOVE || mState == ADD_MOVE)
 	{
-		mPos = mCtrl->snapToPlaceGrid(mCtrl->view()->transform().inverted().map(event->pos()));
+		mPos = ctrl()->snapToPlaceGrid(ctrl()->view()->transform().inverted().map(event->pos()));
 		emit overlayChanged();
 	}
 
@@ -102,10 +102,10 @@ void PinEditor::mouseReleaseEvent(QMouseEvent *event)
 	if (mState == MOVE)
 	{
 		mState = SELECTED;
-		PinMoveCmd* cmd = new PinMoveCmd(NULL, dynamic_cast<FPDoc*>(mCtrl->doc()), mPins[0], mPos, mAngle);
-		mCtrl->doc()->doCommand(cmd);
+		PinMoveCmd* cmd = new PinMoveCmd(NULL, dynamic_cast<FPDoc*>(ctrl()->doc()), mPins[0], mPos, mAngle);
+		ctrl()->doc()->doCommand(cmd);
 		foreach(Pin* p, mPins)
-			mCtrl->unhideObj(p);
+			ctrl()->unhideObj(p);
 		emit actionsChanged();
 		emit overlayChanged();
 	}
@@ -135,7 +135,7 @@ void PinEditor::keyPressEvent(QKeyEvent *event)
 	if (event->key() == Qt::Key_Escape && mState != SELECTED)
 	{
 		foreach(Pin* p, mPins)
-			mCtrl->unhideObj(p);
+			ctrl()->unhideObj(p);
 		if (mState == ADD_MOVE)
 		{
 			clearPins();
@@ -157,7 +157,7 @@ void PinEditor::actionMove()
 {
 	mState = MOVE;
 	startMove();
-	QCursor::setPos(mCtrl->view()->mapToGlobal(mCtrl->view()->transform().map(mPos)));
+	QCursor::setPos(ctrl()->view()->mapToGlobal(ctrl()->view()->transform().map(mPos)));
 	emit actionsChanged();
 	emit overlayChanged();
 }
@@ -168,13 +168,13 @@ void PinEditor::startMove()
 	mPos = mStartPos = mPins[0]->pos();
 	mAngle = mStartAngle = mPins[0]->angle();
 	foreach(Pin* p, mPins)
-		mCtrl->hideObj(p);
+		ctrl()->hideObj(p);
 }
 
 void PinEditor::actionDelete()
 {
-//	TextDeleteCmd* cmd = new TextDeleteCmd(NULL, mText, mCtrl->doc());
-//	mCtrl->doc()->doCommand(cmd);
+//	TextDeleteCmd* cmd = new TextDeleteCmd(NULL, mText, ctrl()->doc());
+//	ctrl()->doc()->doCommand(cmd);
 //	emit editorFinished();
 }
 
@@ -188,7 +188,7 @@ void PinEditor::actionRotate()
 void PinEditor::newPin()
 {
 	if (!mDialog)
-		mDialog = new EditPinDialog(mCtrl->view(), mCtrl->doc());
+		mDialog = new EditPinDialog(ctrl()->view(), ctrl()->doc());
 
 //	mDialog->init();
 
@@ -198,7 +198,7 @@ void PinEditor::newPin()
 		return;
 	}
 
-	mPins = mDialog->makePins(dynamic_cast<FPDoc*>(mCtrl->doc())->footprint());
+	mPins = mDialog->makePins(dynamic_cast<FPDoc*>(ctrl()->doc())->footprint());
 
 	if (mDialog->dragToPos())
 	{
@@ -216,7 +216,7 @@ void PinEditor::actionEdit()
 {
 	Q_ASSERT(mPins.size() == 1);
 	if (!mDialog)
-		mDialog = new EditPinDialog(mCtrl->view(), mCtrl->doc());
+		mDialog = new EditPinDialog(ctrl()->view(), ctrl()->doc());
 	mDialog->init(mPins[0]);
 	if (mDialog->exec() == QDialog::Accepted)
 	{
@@ -249,10 +249,10 @@ void PinEditor::finishNew(bool setPos)
 			p->setAngle(mAngle);
 		}
 	}
-	NewPinCmd *cmd = new NewPinCmd(NULL, dynamic_cast<FPDoc*>(mCtrl->doc()), mPins);
-	mCtrl->doc()->doCommand(cmd);
+	NewPinCmd *cmd = new NewPinCmd(NULL, dynamic_cast<FPDoc*>(ctrl()->doc()), mPins);
+	ctrl()->doc()->doCommand(cmd);
 	foreach(Pin* p, mPins)
-		mCtrl->unhideObj(p);
+		ctrl()->unhideObj(p);
 	mPins.clear(); // pins now owned by cmd
 	emit editorFinished();
 }
@@ -261,9 +261,9 @@ void PinEditor::finishEdit()
 {
 	PinEditCmd *cmd = new PinEditCmd(NULL, mPins[0], mDialog->name(), mDialog->padstack(),
 									 mPos, mAngle);
-	mCtrl->doc()->doCommand(cmd);
+	ctrl()->doc()->doCommand(cmd);
 	foreach(Pin* p, mPins)
-		mCtrl->unhideObj(p);
+		ctrl()->unhideObj(p);
 	emit overlayChanged();
 }
 
