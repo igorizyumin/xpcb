@@ -104,15 +104,15 @@ QRect Net::bbox() const
 	return QRect();
 }
 
-QSharedPointer<PCBObjState> Net::getState() const
+PCBObjState Net::getState() const
 {
-	return QSharedPointer<PCBObjState>(new NetState(*this));
+	return PCBObjState(new NetState(*this));
 }
 
-bool Net::loadState(QSharedPointer<PCBObjState> &state)
+bool Net::loadState(PCBObjState &state)
 {
 	// convert to part state
-	QSharedPointer<NetState> s = state.dynamicCast<NetState>();
+	QSharedPointer<NetState> s = state.ptr().dynamicCast<NetState>();
 	if (s.isNull()) return false;
 	mIsVisible = s->vis;
 	mName = s->name;

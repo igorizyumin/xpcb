@@ -7,6 +7,7 @@ from PyQt4.QtCore import QObject, pyqtSignal, QSettings
 from PyQt4.QtGui import QWidget, QDockWidget, QColor
 import xpcb
 import cmdLinePlugin
+import LineEditorPlugin
 import sip
 
 def setDefaultValue(s, key, value):
@@ -62,8 +63,10 @@ app.setOrganizationName("xpcb.org")
 initSettings()
 
 pl = cmdLinePlugin.PluginMain()
-w = xpcb.FPEditWindow(None, [pl])
+p2 = LineEditorPlugin.PluginMain()
+w = xpcb.FPEditWindow(None, [pl, p2])
 pl.initPlugin(w)
+p2.initPlugin(w)
 w.show()
 sys.exit(app.exec_())
 

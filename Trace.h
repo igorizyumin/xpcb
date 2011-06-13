@@ -26,8 +26,8 @@ public:
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
-	virtual QSharedPointer<PCBObjState> getState() const { return QSharedPointer<PCBObjState>(); }
-	virtual bool loadState(QSharedPointer<PCBObjState> & /*state*/) { return false; }
+	virtual PCBObjState getState() const { return PCBObjState(NULL); }
+	virtual bool loadState(PCBObjState& /*state*/) { return false; }
 
 	QPoint pos() const {return mPos;}
 
@@ -66,8 +66,8 @@ public:
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
-	virtual QSharedPointer<PCBObjState> getState() const { return QSharedPointer<PCBObjState>(); }
-	virtual bool loadState(QSharedPointer<PCBObjState> &/*state*/) { return false; }
+	virtual PCBObjState getState() const { return PCBObjState(NULL); }
+	virtual bool loadState(PCBObjState& /*state*/) { return false; }
 
 	int width() const {return mWidth;}
 	void setWidth(int w) {mWidth = w;}

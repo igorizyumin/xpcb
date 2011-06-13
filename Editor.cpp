@@ -20,6 +20,8 @@
 #include "PartEditor.h"
 #include "PinEditor.h"
 #include "Controller.h"
+#include "Area.h"
+#include "Shape.h"
 
 AbstractEditor::AbstractEditor(Controller *ctrl) :
 	QObject(ctrl), mCtrl(ctrl)
@@ -93,20 +95,28 @@ AbstractEditor* EditorFactory::newPinEditor(FPController *ctrl)
 	return new PinEditor(ctrl, NULL);
 }
 
-void EditorFactory::visit(Area*)
+void EditorFactory::visit(Area* a)
 {
+	if (mFactories.contains(ObjArea))
+		mEditor = mFactories.value(ObjArea)->makeEditor(mCtrl, a);
 }
 
-void EditorFactory::visit(Line*)
+void EditorFactory::visit(Line* l)
 {
+	if (mFactories.contains(ObjLine))
+		mEditor = mFactories.value(ObjLine)->makeEditor(mCtrl, l);
 }
 
-void EditorFactory::visit(Net*)
+void EditorFactory::visit(Net* n)
 {
+	if (mFactories.contains(ObjNet))
+		mEditor = mFactories.value(ObjNet)->makeEditor(mCtrl, n);
 }
 
-void EditorFactory::visit(PartPin*)
+void EditorFactory::visit(PartPin* p)
 {
+	if (mFactories.contains(ObjPartPin))
+		mEditor = mFactories.value(ObjPartPin)->makeEditor(mCtrl, p);
 }
 
 void EditorFactory::visit(Pin* pin)
@@ -119,23 +129,20 @@ void EditorFactory::visit(Part* p)
 	mEditor = new PartEditor(mCtrl, p);
 }
 
-void EditorFactory::visit(Footprint*)
-{
-}
-
 void EditorFactory::visit(Text *t)
 {
 	mEditor = new TextEditor(mCtrl, t);
 }
 
-void EditorFactory::visit(Vertex*)
+void EditorFactory::visit(Vertex* v)
 {
+	if (mFactories.contains(ObjVertex))
+		mEditor = mFactories.value(ObjVertex)->makeEditor(mCtrl, v);
 }
 
-void EditorFactory::visit(Segment*)
+void EditorFactory::visit(Segment* s)
 {
+	if (mFactories.contains(ObjSegment))
+		mEditor = mFactories.value(ObjSegment)->makeEditor(mCtrl, s);
 }
 
-void EditorFactory::visit(Padstack*)
-{
-}

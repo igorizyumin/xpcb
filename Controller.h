@@ -95,7 +95,6 @@ public:
 	void registerAction(CtrlAction* action) { mActions.append(action); updateActions(); }
 	void installEditor(AbstractEditor* editor);
 
-
 public slots:
 	void onPlaceGridChanged(int grid) { mPlaceGrid = grid; }
 	void onRouteGridChanged(int grid) { mRouteGrid = grid; }

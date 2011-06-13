@@ -5,62 +5,6 @@
 %Include global.sip
 %Include pcbobject.sip
 
-class Text : PCBObject 
-{
-%TypeHeaderCode
-#include "Text.h"
-%End
-public:
-	Text();
-	Text(const QPoint &pos, int angle,
-		bool mirror, bool negative, const Layer& layer, int font_size,
-		int stroke_width, const QString &text );
-
-	void setParent(PCBObject *parent);
-
-	virtual void draw(QPainter *painter, const Layer& layer) const;
-	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v);
-	virtual bool testHit(QPoint pt, const Layer& l) const;
-//	virtual QSharedPointer<PCBObjState> getState() const;
-//	virtual bool loadState(QSharedPointer<PCBObjState> &state);
-
-	static Text* newFromXML(QXmlStreamReader &reader);
-	void toXML(QXmlStreamWriter &writer) const;
-
-	QPoint pos() const;
-	void setPos(const QPoint &newpos);
-
-	const QString & text() const;
-	void setText(const QString &text);
-
-	int angle() const;
-	void setAngle(int angle);
-
-	int fontSize() const;
-	void setFontSize(int size);
-
-	int strokeWidth() const;
-	void setStrokeWidth(int w);
-
-	bool isMirrored() const;
-	void setMirrored(bool b);
-
-	bool isNegative() const;
-	void setNegative(bool b);
-
-	const Layer& layer() const;
-	void setLayer(const Layer& l);
-
-
-	virtual void parentChanged();
-
-protected:
-	void changed();
-	void rebuild() const;
-
-};
-
 
 class Document : QObject /Abstract/
 {
@@ -77,35 +21,26 @@ public:
 	virtual ~Document();
 
 	virtual bool saveToFile(const QString & file);
-
 	virtual bool saveToXml(QXmlStreamWriter &writer) = 0;
-
+	
 	virtual bool loadFromFile(const QString & file);
-
 	virtual bool loadFromFile(QFile & file) = 0;
-
 	virtual bool loadFromXml(QXmlStreamReader &reader) = 0;
 
 	virtual bool isModified();
 
-	virtual void doCommand(QUndoCommand *cmd);
+	virtual void doCommand(QUndoCommand *cmd /Transfer/);
 
 	virtual QList<Layer> layerList(LayerOrder order = ListOrder) = 0;
 
 	virtual QString name() const;
 	virtual XPcb::UNIT units() const;
 
-
 	virtual QList<PCBObject*> findObjs(QPoint &pt) = 0;
-
 	virtual QList<PCBObject*> findObjs(QRect &rect) = 0;
 
-
-	virtual void addText(Text* t) = 0;
-
-	virtual void removeText(Text* t) = 0;
-
-
+	virtual void addText(Text* t /Transfer/) = 0;
+	virtual void removeText(Text* t /TransferBack/) = 0;
 
 //	virtual QList<Padstack*> padstacks() = 0;
 
@@ -122,6 +57,39 @@ public slots:
 	virtual void undo();
 	virtual void redo();
 };
+
+class FPDoc : Document
+{
+public:
+	FPDoc();
+	virtual ~FPDoc();
+
+	virtual bool saveToXml(QXmlStreamWriter &writer);
+	virtual bool loadFromFile(QFile & file);
+	virtual bool loadFromXml(QXmlStreamReader &reader);
+
+	virtual QList<Layer> layerList(LayerOrder order = ListOrder);
+
+	virtual QList<PCBObject*> findObjs(QPoint &pt);
+	virtual QList<PCBObject*> findObjs(QRect &rect);
+
+	virtual void addText(Text* t /Transfer/);
+	virtual void removeText(Text* t /TransferBack/);
+
+//	virtual QList<Padstack*> padstacks();
+//	virtual void addPadstack(Padstack* ps);
+//	virtual void removePadstack(Padstack* ps);
+
+//	void addPin(Pin* p);
+//	void removePin(Pin* p);
+
+	void addLine(Line* l /Transfer/);
+	void removeLine(Line* l /TransferBack/);
+
+//	Footprint* footprint() { return mFp; }
+
+};
+
 
 class CtrlAction : QObject
 {
@@ -176,7 +144,7 @@ public:
 	const Layer& activeLayer() const;
 	
 	void registerAction(CtrlAction* action);
-	void installEditor(AbstractEditor* editor);
+	void installEditor(AbstractEditor* editor /Transfer/);
 
 public slots:
 	void onPlaceGridChanged(int grid);
@@ -238,6 +206,9 @@ class MainWindow : QMainWindow /Abstract/
 
 public:
 	MainWindow(QWidget *parent /TransferThis/ = 0);
+	
+	virtual Document* doc() = 0;
+	virtual Controller* ctrl() = 0;
 
 protected slots:
 	void on_actionAbout_triggered();
@@ -262,9 +233,6 @@ protected:
 	virtual bool saveFile(const QString &fileName);
 	virtual void setCurrentFile(const QString &fileName);
 	QString strippedName(const QString &fullFileName);
-
-	virtual Document* doc() = 0;
-	virtual Controller* ctrl() = 0;
 
 	virtual void loadGeom() = 0;
 	virtual void saveGeom() = 0;
@@ -319,7 +287,7 @@ public:
 
 };
 
-class AbstractEditor : QObject /Abstract/
+class AbstractEditor : QObject
 {
 %TypeHeaderCode
 #include "Editor.h"

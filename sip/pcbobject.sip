@@ -4,11 +4,14 @@ class PCBObjState /Abstract/
 %TypeHeaderCode
 #include "PCBObject.h"
 %End
-public:
-	virtual ~PCBObjState();
-protected:
-	PCBObjState();
 };
+
+
+//class PCBObjStateInternal /Abstract/
+//{
+//public:
+//	virtual ~PCBObjStateInternal();
+//};
 
 class PCBObject /Abstract/
 {
@@ -32,9 +35,9 @@ public:
 
 	virtual void parentChanged();
 
-//	virtual QSharedPointer<PCBObjState> getState() const = 0;
+	virtual PCBObjState getState() const = 0;
 	
-//	virtual bool loadState(QSharedPointer<PCBObjState> &state) = 0;
+	virtual bool loadState(PCBObjState &state) = 0;
 
 	static int getNextID();
 };
@@ -51,11 +54,136 @@ public:
 //	virtual void visit(PartPin*) = 0;
 //	virtual void visit(Pin*) = 0;
 //	virtual void visit(Part*) = 0;
-//	virtual void visit(Footprint*) = 0;
 //	virtual void visit(Text*) = 0;
 //	virtual void visit(Vertex*) = 0;
 //	virtual void visit(Segment*) = 0;
-//	virtual void visit(Padstack*) = 0;
 };
 
+class AbstractEditorFactory
+{
+%TypeHeaderCode
+#include "Editor.h"
+%End
+public:
+	virtual AbstractEditor* makeEditor(Controller* ctrl, PCBObject *obj) = 0 /Factory/;
+};
+
+class EditorFactory : PCBObjectVisitor /Abstract/
+{
+%TypeHeaderCode
+#include "Editor.h"
+%End
+public:
+	enum ObjType {ObjArea, ObjLine, ObjNet, ObjPartPin, ObjPin, ObjPart, ObjFootprint, ObjText, ObjVertex, ObjSegment, ObjPadstack};
+	static EditorFactory& instance();
+
+	AbstractEditor* newEditor(PCBObject* obj, Controller *ctrl) /TransferBack/;
+//	AbstractEditor* newTextEditor(Controller *ctrl);
+//	AbstractEditor* newPinEditor(FPController* ctrl);
+
+	static void registerFactory(ObjType type, AbstractEditorFactory* factory /Transfer/);
+
+//	virtual void visit(Area* a);
+//	virtual void visit(Line* a);
+//	virtual void visit(Net* a);
+//	virtual void visit(PartPin* a);
+//	virtual void visit(Pin* a);
+//	virtual void visit(Part* a);
+//	virtual void visit(Text* a);
+//	virtual void visit(Vertex* a);
+//	virtual void visit(Segment* a);
+
+private:
+	EditorFactory();
+	EditorFactory(EditorFactory &other);
+};
+
+class Text : PCBObject 
+{
+%TypeHeaderCode
+#include "Text.h"
+%End
+public:
+	Text();
+	Text(const QPoint &pos, int angle,
+		bool mirror, bool negative, const Layer& layer, int font_size,
+		int stroke_width, const QString &text );
+
+	void setParent(PCBObject *parent);
+
+	virtual void draw(QPainter *painter, const Layer& layer) const;
+	virtual QRect bbox() const;
+	virtual void accept(PCBObjectVisitor *v);
+	virtual bool testHit(QPoint pt, const Layer& l) const;
+	virtual PCBObjState getState() const;
+	virtual bool loadState(PCBObjState &state);
+
+	static Text* newFromXML(QXmlStreamReader &reader);
+	void toXML(QXmlStreamWriter &writer) const;
+
+	QPoint pos() const;
+	void setPos(const QPoint &newpos);
+
+	const QString & text() const;
+	void setText(const QString &text);
+
+	int angle() const;
+	void setAngle(int angle);
+
+	int fontSize() const;
+	void setFontSize(int size);
+
+	int strokeWidth() const;
+	void setStrokeWidth(int w);
+
+	bool isMirrored() const;
+	void setMirrored(bool b);
+
+	bool isNegative() const;
+	void setNegative(bool b);
+
+	const Layer& layer() const;
+	void setLayer(const Layer& l);
+
+
+	virtual void parentChanged();
+
+protected:
+	void changed();
+	void rebuild() const;
+
+};
+
+class Line : PCBObject
+{
+%TypeHeaderCode
+#include "Line.h"
+%End
+public:
+	enum LineType { LINE, ARC_CW, ARC_CCW };
+
+    Line();
+
+	virtual void draw(QPainter *painter, const Layer& layer) const;
+	virtual QRect bbox() const;
+	virtual void accept(PCBObjectVisitor *v);
+	virtual PCBObjState getState() const;
+	virtual bool loadState(PCBObjState &state);
+
+	QPoint start() const;
+	void setStart(QPoint p);
+	QPoint end() const;
+	void setEnd(QPoint p);
+	int width() const;
+	void setWidth(int width);
+	const Layer& layer() const;
+	void setLayer(const Layer& l);
+	LineType type() const;
+	void setType(LineType t);
+
+	static Line* newFromXml(QXmlStreamReader &reader);
+	void toXML(QXmlStreamWriter &writer) const;
+
+	static void drawArc(QPainter* painter, QPoint start, QPoint end, LineType type);
+};
 

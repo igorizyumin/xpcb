@@ -427,15 +427,15 @@ void Pin::draw(QPainter *painter, const Layer& layer) const
 	painter->restore();
 }
 
-QSharedPointer<PCBObjState> Pin::getState() const
+PCBObjState Pin::getState() const
 {
-	return QSharedPointer<PCBObjState>(new PinState(*this));
+	return PCBObjState(new PinState(*this));
 }
 
-bool Pin::loadState(QSharedPointer<PCBObjState> &state)
+bool Pin::loadState(PCBObjState &state)
 {
 	// convert to part state
-	QSharedPointer<PinState> s = state.dynamicCast<PinState>();
+	QSharedPointer<PinState> s = state.ptr().dynamicCast<PinState>();
 	if (s.isNull()) return false;
 	mName = s->name;
 	mPos = s->pos;
@@ -462,15 +462,17 @@ Footprint::~Footprint()
 {
 	foreach(Text* t, mTexts)
 		delete t;
+	foreach(Line* l, mOutlineLines)
+		delete l;
 }
 
 void Footprint::draw(QPainter *painter, FP_DRAW_LAYER layer) const
 {
-	// draw lines
-	// wtf?
+	// draw silkscreen
+	// pins are handled separately by PartPin, so this will only be called to draw the silkscreen (for now)
 	Layer pcblayer = (layer == Footprint::LAY_START) ? Layer(Layer::LAY_SILK_TOP) : Layer(Layer::LAY_SILK_BOTTOM);
-	foreach(const Line& l, mOutlineLines)
-		l.draw(painter, pcblayer);
+	foreach(Line* l, mOutlineLines)
+		l->draw(painter, pcblayer);
 	foreach(Text* t, mTexts)
 		t->draw(painter, pcblayer);
 }
@@ -581,8 +583,8 @@ void Footprint::toXML(QXmlStreamWriter &writer) const
 	writer.writeAttribute("custom", mCustomCentroid ? "1" : "0");
 	writer.writeEndElement();
 
-	foreach(const Line& l, mOutlineLines)
-		l.toXML(writer);
+	foreach(Line* l, mOutlineLines)
+		l->toXML(writer);
 	foreach(Text* t, mTexts)
 		t->toXML(writer);
 
@@ -694,9 +696,9 @@ QRect Footprint::GetPadBounds( int i )
 QRect Footprint::bbox() const
 {
 	QRect r = getPinBounds();
-	foreach(const Line& l, mOutlineLines)
+	foreach(Line* l, mOutlineLines)
 	{
-		r |= l.bbox();
+		r |= l->bbox();
 	}
 	foreach(Text* t, mTexts)
 	{

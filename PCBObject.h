@@ -11,7 +11,6 @@ class Net;
 class PartPin;
 class Pin;
 class Part;
-class Footprint;
 class Text;
 class Vertex;
 class Segment;
@@ -62,10 +61,10 @@ public:
 	virtual void parentChanged() {}
 
 	/// Returns a snapshot of this object's state (the memento pattern).
-	virtual QSharedPointer<PCBObjState> getState() const = 0;
+	virtual PCBObjState getState() const = 0;
 	/// Restores this object's state from the supplied object. Returns true
 	/// if successful, false otherwise.
-	virtual bool loadState(QSharedPointer<PCBObjState> &state) = 0;
+	virtual bool loadState(PCBObjState &state) = 0;
 
 	static int getNextID();
 private:
@@ -83,21 +82,29 @@ public:
 	virtual void visit(PartPin*) = 0;
 	virtual void visit(Pin*) = 0;
 	virtual void visit(Part*) = 0;
-	virtual void visit(Footprint*) = 0;
 	virtual void visit(Text*) = 0;
 	virtual void visit(Vertex*) = 0;
 	virtual void visit(Segment*) = 0;
-	virtual void visit(Padstack*) = 0;
 };
 
 /// Abstract base class for PCBObject mementos
+class PCBObjStateInternal
+{
+public:
+	// needed to make object polymorphic for RTTI
+	virtual ~PCBObjStateInternal() {}
+};
+
+/// Wrapper class that takes care of dealing with smartpointers.
 class PCBObjState
 {
 public:
-	// needed to make object polymorphic
-	virtual ~PCBObjState() {}
-protected:
 	PCBObjState() {}
+	PCBObjState(PCBObjStateInternal* ptr) : mPtr(ptr) {};
+	const QSharedPointer<PCBObjStateInternal>& ptr() const { return mPtr; }
+
+protected:
+	QSharedPointer<PCBObjStateInternal> mPtr;
 };
 
 #endif // PCBOBJECT_H

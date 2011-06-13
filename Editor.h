@@ -53,16 +53,23 @@ private:
 	Controller *mCtrl;
 };
 
-class EditorFactory : public QObject, public PCBObjectVisitor
+class AbstractEditorFactory
 {
-	Q_OBJECT
 public:
+	virtual AbstractEditor* makeEditor(Controller* ctrl, PCBObject *obj) = 0;
+};
+
+class EditorFactory : public PCBObjectVisitor
+{
+public:
+	enum ObjType {ObjArea, ObjLine, ObjNet, ObjPartPin, ObjPin, ObjPart, ObjFootprint, ObjText, ObjVertex, ObjSegment, ObjPadstack};
 	static EditorFactory& instance();
 
 	AbstractEditor* newEditor(PCBObject* obj, Controller *ctrl);
 	AbstractEditor* newTextEditor(Controller *ctrl);
 	AbstractEditor* newPinEditor(FPController* ctrl);
 
+	static void registerFactory(ObjType type, AbstractEditorFactory* factory) { instance().mFactories[type] = factory; }
 
 	virtual void visit(Area* a);
 	virtual void visit(Line* a);
@@ -70,11 +77,9 @@ public:
 	virtual void visit(PartPin* a);
 	virtual void visit(Pin* a);
 	virtual void visit(Part* a);
-	virtual void visit(Footprint* a);
 	virtual void visit(Text* a);
 	virtual void visit(Vertex* a);
 	virtual void visit(Segment* a);
-	virtual void visit(Padstack* a);
 
 private:
 	EditorFactory();
@@ -85,8 +90,8 @@ private:
 	// parameters for visit function
 	Controller *mCtrl;
 	PCBObject *mObj;
+
+	QHash<ObjType, AbstractEditorFactory*> mFactories;
 };
-
-
 
 #endif // EDITOR_H

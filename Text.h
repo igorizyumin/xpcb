@@ -28,8 +28,8 @@ public:
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual bool testHit(QPoint pt, const Layer& l) const { return bbox().contains(pt) && mLayer == l; }
-	virtual QSharedPointer<PCBObjState> getState() const { return QSharedPointer<PCBObjState>(new TextState(*this)); }
-	virtual bool loadState(QSharedPointer<PCBObjState> &state);
+	virtual PCBObjState getState() const;
+	virtual bool loadState(PCBObjState &state);
 
 	// i/o
 	static Text* newFromXML(QXmlStreamReader &reader);
@@ -68,7 +68,7 @@ protected:
 	void rebuild() const;
 
 private:
-	class TextState : public PCBObjState
+	class TextState : public PCBObjStateInternal
 	{
 	public:
 		virtual ~TextState() {}

@@ -133,10 +133,16 @@ void Text::toXML(QXmlStreamWriter &writer) const
 	writer.writeEndElement();
 }
 
-bool Text::loadState(QSharedPointer<PCBObjState> &state)
+PCBObjState Text::getState() const
+{
+	return PCBObjState(new TextState(*this));
+}
+
+
+bool Text::loadState(PCBObjState &state)
 {
 	// convert to text state
-	QSharedPointer<TextState> s = state.dynamicCast<TextState>();
+	QSharedPointer<TextState> s = state.ptr().dynamicCast<TextState>();
 	if (s.isNull())
 		return false;
 	// restore state

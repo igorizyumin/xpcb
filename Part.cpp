@@ -71,15 +71,15 @@ void PartPin::setNet(Net *newnet)
 		mNet->addPin(this);
 }
 
-QSharedPointer<PCBObjState> PartPin::getState() const
+PCBObjState PartPin::getState() const
 {
-	return QSharedPointer<PCBObjState>(new PartPinState(*this));
+	return PCBObjState(new PartPinState(*this));
 }
 
-bool PartPin::loadState(QSharedPointer<PCBObjState> &state)
+bool PartPin::loadState(PCBObjState &state)
 {
 	// convert to part state
-	QSharedPointer<PartPinState> s = state.dynamicCast<PartPinState>();
+	QSharedPointer<PartPinState> s = state.ptr().dynamicCast<PartPinState>();
 	if (s.isNull()) return false;
 	mPin = s->pin;
 	mPart = s->part;
@@ -319,15 +319,15 @@ PartPin* Part::getPin(const QString &name)
 	return NULL;
 }
 
-QSharedPointer<PCBObjState> Part::getState() const
+PCBObjState Part::getState() const
 {
-	return QSharedPointer<PCBObjState>(new PartState(*this));
+	return PCBObjState(new PartState(*this));
 }
 
-bool Part::loadState(QSharedPointer<PCBObjState> &state)
+bool Part::loadState(PCBObjState &state)
 {
 	// convert to part state
-	QSharedPointer<PartState> s = state.dynamicCast<PartState>();
+	QSharedPointer<PartState> s = state.ptr().dynamicCast<PartState>();
 	if (s.isNull()) return false;
 	mTransform = s->transform;
 	mPos = s->pos;

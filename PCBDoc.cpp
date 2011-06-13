@@ -161,10 +161,10 @@ QList<PCBObject*> FPDoc::findObjs(QPoint &pt)
 		if (p->bbox().contains(pt))
 			out.append(p);
 	}
-	foreach(const Line& p, mFp->getLines())
+	foreach(Line* p, mFp->getLines())
 	{
-		if (p.bbox().contains(pt))
-			out.append(const_cast<Line*>(&p));
+		if (p->bbox().contains(pt))
+			out.append(p);
 	}
 
 	if (mFp->getRefText().bbox().contains(pt))
@@ -181,7 +181,7 @@ QList<PCBObject*> FPDoc::findObjs(QRect &rect)
 	QList<PCBObject*> out;
 
 	QList<Pin*> pins = mFp->pins();
-	QList<Line> lines = mFp->getLines();
+	QList<Line*> lines = mFp->getLines();
 	QList<Text*> texts = mFp->texts();
 
 	foreach(Pin* p, pins)
@@ -194,10 +194,10 @@ QList<PCBObject*> FPDoc::findObjs(QRect &rect)
 		if (p->bbox().intersects(rect))
 			out.append(p);
 	}
-	foreach(const Line& p, lines)
+	foreach(Line* p, lines)
 	{
-		if (p.bbox().intersects(rect))
-			out.append(const_cast<Line*>(&p));
+		if (p->bbox().intersects(rect))
+			out.append(p);
 	}
 	if (mFp->getRefText().bbox().intersects(rect))
 		out.append(const_cast<Text*>(&mFp->getRefText()));
@@ -230,6 +230,16 @@ void FPDoc::addPin(Pin *p)
 void FPDoc::removePin(Pin *p)
 {
 	mFp->removePin(p);
+}
+
+void FPDoc::addLine(Line *l)
+{
+	mFp->addLine(l);
+}
+
+void FPDoc::removeLine(Line *l)
+{
+	mFp->removeLine(l);
 }
 
 ////////////////////////////// PCBDOC /////////////////////////////////

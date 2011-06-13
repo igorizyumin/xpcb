@@ -38,13 +38,13 @@ public:
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
-	virtual QSharedPointer<PCBObjState> getState() const;
-	virtual bool loadState(QSharedPointer<PCBObjState> &state);
+	virtual PCBObjState getState() const;
+	virtual bool loadState(PCBObjState &state);
 
 	bool testHit(const QPoint &pt, const Layer& layer) const;
 
 private:
-	class PartPinState : public PCBObjState
+	class PartPinState : public PCBObjStateInternal
 	{
 	public:
 		virtual ~PartPinState() {}
@@ -88,8 +88,8 @@ public:
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
-	virtual QSharedPointer<PCBObjState> getState() const;
-	virtual bool loadState(QSharedPointer<PCBObjState> &state);
+	virtual PCBObjState getState() const;
+	virtual bool loadState(PCBObjState &state);
 
 	QString refdes() const { return mRefdes->text(); }
 	QString value() const { return mValue->text(); }
@@ -123,7 +123,7 @@ public:
 
 	PCBDoc* doc() const {return mDoc; }
 private:
-	class PartState : public PCBObjState
+	class PartState : public PCBObjStateInternal
 	{
 	public:
 		virtual ~PartState() {}

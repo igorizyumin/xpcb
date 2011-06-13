@@ -126,8 +126,8 @@ public:
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual QSharedPointer<PCBObjState> getState() const;
-	virtual bool loadState(QSharedPointer<PCBObjState> &state);
+	virtual PCBObjState getState() const;
+	virtual bool loadState(PCBObjState &state);
 
 	virtual bool testHit(QPoint pt, const Layer& layer) const;
 
@@ -139,7 +139,7 @@ public:
 	virtual QTransform transform() const { return mFpTransform; }
 
 private:
-	class PinState : public PCBObjState
+	class PinState : public PCBObjStateInternal
 	{
 	public:
 		virtual ~PinState() {}
@@ -201,7 +201,10 @@ public:
 	void addText(Text* t) { mTexts.append(t); }
 	void removeText(Text* t) { mTexts.removeOne(t); }
 
-	const QList<Line> getLines() { return mOutlineLines; }
+	const QList<Line*> getLines() { return mOutlineLines; }
+
+	void addLine(Line* l) { mOutlineLines.append(l); }
+	void removeLine(Line* l) { mOutlineLines.removeOne(l); }
 
 	QRect getPinBounds() const;
 
@@ -241,7 +244,7 @@ private:
 	/// Footprint pins
 	QList<Pin*> mPins;
 	/// Silkscreen lines (used for part outline)
-	QList<Line> mOutlineLines;
+	QList<Line*> mOutlineLines;
 	/// Silkscreen text
 	QList<Text*> mTexts;
 };

@@ -23,8 +23,8 @@ public:
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
-	virtual QSharedPointer<PCBObjState> getState() const;
-	virtual bool loadState(QSharedPointer<PCBObjState> &state);
+	virtual PCBObjState getState() const;
+	virtual bool loadState(PCBObjState &state);
 
 	QString name() const {return mName;}
 	void addPin( PartPin * pin);
@@ -38,7 +38,7 @@ public:
 						   const QHash<int, Padstack*> &padstacks);
 	void toXML(QXmlStreamWriter &writer) const;
 private:
-	class NetState : public PCBObjState
+	class NetState : public PCBObjStateInternal
 	{
 	public:
 		virtual ~NetState() {}

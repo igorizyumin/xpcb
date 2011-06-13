@@ -48,7 +48,6 @@ SOURCES += PCBView.cpp \
     ManagePadstacksDialog.cpp \
     EditPinDialog.cpp \
     PinEditor.cpp \
-    LineEditor.cpp \
     Plugin.cpp
 
 unittest {
@@ -93,7 +92,6 @@ HEADERS  += PCBView.h \
     ManagePadstacksDialog.h \
     EditPinDialog.h \
     PinEditor.h \
-    LineEditor.h \
     Plugin.h
 
 FORMS    += GridToolbarWidget.ui \

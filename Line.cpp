@@ -7,27 +7,27 @@ Line::Line()
 {
 }
 
-Line Line::newFromXml(QXmlStreamReader &reader)
+Line* Line::newFromXml(QXmlStreamReader &reader)
 {
 	Q_ASSERT(reader.isStartElement() && (reader.name() == "line" || reader.name() == "arc"));
 
 	QXmlStreamAttributes attr = reader.attributes();
 
-	Line l;
-	l.mWidth = attr.value("width").toString().toInt();
-	l.mLayer = Layer(attr.value("layer").toString().toInt());
-	l.mStart = QPoint(
+	Line* l = new Line();
+	l->mWidth = attr.value("width").toString().toInt();
+	l->mLayer = Layer(attr.value("layer").toString().toInt());
+	l->mStart = QPoint(
 			attr.value("x1").toString().toInt(),
 			attr.value("y1").toString().toInt());
-	l.mEnd = QPoint(
+	l->mEnd = QPoint(
 			attr.value("x2").toString().toInt(),
 			attr.value("y2").toString().toInt());
 	if (attr.hasAttribute("dir"))
 	{
-		l.mType = (attr.value("dir") == "cw") ? ARC_CW : ARC_CCW;
+		l->mType = (attr.value("dir") == "cw") ? ARC_CW : ARC_CCW;
 	}
 	else
-		l.mType = LINE;
+		l->mType = LINE;
 
 
 	do
@@ -64,7 +64,7 @@ void Line::draw(QPainter *painter, const Layer& layer) const
 	pen.setWidth(mWidth);
 	painter->setPen(pen);
 
-	if (mType == LINE)
+	if (mType == LINE || mStart.x() == mEnd.x() || mStart.y() == mEnd.y())
 		painter->drawLine(mStart, mEnd);
 	else
 		drawArc(painter, mStart, mEnd, mType);
@@ -72,7 +72,7 @@ void Line::draw(QPainter *painter, const Layer& layer) const
 
 QRect Line::bbox() const
 {
-	return QRect(mStart, mEnd).adjusted(-mWidth, -mWidth, mWidth, mWidth);
+	return QRect(mStart, mEnd).normalized().adjusted(-mWidth/2, -mWidth/2, mWidth/2, mWidth/2);
 }
 
 void Line::drawArc(QPainter* painter, QPoint start, QPoint end, LineType type)
@@ -127,10 +127,15 @@ void Line::drawArc(QPainter* painter, QPoint start, QPoint end, LineType type)
 	painter->drawArc(r, startAngle, 90*16);
 }
 
-bool Line::loadState(QSharedPointer<PCBObjState> &state)
+PCBObjState Line::getState() const
+{
+	return PCBObjState(new LineState(*this));
+}
+
+bool Line::loadState(PCBObjState &state)
 {
 	// convert to line state
-	QSharedPointer<LineState> ls = state.dynamicCast<LineState>();
+	QSharedPointer<LineState> ls = state.ptr().dynamicCast<LineState>();
 	if (ls.isNull())
 		return false;
 	// restore state

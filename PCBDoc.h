@@ -176,6 +176,9 @@ public:
 	void addPin(Pin* p);
 	void removePin(Pin* p);
 
+	void addLine(Line* l);
+	void removeLine(Line* l);
+
 	Footprint* footprint() { return mFp; }
 
 private:

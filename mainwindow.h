@@ -26,6 +26,10 @@ class MainWindow : public QMainWindow, private Ui::MainWindowClass
 public:
 	MainWindow(QWidget *parent = 0);
 
+	/// Returns the current document, or NULL if no document is open.
+	virtual Document* doc() = 0;
+	virtual Controller* ctrl() = 0;
+
 protected slots:
 	void on_actionAbout_triggered();
 	virtual void onViewCoords(QPoint pt);
@@ -49,10 +53,6 @@ protected:
 	virtual bool saveFile(const QString &fileName);
 	virtual void setCurrentFile(const QString &fileName);
 	QString strippedName(const QString &fullFileName);
-
-	/// Returns the current document, or NULL if no document is open.
-	virtual Document* doc() = 0;
-	virtual Controller* ctrl() = 0;
 
 	/// Restores the window geometry
 	virtual void loadGeom() = 0;

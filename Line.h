@@ -22,8 +22,9 @@ public:
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
-	virtual QSharedPointer<PCBObjState> getState() const { return QSharedPointer<PCBObjState>(new LineState(*this)); }
-	virtual bool loadState(QSharedPointer<PCBObjState> &state);
+	virtual PCBObjState getState() const;
+	virtual bool loadState(PCBObjState &state);
+	virtual bool testHit(QPoint p, const Layer &l) const { return (l == mLayer) && bbox().contains(p); }
 
 	QPoint start() const { return mStart; }
 	void setStart(QPoint p) { mStart = p; }
@@ -36,16 +37,14 @@ public:
 	LineType type() const { return mType; }
 	void setType(LineType t) { mType = t; }
 
-	static Line newFromXml(QXmlStreamReader &reader);
+	static Line* newFromXml(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 
 	static void drawArc(QPainter* painter, QPoint start, QPoint end, LineType type);
 
 private:
-	class LineState : public PCBObjState
+	class LineState : public PCBObjStateInternal
 	{
-	public:
-		virtual ~LineState() {}
 	private:
 		friend class Line;
 		LineState(const Line &l)
