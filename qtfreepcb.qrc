@@ -35,5 +35,6 @@
         <file>Resources/f1.png</file>
         <file alias="bg-disabled.png">Resources/bg-layer-disabled.png</file>
         <file>xpcbschema.xsd</file>
+        <file alias="python.png">Resources/python.png</file>
     </qresource>
 </RCC>

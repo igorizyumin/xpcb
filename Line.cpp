@@ -75,6 +75,11 @@ QRect Line::bbox() const
 	return QRect(mStart, mEnd).normalized().adjusted(-mWidth/2, -mWidth/2, mWidth/2, mWidth/2);
 }
 
+bool Line::testHit(QPoint p, const Layer &l) const
+{
+	return (l == mLayer) && bbox().contains(p);
+}
+
 void Line::drawArc(QPainter* painter, QPoint start, QPoint end, LineType type)
 {
 	int x1, x2, y1, y2;
@@ -135,6 +140,8 @@ PCBObjState Line::getState() const
 bool Line::loadState(PCBObjState &state)
 {
 	// convert to line state
+	if (state.ptr().isNull())
+		return false;
 	QSharedPointer<LineState> ls = state.ptr().dynamicCast<LineState>();
 	if (ls.isNull())
 		return false;

@@ -1,5 +1,5 @@
 
-class PCBObjState /Abstract/
+class PCBObjState
 {
 %TypeHeaderCode
 #include "PCBObject.h"
@@ -115,7 +115,7 @@ public:
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v);
 	virtual bool testHit(QPoint pt, const Layer& l) const;
-	virtual PCBObjState getState() const;
+	virtual PCBObjState getState() const; 
 	virtual bool loadState(PCBObjState &state);
 
 	static Text* newFromXML(QXmlStreamReader &reader);
@@ -169,6 +169,7 @@ public:
 	virtual void accept(PCBObjectVisitor *v);
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
+	virtual bool testHit(QPoint p, const Layer &l) const;
 
 	QPoint start() const;
 	void setStart(QPoint p);

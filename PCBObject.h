@@ -3,6 +3,7 @@
 
 #include <QPainter>
 #include "global.h"
+#include "Log.h"
 
 // Forward declarations for visitor abstract class
 class Area;
@@ -92,7 +93,7 @@ class PCBObjStateInternal
 {
 public:
 	// needed to make object polymorphic for RTTI
-	virtual ~PCBObjStateInternal() {}
+	virtual ~PCBObjStateInternal() { Log::instance().message("destroyed objstateinternal"); }
 };
 
 /// Wrapper class that takes care of dealing with smartpointers.
@@ -100,8 +101,11 @@ class PCBObjState
 {
 public:
 	PCBObjState() {}
-	PCBObjState(PCBObjStateInternal* ptr) : mPtr(ptr) {};
+	PCBObjState(PCBObjStateInternal* ptr) : mPtr(ptr) { Log::instance().message("created objstate"); }
+	PCBObjState(const PCBObjState &other) : mPtr(other.mPtr) {Log::instance().message("copied objstate"); }
+	~PCBObjState() { Log::instance().message("destroyed objstate"); }
 	const QSharedPointer<PCBObjStateInternal>& ptr() const { return mPtr; }
+
 
 protected:
 	QSharedPointer<PCBObjStateInternal> mPtr;

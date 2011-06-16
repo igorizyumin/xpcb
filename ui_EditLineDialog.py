@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'EditLineDialog.ui'
 #
-# Created: Sun Jun 12 17:40:50 2011
+# Created: Tue Jun 14 22:48:28 2011
 #      by: PyQt4 UI code generator 4.8.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -54,6 +54,17 @@ class Ui_EditLineDialog(object):
         self.unitsBox.addItem(_fromUtf8(""))
         self.horizontalLayout.addWidget(self.unitsBox)
         self.verticalLayout.addLayout(self.horizontalLayout)
+        self.horizontalLayout_2 = QtGui.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
+        self.label_2 = QtGui.QLabel(EditLineDialog)
+        self.label_2.setObjectName(_fromUtf8("label_2"))
+        self.horizontalLayout_2.addWidget(self.label_2)
+        self.layerBox = QtGui.QComboBox(EditLineDialog)
+        self.layerBox.setObjectName(_fromUtf8("layerBox"))
+        self.layerBox.addItem(_fromUtf8(""))
+        self.layerBox.addItem(_fromUtf8(""))
+        self.horizontalLayout_2.addWidget(self.layerBox)
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.buttonBox = QtGui.QDialogButtonBox(EditLineDialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Cancel|QtGui.QDialogButtonBox.Ok)
@@ -61,13 +72,15 @@ class Ui_EditLineDialog(object):
         self.verticalLayout.addWidget(self.buttonBox)
         self.label.setBuddy(self.widthBox)
         self.label_6.setBuddy(self.unitsBox)
+        self.label_2.setBuddy(self.layerBox)
 
         self.retranslateUi(EditLineDialog)
         QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL(_fromUtf8("accepted()")), EditLineDialog.accept)
         QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL(_fromUtf8("rejected()")), EditLineDialog.reject)
         QtCore.QMetaObject.connectSlotsByName(EditLineDialog)
         EditLineDialog.setTabOrder(self.widthBox, self.unitsBox)
-        EditLineDialog.setTabOrder(self.unitsBox, self.buttonBox)
+        EditLineDialog.setTabOrder(self.unitsBox, self.layerBox)
+        EditLineDialog.setTabOrder(self.layerBox, self.buttonBox)
 
     def retranslateUi(self, EditLineDialog):
         EditLineDialog.setWindowTitle(QtGui.QApplication.translate("EditLineDialog", "Line Properties", None, QtGui.QApplication.UnicodeUTF8))
@@ -76,4 +89,7 @@ class Ui_EditLineDialog(object):
         self.label_6.setText(QtGui.QApplication.translate("EditLineDialog", "&Units", None, QtGui.QApplication.UnicodeUTF8))
         self.unitsBox.setItemText(0, QtGui.QApplication.translate("EditLineDialog", "mils", None, QtGui.QApplication.UnicodeUTF8))
         self.unitsBox.setItemText(1, QtGui.QApplication.translate("EditLineDialog", "mm", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_2.setText(QtGui.QApplication.translate("EditLineDialog", "&Layer", None, QtGui.QApplication.UnicodeUTF8))
+        self.layerBox.setItemText(0, QtGui.QApplication.translate("EditLineDialog", "top silk", None, QtGui.QApplication.UnicodeUTF8))
+        self.layerBox.setItemText(1, QtGui.QApplication.translate("EditLineDialog", "bottom silk", None, QtGui.QApplication.UnicodeUTF8))
 

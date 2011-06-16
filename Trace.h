@@ -26,7 +26,7 @@ public:
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
-	virtual PCBObjState getState() const { return PCBObjState(NULL); }
+	virtual PCBObjState getState() const { return PCBObjState(); }
 	virtual bool loadState(PCBObjState& /*state*/) { return false; }
 
 	QPoint pos() const {return mPos;}

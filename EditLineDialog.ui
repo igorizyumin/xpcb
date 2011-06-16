@@ -100,6 +100,34 @@
     </layout>
    </item>
    <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>&amp;Layer</string>
+       </property>
+       <property name="buddy">
+        <cstring>layerBox</cstring>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="layerBox">
+       <item>
+        <property name="text">
+         <string>top silk</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>bottom silk</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -114,6 +142,7 @@
  <tabstops>
   <tabstop>widthBox</tabstop>
   <tabstop>unitsBox</tabstop>
+  <tabstop>layerBox</tabstop>
   <tabstop>buttonBox</tabstop>
  </tabstops>
  <resources/>

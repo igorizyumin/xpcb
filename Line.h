@@ -24,7 +24,7 @@ public:
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
-	virtual bool testHit(QPoint p, const Layer &l) const { return (l == mLayer) && bbox().contains(p); }
+	virtual bool testHit(QPoint p, const Layer &l) const;
 
 	QPoint start() const { return mStart; }
 	void setStart(QPoint p) { mStart = p; }
@@ -45,6 +45,8 @@ public:
 private:
 	class LineState : public PCBObjStateInternal
 	{
+	public:
+		virtual ~LineState() {}
 	private:
 		friend class Line;
 		LineState(const Line &l)
