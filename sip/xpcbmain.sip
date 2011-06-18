@@ -4,7 +4,7 @@
 
 %Include global.sip
 %Include pcbobject.sip
-
+%Include footprint.sip
 
 class Document : QObject /Abstract/
 {

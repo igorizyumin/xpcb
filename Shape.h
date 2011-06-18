@@ -249,3 +249,69 @@ private:
 	QList<Text*> mTexts;
 };
 
+class FPDBFile;
+class FPDBFolder;
+
+/// The FPDatabase class is a singleton that is responsible for maintaining a database of available footprints.
+/// It searches the configured footprint directories for footprint files and adds them to a tree structure.
+class FPDatabase
+{
+public:
+	static FPDatabase& instance();
+
+	QList<FPDBFolder*> rootFolders() const { return mRootFolders; }
+
+private:
+	FPDatabase();
+	static FPDatabase* mInst;
+	QList<FPDBFolder*> mRootFolders;
+
+	FPDBFolder* createFolder(QString path, bool fullName = false);
+	FPDBFile* createFile(QString path);
+};
+
+class FPDBFile
+{
+public:
+	FPDBFile(QString path, QString name, QString author, QString source, QString desc);
+
+	QString path() const { return mFpPath; }
+	QString name() const { return mName; }
+	QString author() const { return mAuthor; }
+	QString source() const { return mSource; }
+	QString desc() const { return mDesc; }
+
+
+	void setParent(FPDBFolder* parent) { mParent = parent; }
+	FPDBFolder* parent() const { return mParent; }
+
+private:
+	/// Absolute path to footprint file
+	QString mFpPath;
+	/// Footprint name
+	QString mName;
+	QString mAuthor;
+	QString mSource;
+	QString mDesc;
+	/// Parent folder
+	FPDBFolder* mParent;
+};
+
+class FPDBFolder
+{
+public:
+	FPDBFolder(QString name, QList<FPDBFolder*> folders, QList<FPDBFile*> files);
+	~FPDBFolder();
+
+	void setParent(FPDBFolder* parent) { mParent = parent; }
+	FPDBFolder* parent() const { return mParent; }
+
+	QString name() const { return mName; }
+	QList<FPDBFolder*> folders() const { return mFolders; }
+	QList<FPDBFile*> items() const { return mFiles; }
+private:
+	QString mName;
+	QList<FPDBFolder*> mFolders;
+	QList<FPDBFile*> mFiles;
+	FPDBFolder* mParent;
+};

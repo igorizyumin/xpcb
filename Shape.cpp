@@ -5,6 +5,8 @@
 #include <math.h> 
 #include "Log.h"
 #include "Line.h"
+#include "PCBDoc.h"
+#include <QDir>
 
 /////////////////////// PAD /////////////////////////
 // class pad
@@ -712,3 +714,88 @@ QRect Footprint::bbox() const
 	return r;
 }
 
+//////////////////////////////////////////////////////////////////////
+
+FPDatabase* FPDatabase::mInst = NULL;
+
+FPDatabase::FPDatabase()
+{
+	// create root folders
+	FPDBFolder* f = createFolder("footprints", true);
+	if (f)
+		mRootFolders.append(f);
+}
+
+FPDatabase& FPDatabase::instance()
+{
+	if (!mInst)
+		mInst = new FPDatabase();
+	return *mInst;
+}
+
+FPDBFolder* FPDatabase::createFolder(QString path, bool fullName)
+{
+	QDir dir(path);
+	if (!dir.exists() || !dir.count() || !dir.isReadable())
+		return NULL;
+	QList<FPDBFolder*> subfolders;
+	// find all subdirs
+	QStringList subdirs = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable);
+	// recursively process all subdirs
+	foreach(QString s, subdirs)
+	{
+		FPDBFolder* f = createFolder(dir.filePath(s));
+		if (f)
+			subfolders.append(f);
+	}
+	QList<FPDBFile*> files;
+	// find any files in this dir
+	QString pattern = "*.xfp";
+	QStringList flist = dir.entryList(QStringList(pattern), QDir::Files | QDir::Readable);
+	foreach(QString s, flist)
+	{
+		FPDBFile* f = createFile(dir.filePath(s));
+		if (f)
+			files.append(f);
+	}
+	// if we didn't find any footprints, stop
+	if (subfolders.length() == 0 && files.length() == 0)
+		return NULL;
+	// otherwise, create a folder entry
+	return new FPDBFolder(fullName ? path : dir.dirName(), subfolders, files);
+}
+
+FPDBFile* FPDatabase::createFile(QString path)
+{
+	FPDoc doc;
+	if(!static_cast<Document*>(&doc)->loadFromFile(path))
+		return NULL;
+	FPDBFile* f = new FPDBFile(path, doc.footprint()->name(),
+							   doc.footprint()->author(),
+							   doc.footprint()->source(),
+							   doc.footprint()->desc());
+	return f;
+}
+
+FPDBFile::FPDBFile(QString path, QString name, QString author, QString source, QString desc)
+	: mFpPath(path), mName(name), mAuthor(author), mSource(source), mDesc(desc), mParent(NULL)
+{
+}
+
+FPDBFolder::FPDBFolder(QString name, QList<FPDBFolder *> folders, QList<FPDBFile *> files)
+	: mName(name), mFolders(folders), mFiles(files), mParent(NULL)
+{
+	// set the parent of all the children
+	foreach(FPDBFolder* f, mFolders)
+		f->setParent(this);
+	foreach(FPDBFile* f, mFiles)
+		f->setParent(this);
+}
+
+FPDBFolder::~FPDBFolder()
+{
+	foreach(FPDBFolder* f, mFolders)
+		delete f;
+	foreach(FPDBFile* f, mFiles)
+		delete f;
+}

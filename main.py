@@ -64,7 +64,7 @@ initSettings()
 
 pl = cmdLinePlugin.PluginMain()
 p2 = LineEditorPlugin.PluginMain()
-w = xpcb.FPEditWindow(None, [pl, p2])
+w = xpcb.PCBEditWindow(None, [pl, p2])
 pl.initPlugin(w)
 p2.initPlugin(w)
 w.show()
