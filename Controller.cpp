@@ -298,10 +298,12 @@ void Controller::updateActions()
 //////////////////////////// PCBCONTROLLER /////////////////////////////////
 
 PCBController::PCBController(QObject *parent)
-		: Controller(parent), mDoc(NULL), mAddTextAction(2, "Add Text")
+		: Controller(parent), mDoc(NULL), mAddTextAction(2, "Add Text"), mAddPartAction(3, "Add Part")
 {
 	connect(&mAddTextAction, SIGNAL(execFired()), this, SLOT(onAddTextAction()));
+	connect(&mAddPartAction, SIGNAL(execFired()), this, SLOT(onAddPartAction()));
 	registerAction(&mAddTextAction);
+	registerAction(&mAddPartAction);
 }
 
 void PCBController::registerDoc(PCBDoc* doc)
@@ -338,6 +340,14 @@ void PCBController::onAddTextAction()
 
 	installEditor(EditorFactory::instance().newTextEditor(this));
 }
+
+void PCBController::onAddPartAction()
+{
+	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
+
+	installEditor(EditorFactory::instance().newPartEditor(this));
+}
+
 
 //////////////////////////// FPCONTROLLER /////////////////////////////////
 

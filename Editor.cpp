@@ -22,6 +22,7 @@
 #include "Controller.h"
 #include "Area.h"
 #include "Shape.h"
+#include "Part.h"
 
 AbstractEditor::AbstractEditor(Controller *ctrl) :
 	QObject(ctrl), mCtrl(ctrl)
@@ -95,6 +96,11 @@ AbstractEditor* EditorFactory::newPinEditor(FPController *ctrl)
 	return new PinEditor(ctrl, NULL);
 }
 
+AbstractEditor* EditorFactory::newPartEditor(PCBController *ctrl)
+{
+	return new PartEditor(ctrl, NULL);
+}
+
 void EditorFactory::visit(Area* a)
 {
 	if (mFactories.contains(ObjArea))
@@ -126,7 +132,7 @@ void EditorFactory::visit(Pin* pin)
 
 void EditorFactory::visit(Part* p)
 {
-	mEditor = new PartEditor(mCtrl, p);
+	mEditor = new PartEditor(dynamic_cast<PCBController*>(mCtrl), p);
 }
 
 void EditorFactory::visit(Text *t)

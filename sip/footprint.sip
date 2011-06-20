@@ -109,9 +109,11 @@ public:
 	Pad getPadOnLayer(const Layer& layer) const;
 
 	virtual QTransform transform() const;
+private:
+	Pin(const Pin& other);
 };
 
-class Footprint
+class Footprint 
 {
 %TypeHeaderCode
 #include "Shape.h"
@@ -129,6 +131,10 @@ public:
 	QString author() const;
 	QString source() const;
 	QString desc() const;
+
+	QList<Padstack*> padstacks();
+	void addPadstack(Padstack* ps);
+	void removePadstack(Padstack* ps);
 
 	int numPins() const;
 	const Pin* getPin(const QString & pin) const;
@@ -155,8 +161,12 @@ public:
 	bool isCustomCentroid();
 	XPcb::UNIT units();
 
-//	static Footprint* newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks);
+//	static Footprint* newFromXML(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
+
+	const QUuid& uuid() const;
+private:
+	Footprint(const Footprint& other);
 };
 
 class FPDatabase
@@ -168,6 +178,7 @@ public:
 	static FPDatabase& instance();
 
 	QList<FPDBFolder*> rootFolders() const;
+	const FPDBFile* getByUuid(QUuid uuid) const;
 
 private:
 	FPDatabase();
@@ -182,13 +193,16 @@ class FPDBFile
 #include "Shape.h"
 %End
 public:
-	FPDBFile(QString path, QString name, QString author, QString source, QString desc);
+	FPDBFile(QString path, QString name, QString author, QString source, QString desc, QUuid uuid);
 
 	QString path() const;
 	QString name() const;
 	QString author() const;
 	QString source() const;
 	QString desc() const;
+	QUuid uuid() const;
+
+	QSharedPointer<Footprint> loadFootprint() /Factory/;
 
 	void setParent(FPDBFolder* parent);
 	FPDBFolder* parent() const;
@@ -209,5 +223,36 @@ public:
 	QString name() const;
 	QList<FPDBFolder*> folders() const;
 	QList<FPDBFile*> items() const;
+};
+
+template<TYPE>
+%MappedType QSharedPointer<TYPE>
+{
+%TypeHeaderCode
+#include <QSharedPointer>
+%End
+
+%ConvertToTypeCode
+	// from python object
+	if (sipIsErr == NULL)
+		return PyInstance_Check(sipPy) && sipCanConvertToType(sipPy, sipType_TYPE, 0);
+	
+	TYPE* t = reinterpret_cast<TYPE*>(sipConvertToType(sipPy, sipType_TYPE, 0, 0, 0, sipIsErr));
+	if (*sipIsErr)
+		return 0;
+	QSharedPointer<TYPE> *ptr = new QSharedPointer<TYPE>(t);
+	*sipCppPtr = ptr;
+	return sipGetState(sipTransferObj);
+%End
+%ConvertFromTypeCode
+	// to python object
+	if (!sipCpp)
+		return NULL;
+
+	QSharedPointer<TYPE> *cPtr = new QSharedPointer<TYPE>(*reinterpret_cast<QSharedPointer<TYPE>*>(sipCpp));
+	TYPE* cpp = cPtr->data();
+	PyObject *obj = sipConvertFromType(cpp, sipType_TYPE, Py_None);
+	return obj;
+%End
 };
 

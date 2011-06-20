@@ -25,14 +25,14 @@
 ////////////////////////// PART EDITOR //////////////////////////////////////
 
 
-PartEditor::PartEditor(Controller *ctrl, Part *part)
-	: AbstractEditor(ctrl), mState(SELECTED), mPart(part), mDialog(NULL), mAngle(part->angle()),
+PartEditor::PartEditor(PCBController *ctrl, Part *part)
+	: AbstractEditor(ctrl), mState(NEW), mPart(part), mDialog(NULL),
 	mChangeSideAction(1, "Change Side"),
 	mRotateCWAction(2, "Rotate CW"),
 	mRotateCCWAction(3, "Rotate CCW"),
 	mEditAction(0, "Edit Part"),
 	mEditFPAction(1, "Edit Footprint"),
-	mLockAction(2, part->locked() ? "Unlock Part" : "Lock Part"),
+	mLockAction(2, (part && part->locked()) ? "Unlock Part" : "Lock Part"),
 	mMoveAction(3, "Move Part"),
 	mDelAction(7, "Delete Part")
 {
@@ -48,9 +48,16 @@ PartEditor::PartEditor(Controller *ctrl, Part *part)
 
 void PartEditor::init()
 {
-	emit actionsChanged();
 	if (!mPart)
 		newPart();
+	else
+	{
+		mState = SELECTED;
+		ctrl()->hideObj(mPart);
+		ctrl()->hideObj(mPart->refdesText());
+		ctrl()->hideObj(mPart->valueText());
+	}
+	emit actionsChanged();
 }
 
 PartEditor::~PartEditor()
@@ -80,6 +87,8 @@ QList<const CtrlAction*> PartEditor::actions() const
 		out.append(&mMoveAction);
 		out.append(&mDelAction);
 		break;
+	case NEW:
+		break;
 	}
 	return out;
 }
@@ -88,7 +97,7 @@ void PartEditor::mouseMoveEvent(QMouseEvent *event)
 {
 	if (mState == MOVE || mState == EDIT_MOVE || mState == ADD_MOVE)
 	{
-		mPos = ctrl()->snapToPlaceGrid(ctrl()->view()->transform().inverted().map(event->pos()));
+		mPart->setPos(ctrl()->snapToPlaceGrid(ctrl()->view()->transform().inverted().map(event->pos())));
 		emit overlayChanged();
 	}
 
@@ -106,27 +115,19 @@ void PartEditor::mousePressEvent(QMouseEvent *event)
 
 void PartEditor::mouseReleaseEvent(QMouseEvent *event)
 {
-	if (mState != SELECTED)
+	if (mState == MOVE || mState == EDIT_MOVE || mState == ADD_MOVE)
 	{
 		ctrl()->unhideObj(mPart);
 		ctrl()->unhideObj(mPart->refdesText());
 		ctrl()->unhideObj(mPart->valueText());
 		event->accept();
-
 	}
-	if (mState == MOVE)
-	{
-		mState = SELECTED;
-		PartMoveCmd* cmd = new PartMoveCmd(NULL, mPart, mPos, mAngle, mSide);
-		ctrl()->doc()->doCommand(cmd);
-		emit actionsChanged();
-		emit overlayChanged();
-	}
-	else if (mState == EDIT_MOVE)
+	if (mState == MOVE || mState == EDIT_MOVE)
 	{
 		mState = SELECTED;
 		finishEdit();
 		emit actionsChanged();
+		emit overlayChanged();
 	}
 	else if (mState == ADD_MOVE)
 	{
@@ -140,7 +141,7 @@ void PartEditor::mouseReleaseEvent(QMouseEvent *event)
 
 void PartEditor::keyPressEvent(QKeyEvent *event)
 {
-	if (event->key() == Qt::Key_Escape && mState != SELECTED)
+	if (event->key() == Qt::Key_Escape && (mState == MOVE || mState == EDIT_MOVE || mState == ADD_MOVE))
 	{
 		if (mState == ADD_MOVE)
 		{
@@ -150,10 +151,8 @@ void PartEditor::keyPressEvent(QKeyEvent *event)
 		}
 		else
 		{
-			ctrl()->unhideObj(mPart);
-			ctrl()->unhideObj(mPart->refdesText());
-			ctrl()->unhideObj(mPart->valueText());
 			mState = SELECTED;
+			mPart->loadState(mPrevPartState);
 			emit actionsChanged();
 			emit overlayChanged();
 		}
@@ -176,9 +175,9 @@ void PartEditor::actionMove()
 		if (result == QMessageBox::No) return;
 		else mPart->setLocked(false);
 	}
-	mState = MOVE;
+	mPrevPartState = mPart->getState();
 	startMove();
-	QCursor::setPos(ctrl()->view()->mapToGlobal(ctrl()->view()->transform().map(mPos)));
+	mState = MOVE;
 	emit actionsChanged();
 	emit overlayChanged();
 }
@@ -191,83 +190,87 @@ void PartEditor::actionLock()
 
 void PartEditor::startMove()
 {
-	mPos = mPart->pos();
-	mAngle = mPart->angle();
-	mSide = mPart->side();
-	mBox = mPart->transform().inverted().mapRect(mPart->bbox());
-	ctrl()->hideObj(mPart);
-	ctrl()->hideObj(mPart->refdesText());
-	ctrl()->hideObj(mPart->valueText());
+
+	QCursor::setPos(ctrl()->view()->mapToGlobal(ctrl()->view()->transform().map(mPart->pos())));
 }
 
 void PartEditor::actionDelete()
 {
-//	TextDeleteCmd* cmd = new TextDeleteCmd(NULL, mText, ctrl()->doc());
-//	ctrl()->doc()->doCommand(cmd);
-//	emit editorFinished();
+	PartDeleteCmd* cmd = new PartDeleteCmd(NULL, mPart, dynamic_cast<PCBDoc*>(ctrl()->doc()));
+	ctrl()->doc()->doCommand(cmd);
+	emit editorFinished();
 }
 
 void PartEditor::actionRotate(bool cw)
 {
-	if (mSide == Part::SIDE_BOTTOM)
+	if (mPart->side() == Part::SIDE_BOTTOM)
 		cw = !cw;
-	mAngle += cw ? 270 : 90;
-	mAngle %= 360;
+	mPart->setAngle((mPart->angle() + (cw ? 270 : 90)) % 360);
 	emit overlayChanged();
 }
 
 void PartEditor::actionChangeSide()
 {
-	mSide = (mSide == Part::SIDE_TOP) ? Part::SIDE_BOTTOM : Part::SIDE_TOP;
+	mPart->setSide((mPart->side() == Part::SIDE_TOP) ? Part::SIDE_BOTTOM : Part::SIDE_TOP);
 	emit overlayChanged();
 }
 
 void PartEditor::newPart()
 {
 	if (!mDialog)
-		mDialog = new EditPartDialog();
+		mDialog = new EditPartDialog(ctrl()->view(), dynamic_cast<PCBDoc*>(ctrl()->doc()));
 	mDialog->init();
 	if (mDialog->exec() == QDialog::Rejected)
 	{
 		emit editorFinished();
 		return;
 	}
-	emit editorFinished();
-//	mText = new Text(mDialog->pos(), mDialog->angle(), mDialog->isMirrored(), mDialog->isNegative(),
-//					 mDialog->layer(), mDialog->textHeight(), mDialog->textWidth(), mDialog->text());
-//	if (!mDialog->isPosSet())
-//	{
-//		mState = ADD_MOVE;
-//		startMove();
-//		emit actionsChanged();
-//	}
-//	else
-//	{
-//		mPos = mDialog->pos();
-//		mAngleDelta = 0;
-//		finishNew();
-//	}
+	mPart = new Part(dynamic_cast<PCBDoc*>(ctrl()->doc()));
+	mPart->setFootprint(mDialog->footprint());
+	mPart->refdesText()->setText(mDialog->ref());
+	mPart->valueText()->setText(mDialog->value());
+	mPart->setRefVisible(mDialog->refVisible());
+	mPart->setValueVisible(mDialog->valueVisible());
+	if (mDialog->isPosSet())
+	{
+		mPart->setPos(mDialog->pos());
+		mPart->setAngle(mDialog->angle());
+		mPart->setSide(mDialog->side());
+		finishNew();
+	}
+	else
+	{
+		startMove();
+		mState = ADD_MOVE;
+		emit actionsChanged();
+	}
 }
 
 void PartEditor::actionEdit()
 {
 	if (!mDialog)
-		mDialog = new EditPartDialog(ctrl()->view());
+		mDialog = new EditPartDialog(ctrl()->view(), dynamic_cast<PCBDoc*>(ctrl()->doc()));
+	mPrevPartState = mPart->getState();
 	mDialog->init(mPart);
 	if (mDialog->exec() == QDialog::Accepted)
 	{
+		mPart->setFootprint(mDialog->footprint());
+		mPart->refdesText()->setText(mDialog->ref());
+		mPart->valueText()->setText(mDialog->value());
+		mPart->setRefVisible(mDialog->refVisible());
+		mPart->setValueVisible(mDialog->valueVisible());
 		if (mDialog->isPosSet())
 		{
-			mPos = mDialog->pos();
-			mAngle = mDialog->angle();
-			mSide = mDialog->side();
+			mPart->setPos(mDialog->pos());
+			mPart->setAngle(mDialog->angle());
+			mPart->setSide(mDialog->side());
 			finishEdit();
 		}
 		else // drag to position
 		{
-			mState = EDIT_MOVE;
 			startMove();
-			mSide = mDialog->side();
+			mState = EDIT_MOVE;
+			mPart->setSide(mDialog->side());
 			emit actionsChanged();
 			emit overlayChanged();
 		}
@@ -276,28 +279,19 @@ void PartEditor::actionEdit()
 
 void PartEditor::finishNew()
 {
-//	mText->setPos(mPos);
-//	mText->setAngle(mText->angle() + mAngleDelta);
-//	TextNewCmd *cmd = new TextNewCmd(NULL, mText, ctrl()->doc());
-//	ctrl()->doc()->doCommand(cmd);
-//	ctrl()->selectObj(mText);
-//	ctrl()->hideObj(mText);
-//	mState = SELECTED;
+	PartNewCmd *cmd = new PartNewCmd(NULL, mPart, dynamic_cast<PCBDoc*>(ctrl()->doc()));
+	ctrl()->doc()->doCommand(cmd);
+	ctrl()->selectObj(mPart);
+	ctrl()->hideObj(mPart);
+	ctrl()->hideObj(mPart->refdesText());
+	ctrl()->hideObj(mPart->valueText());
+	mState = SELECTED;
 	emit overlayChanged();
 }
 
 void PartEditor::finishEdit()
 {
-	PartState psnew(mPart);
-	psnew.angle = mAngle;
-	psnew.fp = mDialog->footprint();
-	psnew.pos = mPos;
-	psnew.refdes = mDialog->ref();
-	psnew.refVisible = mDialog->refVisible();
-	psnew.value = mDialog->value();
-	psnew.valueVisible = mDialog->valueVisible();
-	psnew.side = mSide;
-	PartEditCmd *cmd = new PartEditCmd(NULL, mPart, psnew);
+	PCBObjEditCmd *cmd = new PCBObjEditCmd(NULL, mPart, mPrevPartState);
 	ctrl()->doc()->doCommand(cmd);
 	emit overlayChanged();
 }
@@ -305,60 +299,75 @@ void PartEditor::finishEdit()
 void PartEditor::drawOverlay(QPainter *painter)
 {
 	if (!mPart) return;
-	if (mState == SELECTED)
+	mPart->draw(painter, Layer::LAY_SELECTION);
+	if (mPart->refVisible())
+		mPart->refdesText()->draw(painter, Layer::LAY_SELECTION);
+	if (mPart->valueVisible())
+		mPart->valueText()->draw(painter, Layer::LAY_SELECTION);
+	painter->save();
+	painter->setBrush(Qt::NoBrush);
+	painter->setRenderHint(QPainter::Antialiasing, false);
+	painter->drawRect(mPart->bbox());
+	if (mPart->refVisible())
+		painter->drawRect(mPart->refdesText()->bbox());
+	if (mPart->valueVisible())
+		painter->drawRect(mPart->valueText()->bbox());
+
+	if (mState == MOVE || mState == EDIT_MOVE || mState == ADD_MOVE)
 	{
-		painter->save();
-		painter->setBrush(Qt::NoBrush);
-		painter->setRenderHint(QPainter::Antialiasing, false);
-		mPart->draw(painter, Layer::LAY_SELECTION);
-		painter->restore();
-	}
-	else
-	{
-		painter->save();
-		painter->setRenderHint(QPainter::Antialiasing, false);
-		painter->setBrush(Qt::NoBrush);
-		painter->translate(mPos);
+		painter->translate(mPart->pos());
 		painter->drawLine(QPoint(0, -INT_MAX), QPoint(0, INT_MAX));
 		painter->drawLine(QPoint(-INT_MAX, 0), QPoint(INT_MAX, 0));
-		if (mSide == Part::SIDE_BOTTOM)
-			painter->scale(-1, 1);
-		painter->rotate(mAngle);
-		painter->drawRect(mBox);
-		painter->restore();
 	}
+	painter->restore();
 }
 
-
-/////////////////////////////////// UNDO COMMANDS ///////////////////////////////////////////////
-
-
-PartMoveCmd::PartMoveCmd(QUndoCommand *parent, Part *obj, QPoint newPos, int newAngle, Part::SIDE newSide)
-	: QUndoCommand(parent), mPart(obj), mNewPos(newPos), mPrevPos(obj->pos()), mNewAngle(newAngle),
-	mPrevAngle(obj->angle()), mNewSide(newSide), mPrevSide(obj->side())
+PartNewCmd::PartNewCmd(QUndoCommand *parent, Part *obj, PCBDoc *doc)
+	: QUndoCommand(parent), mPart(obj), mDoc(doc), mInDoc(false)
 {
 }
 
-void PartMoveCmd::redo()
+PartNewCmd::~PartNewCmd()
 {
-	mPart->setPos(mNewPos);
-	mPart->setAngle(mNewAngle);
-	mPart->setSide(mNewSide);
+	if (!mInDoc)
+		delete mPart;
 }
 
-void PartMoveCmd::undo()
+void PartNewCmd::undo()
 {
-	mPart->setPos(mPrevPos);
-	mPart->setAngle(mPrevAngle);
-	mPart->setSide(mPrevSide);
+	if (mInDoc)
+		mDoc->removePart(mPart);
+	mInDoc = false;
 }
 
-void PartEditCmd::undo()
+void PartNewCmd::redo()
 {
-	mPrevState.applyTo(mPart);
+	if (!mInDoc)
+		mDoc->addPart(mPart);
+	mInDoc = true;
 }
 
-void PartEditCmd::redo()
+PartDeleteCmd::PartDeleteCmd(QUndoCommand *parent, Part *obj, PCBDoc *doc)
+	: QUndoCommand(parent), mPart(obj), mDoc(doc), mInDoc(true)
 {
-	mNewState.applyTo(mPart);
+}
+
+PartDeleteCmd::~PartDeleteCmd()
+{
+	if (!mInDoc)
+		delete mPart;
+}
+
+void PartDeleteCmd::undo()
+{
+	if (!mInDoc)
+		mDoc->addPart(mPart);
+	mInDoc = true;
+}
+
+void PartDeleteCmd::redo()
+{
+	if (mInDoc)
+		mDoc->removePart(mPart);
+	mInDoc = false;
 }

@@ -27,7 +27,7 @@ class EditPartDialog : public QDialog, private Ui::EditPartDialog
     Q_OBJECT
 
 public:
-    explicit EditPartDialog(QWidget *parent = 0);
+	explicit EditPartDialog(QWidget *parent, PCBDoc* doc);
 
 	void init(Part* p = NULL);
 
@@ -42,17 +42,40 @@ public:
 	bool refVisible() const { return this->refdesVis->checkState(); }
 	bool valueVisible() const { return this->valueVis->checkState(); }
 
-	Footprint* footprint() const { return mCurrFp; }
+	QUuid footprint() const { return mCurrFpUuid; }
 
 private slots:
 	void on_unitsBox_currentIndexChanged(const QString &s);
-
+	void on_fpSelButton_clicked();
+protected:
+	virtual void accept();
 private:
 	void updateUnits();
+	void updateFp();
 	int toPCB(double value) const { return mInMM ? XPcb::MM2PCB(value) : XPcb::MIL2PCB(value); }
 	bool mInMM;
 	bool mFpChanged;
-	Footprint* mCurrFp;
+	QUuid mCurrFpUuid;
+	Part* mPart;
+	PCBDoc* mDoc;
+};
+
+class AbstractSelFPDialog : public QDialog
+{
+public:
+	AbstractSelFPDialog(QWidget *parent = NULL) : QDialog(parent) {}
+	virtual bool fpSelected() = 0;
+	virtual QUuid uuid() = 0;
+};
+
+class AbstractSelFPDialogFactory
+{
+public:
+	virtual AbstractSelFPDialog* makeDialog(QWidget* parent) = 0;
+	static AbstractSelFPDialogFactory* instance() { return mInst; }
+protected:
+	void registerInstance(AbstractSelFPDialogFactory* f) { mInst = f; }
+	static AbstractSelFPDialogFactory* mInst;
 };
 
 #endif // EDITPARTDIALOG_H

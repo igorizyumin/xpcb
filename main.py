@@ -8,6 +8,7 @@ from PyQt4.QtGui import QWidget, QDockWidget, QColor
 import xpcb
 import cmdLinePlugin
 import LineEditorPlugin
+import FPSelectorPlugin
 import sip
 
 def setDefaultValue(s, key, value):
@@ -64,9 +65,11 @@ initSettings()
 
 pl = cmdLinePlugin.PluginMain()
 p2 = LineEditorPlugin.PluginMain()
-w = xpcb.PCBEditWindow(None, [pl, p2])
+p3 = FPSelectorPlugin.PluginMain()
+w = xpcb.PCBEditWindow(None, [pl, p2, p3])
 pl.initPlugin(w)
 p2.initPlugin(w)
+p3.initPlugin(w)
 w.show()
 sys.exit(app.exec_())
 

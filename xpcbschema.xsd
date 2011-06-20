@@ -91,7 +91,6 @@
   <xs:element name="xpcbFootprint">
     <xs:complexType>
       <xs:sequence>
-        <xs:element ref="padstacks"/>
         <xs:element ref="footprint"/>
       </xs:sequence>
     </xs:complexType>
@@ -214,6 +213,7 @@
     <xs:complexType>
       <xs:sequence>
         <xs:element ref="name"/>
+        <xs:element ref="uuid"/>
         <xs:element ref="units"/>
         <xs:element minOccurs="0" ref="author"/>
         <xs:element minOccurs="0" ref="source"/>
@@ -224,11 +224,19 @@
           <xs:element ref="arc"/>
           <xs:element ref="text"/>
         </xs:choice>
+        <xs:element ref="padstacks"/>
         <xs:element ref="pins"/>
         <xs:element ref="refText"/>
         <xs:element ref="valueText"/>
       </xs:sequence>
     </xs:complexType>
+  </xs:element>
+  <xs:element name="uuid">
+    <xs:simpleType>
+      <xs:restriction base="xs:string">
+        <xs:length value="38"/>
+      </xs:restriction>
+    </xs:simpleType>
   </xs:element>
   <xs:element name="author" type="xs:string"/>
   <xs:element name="source" type="xs:string"/>
@@ -384,7 +392,13 @@
       </xs:sequence>
       <xs:attribute name="refdes" use="required" type="xs:string"/>
       <xs:attribute name="value" type="xs:string"/>
-      <xs:attribute name="footprint" use="required" type="xs:string"/>
+      <xs:attribute name="footprint_uuid" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:length value="38"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
       <xs:attributeGroup ref="CoordsAttr"/>
       <xs:attributeGroup ref="RotAttr"/>
       <xs:attribute name="side" use="required">

@@ -122,10 +122,14 @@ public:
 
 	TraceList& traceList() const {return *mTraceList;}
 	Part* getPart(const QString & refdes);
-	Footprint* getFootprint(const QString &name);
+	QSharedPointer<Footprint> getFootprint(QUuid uuid);
 	Net* getNet(const QString &name) const;
+
 	void addText(Text* t);
 	void removeText(Text* t);
+
+	void addPart(Part* p);
+	void removePart(Part* p);
 
 	int numLayers() const { return mNumLayers; }
 
@@ -143,7 +147,7 @@ private:
 	QList<Part*> mParts;
 	QList<Text*> mTexts;
 	QList<Area*> mAreas;
-	QList<Footprint*> mFootprints;
+	QHash<QUuid, QSharedPointer<Footprint> > mFootprints;
 	QList<Padstack*> mPadstacks;
 	Polygon mBoardOutline;
 	Padstack* mDefaultPadstack;
@@ -169,9 +173,9 @@ public:
 	virtual void addText(Text* t) { mFp->addText(t); }
 	virtual void removeText(Text* t) { mFp->removeText(t); }
 
-	virtual QList<Padstack*> padstacks();
-	virtual void addPadstack(Padstack* ps);
-	virtual void removePadstack(Padstack* ps);
+	virtual QList<Padstack*> padstacks() { return mFp->padstacks(); }
+	virtual void addPadstack(Padstack* ps) { return mFp->addPadstack(ps); }
+	virtual void removePadstack(Padstack* ps) { return mFp->removePadstack(ps); }
 
 	void addPin(Pin* p);
 	void removePin(Pin* p);
@@ -184,7 +188,6 @@ public:
 private:
 	void clearFP();
 
-	QList<Padstack*> mPadstacks;
 	Footprint *mFp;
 };
 

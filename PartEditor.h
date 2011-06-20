@@ -29,7 +29,7 @@ class PartEditor : public AbstractEditor
 {
 	Q_OBJECT
 public:
-	PartEditor(Controller *ctrl, Part *part);
+	PartEditor(PCBController *ctrl, Part *part = NULL);
 	virtual ~PartEditor();
 
 	virtual void drawOverlay(QPainter* painter);
@@ -53,20 +53,16 @@ private slots:
 
 private:
 	void newPart();
-	enum State {SELECTED, MOVE, ADD_MOVE, EDIT_MOVE};
+	enum State {NEW, SELECTED, MOVE, ADD_MOVE, EDIT_MOVE};
 
 	void startMove();
 	void finishEdit();
 	void finishNew();
 
+	PCBObjState mPrevPartState;
 	State mState;
 	Part* mPart;
 	EditPartDialog *mDialog;
-	QPoint mPos;
-	QRect mBox;
-	int mAngle;
-	Part::SIDE mSide;
-
 	CtrlAction mChangeSideAction;
 	CtrlAction mRotateCWAction;
 	CtrlAction mRotateCCWAction;
@@ -77,71 +73,34 @@ private:
 	CtrlAction mDelAction;
 };
 
-class PartState
+class PartNewCmd : public QUndoCommand
 {
 public:
-	PartState()
-		: angle(0), side(Part::SIDE_TOP), refVisible(false), valueVisible(false), fp(NULL)
-	{}
-	PartState(Part* p)
-		: pos(p->pos()), angle(p->angle()), side(p->side()), refdes(p->refdes()), refVisible(p->refVisible()),
-		value(p->value()), valueVisible(p->valueVisible()), fp(p->footprint())
-	{}
-
-	void applyTo(Part* p)
-	{
-		p->setPos(pos);
-		p->setAngle(angle);
-		p->setSide(side);
-		p->refdesText()->setText(refdes);
-		p->setRefVisible(refVisible);
-		p->valueText()->setText(value);
-		p->setValueVisible(valueVisible);
-		//p->setFootprint(fp);
-	}
-
-	QPoint pos;
-	int angle;
-	Part::SIDE side;
-	QString refdes;
-	bool refVisible;
-	QString value;
-	bool valueVisible;
-	Footprint * fp;
-};
-
-class PartMoveCmd : public QUndoCommand
-{
-public:
-	PartMoveCmd(QUndoCommand *parent, Part* obj, QPoint newPos, int newAngle, Part::SIDE newSide);
+	PartNewCmd(QUndoCommand *parent, Part* obj, PCBDoc* doc);
+	virtual ~PartNewCmd();
 
 	virtual void undo();
 	virtual void redo();
 
 private:
 	Part* mPart;
-	QPoint mNewPos;
-	QPoint mPrevPos;
-	int mNewAngle;
-	int mPrevAngle;
-	Part::SIDE mNewSide;
-	Part::SIDE mPrevSide;
+	PCBDoc* mDoc;
+	bool mInDoc;
 };
 
-class PartEditCmd : public QUndoCommand
+class PartDeleteCmd : public QUndoCommand
 {
 public:
-	PartEditCmd(QUndoCommand *parent, Part* p, PartState& newState)
-		: QUndoCommand(parent), mPart(p), mPrevState(PartState(p)), mNewState(newState) {}
+	PartDeleteCmd(QUndoCommand *parent, Part* obj, PCBDoc* doc);
+	virtual ~PartDeleteCmd();
 
 	virtual void undo();
 	virtual void redo();
 
 private:
 	Part* mPart;
-
-	PartState mPrevState;
-	PartState mNewState;
+	PCBDoc* mDoc;
+	bool mInDoc;
 };
 
 #endif // PARTEDITOR_H

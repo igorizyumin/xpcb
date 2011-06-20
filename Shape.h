@@ -4,6 +4,7 @@
 #include <QHash>
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
+#include <QUuid>
 #include "PCBObject.h"
 #include "Text.h"
 #include "Line.h"
@@ -156,6 +157,11 @@ private:
 		Padstack* ps;
 	};
 
+	// disabled copy constructor
+	Pin(const Pin& other);
+	// disabled assignment operator
+	Pin& operator=(const Pin& other);
+
 	void updateTransform() const;
 	void markDirty() const { mIsDirty = true; }
 	/// Pin name (i.e. "1", "B2", "GATE")
@@ -178,6 +184,7 @@ class Footprint
 
 public:
 	Footprint();
+	Footprint(const Footprint& other);
 	~Footprint();
 
 	enum FP_DRAW_LAYER { LAY_START, LAY_INNER, LAY_END };
@@ -189,6 +196,10 @@ public:
 	QString author() const { return mAuthor; }
 	QString source() const { return mSource; }
 	QString desc() const { return mDesc; }
+
+	QList<Padstack*> padstacks() { return mPadstacks; }
+	void addPadstack(Padstack* ps) { mPadstacks.append(ps); }
+	void removePadstack(Padstack* ps);
 
 	int numPins() const;
 	const Pin* getPin(const QString & pin) const;
@@ -215,10 +226,15 @@ public:
 	bool isCustomCentroid() {return mCustomCentroid;}
 	XPcb::UNIT units() {return mUnits; }
 
-	static Footprint* newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks);
+	static Footprint* newFromXML(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 
+	const QUuid& uuid() const { return mUuid; }
+
 private:
+	/// Assignment operator (disabled)
+	Footprint& operator=(Footprint& other);
+
 	/// Computes the default centroid (center of all pins)
 	QPoint getDefaultCentroid();
 
@@ -241,12 +257,16 @@ private:
 	/// If false, centroid is automatically set to the center of all pins
 	/// If true, centroid is user-defined
 	bool mCustomCentroid;
+	/// Footprint padstacks
+	QList<Padstack*> mPadstacks;
 	/// Footprint pins
 	QList<Pin*> mPins;
 	/// Silkscreen lines (used for part outline)
 	QList<Line*> mOutlineLines;
 	/// Silkscreen text
 	QList<Text*> mTexts;
+	/// UUID for this footprint
+	QUuid mUuid;
 };
 
 class FPDBFile;
@@ -260,11 +280,13 @@ public:
 	static FPDatabase& instance();
 
 	QList<FPDBFolder*> rootFolders() const { return mRootFolders; }
+	const FPDBFile* getByUuid(QUuid uuid) const { return mUuidHash.value(uuid); }
 
 private:
 	FPDatabase();
 	static FPDatabase* mInst;
 	QList<FPDBFolder*> mRootFolders;
+	QHash<QUuid, FPDBFile*> mUuidHash;
 
 	FPDBFolder* createFolder(QString path, bool fullName = false);
 	FPDBFile* createFile(QString path);
@@ -273,14 +295,16 @@ private:
 class FPDBFile
 {
 public:
-	FPDBFile(QString path, QString name, QString author, QString source, QString desc);
+	FPDBFile(QString path, QString name, QString author, QString source, QString desc, QUuid uuid);
 
 	QString path() const { return mFpPath; }
 	QString name() const { return mName; }
 	QString author() const { return mAuthor; }
 	QString source() const { return mSource; }
 	QString desc() const { return mDesc; }
+	QUuid uuid() const { return mUuid; }
 
+	QSharedPointer<Footprint> loadFootprint() const;
 
 	void setParent(FPDBFolder* parent) { mParent = parent; }
 	FPDBFolder* parent() const { return mParent; }
@@ -293,6 +317,7 @@ private:
 	QString mAuthor;
 	QString mSource;
 	QString mDesc;
+	QUuid mUuid;
 	/// Parent folder
 	FPDBFolder* mParent;
 };

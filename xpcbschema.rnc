@@ -32,7 +32,6 @@ XPcbBoard = element xpcbBoard
 
 XPcbFp = element xpcbFootprint
 {
-	Padstacks,
 	Footprint
 }
 
@@ -80,12 +79,14 @@ Footprints = element footprints
 Footprint = element footprint
 {
 	element name { xsd:string },
+	element uuid { xsd:string {length = "38"} },
 	Units,
 	element author { xsd:string }?,
 	element source { xsd:string }?,
 	element desc { xsd:string }?,
 	element centroid { CoordsAttr, attribute custom {Bool}? },
 	(Line | Arc | Text)*,
+	Padstacks,
 	Pins,
 	RefText,
 	ValueText
@@ -150,7 +151,7 @@ Parts = element parts {
 Part = element part {
 	attribute refdes { xsd:string },
 	attribute value { xsd:string }?,
-	attribute footprint { xsd:string },
+	attribute footprint_uuid { xsd:string {length = "38"} },
 	CoordsAttr,
 	RotAttr,
 	attribute side {"top" | "bot"},

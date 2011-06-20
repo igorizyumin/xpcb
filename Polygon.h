@@ -112,7 +112,7 @@ public:
 
 	/// Checks if the polygon is void (has zero area).
 	/// \returns true if polygon is void
-	bool isVoid();
+	bool isVoid() const;
 
 	/// Check if a point is within the polygon's
 	/// filled area (i.e. inside the outer boundary and outside of a hole/cutout).

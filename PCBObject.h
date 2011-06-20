@@ -2,6 +2,7 @@
 #define PCBOBJECT_H
 
 #include <QPainter>
+#include <QUndoCommand>
 #include "global.h"
 #include "Log.h"
 
@@ -20,6 +21,7 @@ class PCBObjectVisitor;
 class PCBDoc;
 class Layer;
 class PCBObjState;
+class QPainter;
 
 /// Abstract base class for PCB graphical objects
 
@@ -93,7 +95,7 @@ class PCBObjStateInternal
 {
 public:
 	// needed to make object polymorphic for RTTI
-	virtual ~PCBObjStateInternal() { Log::instance().message("destroyed objstateinternal"); }
+	virtual ~PCBObjStateInternal() { }
 };
 
 /// Wrapper class that takes care of dealing with smartpointers.
@@ -101,14 +103,31 @@ class PCBObjState
 {
 public:
 	PCBObjState() {}
-	PCBObjState(PCBObjStateInternal* ptr) : mPtr(ptr) { Log::instance().message("created objstate"); }
-	PCBObjState(const PCBObjState &other) : mPtr(other.mPtr) {Log::instance().message("copied objstate"); }
-	~PCBObjState() { Log::instance().message("destroyed objstate"); }
+	PCBObjState(PCBObjStateInternal* ptr) : mPtr(ptr) {  }
+	PCBObjState(const PCBObjState &other) : mPtr(other.mPtr) { }
+	~PCBObjState() { }
 	const QSharedPointer<PCBObjStateInternal>& ptr() const { return mPtr; }
 
 
 protected:
 	QSharedPointer<PCBObjStateInternal> mPtr;
+};
+
+/// Universal undo command
+class PCBObjEditCmd : public QUndoCommand
+{
+public:
+	PCBObjEditCmd(QUndoCommand* parent, PCBObject *obj,
+				  PCBObjState prevState)
+		: QUndoCommand(parent), mObj(obj), mPrevState(prevState),
+		  mNewState(obj->getState()) {}
+
+	virtual void undo() { mObj->loadState(mPrevState); }
+	virtual void redo() { mObj->loadState(mNewState); }
+private:
+	PCBObject* mObj;
+	PCBObjState mPrevState;
+	PCBObjState mNewState;
 };
 
 #endif // PCBOBJECT_H

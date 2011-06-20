@@ -109,8 +109,9 @@ public:
 	void setRefVisible(bool vis) { mRefVisible = vis; }
 	void setValueVisible(bool vis) { mValueVisible = vis; }
 
-	Footprint* footprint() const { return mFp;}
-	void setFootprint( Footprint * fp );
+	QSharedPointer<Footprint> footprint() const { return mFp;}
+	const QUuid& fpUuid() const { return mFpUuid; }
+	void setFootprint(QUuid uuid);
 
 	QList<PartPin*> pins() const { return mPins; }
 	PartPin* getPin(const QString &name);
@@ -132,7 +133,7 @@ private:
 		PartState(const Part &p)
 			: transform(p.transform()), pos(p.pos()), angle(p.angle()),
 			side(p.side()), locked(p.locked()), refVis(p.refVisible()),
-			valVis(p.valueVisible()), fp(p.footprint()), pins(p.pins()),
+			valVis(p.valueVisible()), uuid(p.fpUuid()), fp(p.footprint()), pins(p.pins()),
 			doc(p.doc())
 		{}
 
@@ -143,12 +144,15 @@ private:
 		bool locked;
 		bool refVis;
 		bool valVis;
-		Footprint* fp;
+		QUuid uuid;
+		QSharedPointer<Footprint> fp;
 		QList<PartPin*> pins;
 		PCBDoc* doc;
 	};
 
 	void resetFp();
+	void updateFp();
+
 	void updateTransform();
 
 	/// Coordinate transform from part to world coords
@@ -168,8 +172,10 @@ private:
 	/// Value text
 	Text* mValue;
 	bool mValueVisible;
-	/// Pointer to the footprint of the part, may be NULL
-	Footprint * mFp;
+	/// Pointer to the footprint of the part
+	QSharedPointer<Footprint> mFp;
+	/// UUID of footprint
+	QUuid mFpUuid;
 	/// List of part pins.
 	QList<PartPin*> mPins;
 	/// Parent document

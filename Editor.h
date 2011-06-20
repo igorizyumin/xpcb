@@ -68,6 +68,7 @@ public:
 	AbstractEditor* newEditor(PCBObject* obj, Controller *ctrl);
 	AbstractEditor* newTextEditor(Controller *ctrl);
 	AbstractEditor* newPinEditor(FPController* ctrl);
+	AbstractEditor* newPartEditor(PCBController* ctrl);
 
 	static void registerFactory(ObjType type, AbstractEditorFactory* factory) { instance().mFactories[type] = factory; }
 

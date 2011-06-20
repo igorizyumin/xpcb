@@ -98,11 +98,6 @@ void FPDoc::clearFP()
 {
 	delete mFp;
 	mFp = NULL;
-	foreach(Padstack* p, mPadstacks)
-	{
-		delete p;
-	}
-	mPadstacks.clear();
 }
 
 QList<Layer> FPDoc::layerList(LayerOrder order)
@@ -207,21 +202,6 @@ QList<PCBObject*> FPDoc::findObjs(QRect &rect)
 	return out;
 }
 
-QList<Padstack*> FPDoc::padstacks()
-{
-	return mPadstacks;
-}
-
-void FPDoc::addPadstack(Padstack* ps)
-{
-	mPadstacks.append(ps);
-}
-
-void FPDoc::removePadstack(Padstack *ps)
-{
-	// TODO !
-}
-
 void FPDoc::addPin(Pin *p)
 {
 	mFp->addPin(p);
@@ -257,14 +237,18 @@ PCBDoc::~PCBDoc()
 	clearDoc();
 }
 
-Footprint* PCBDoc::getFootprint(const QString &name)
+QSharedPointer<Footprint> PCBDoc::getFootprint(QUuid uuid)
 {
-	foreach(Footprint* fp, mFootprints)
-	{
-		if (fp->name() == name)
-			return fp;
-	}
-	return NULL;
+	// first see if we already have it in the cache
+	if (mFootprints.contains(uuid))
+		return mFootprints.value(uuid);
+	// otherwise get it from the db and cache it
+	const FPDBFile* f = FPDatabase::instance().getByUuid(uuid);
+	if (!f) return QSharedPointer<Footprint>();
+	QSharedPointer<Footprint> ptr = f->loadFootprint();
+	if (!ptr.isNull())
+		mFootprints.insert(uuid, ptr);
+	return ptr;
 }
 
 Part* PCBDoc::getPart(const QString &refdes)
@@ -384,8 +368,6 @@ void PCBDoc::clearDoc()
 		delete n;
 	mAreas.clear();
 
-	foreach(Footprint* n, mFootprints)
-		delete n;
 	mFootprints.clear();
 
 	foreach(Padstack* n, mPadstacks)
@@ -451,11 +433,25 @@ void PCBDoc::removePadstack(Padstack *ps)
 
 }
 
+void PCBDoc::addPart(Part *p)
+{
+	Q_ASSERT(!mParts.contains(p));
+	mParts.append(p);
+}
+
+void PCBDoc::removePart(Part *p)
+{
+	Q_ASSERT(mParts.contains(p));
+	mParts.removeOne(p);
+}
+
+
+
 //////// XML PARSING /////////
 // parser methods
 void loadProps(QXmlStreamReader &reader, QString &name, XPcb::UNIT &units, int &defaultps, int &numLayers);
 void loadPadstacks(QXmlStreamReader &reader, QHash<int, Padstack*> &padstacks);
-void loadFootprints(QXmlStreamReader &reader, QList<Footprint*> &footprints, const QHash<int, Padstack*> &padstacks);
+void loadFootprints(QXmlStreamReader &reader, QHash<QUuid, QSharedPointer<Footprint> > &footprints);
 void loadOutline(QXmlStreamReader &reader, Polygon & poly);
 void loadParts(QXmlStreamReader &reader, QList<Part*>& parts, PCBDoc* doc);
 void loadNets(QXmlStreamReader &reader, QList<Net*>& nets, PCBDoc* doc, const QHash<int, Padstack*> &padstacks);
@@ -504,7 +500,7 @@ bool PCBDoc::saveToXml(QXmlStreamWriter &writer)
 	writer.writeEndElement();
 
 	writer.writeStartElement("footprints");
-	foreach(Footprint* fp, mFootprints)
+	foreach(QSharedPointer<Footprint> fp, mFootprints)
 		fp->toXML(writer);
 	writer.writeEndElement();
 
@@ -588,11 +584,10 @@ bool PCBDoc::loadFromXml(QXmlStreamReader &reader)
 				Log::instance().error("Invalid default padstack specified.");
 				mDefaultPadstack = new Padstack();
 				mPadstacks.append(mDefaultPadstack);
-
 			}
 		}
 		else if (t == "footprints")
-			loadFootprints(reader, this->mFootprints, padstacks);
+			loadFootprints(reader, this->mFootprints);
 		else if (t == "outline")
 			loadOutline(reader, this->mBoardOutline);
 		else if (t == "parts")
@@ -638,7 +633,6 @@ bool FPDoc::loadFromFile(QFile &file)
 bool FPDoc::loadFromXml(QXmlStreamReader &reader)
 {
 	clearFP();
-	QHash<int, Padstack*> padstacks;
 
 	reader.readNextStartElement();
 	if (reader.name() != "xpcbFootprint")
@@ -650,14 +644,9 @@ bool FPDoc::loadFromXml(QXmlStreamReader &reader)
 	{
 		QStringRef t = reader.name();
 
-		if (t == "padstacks")
+		if (t == "footprint")
 		{
-			loadPadstacks(reader, padstacks);
-			mPadstacks.append(padstacks.values());
-		}
-		else if (t == "footprint")
-		{
-			mFp = Footprint::newFromXML(reader, padstacks);
+			mFp = Footprint::newFromXML(reader);
 			if (!mFp)
 			{
 				Log::instance().error("Error loading footprint");
@@ -678,11 +667,6 @@ bool FPDoc::saveToXml(QXmlStreamWriter &writer)
 	writer.setAutoFormatting(true);
 	writer.writeStartDocument();
 	writer.writeStartElement("xpcbFootprint");
-
-	writer.writeStartElement("padstacks");
-	foreach(Padstack* ps, mPadstacks)
-		ps->toXML(writer);
-	writer.writeEndElement();
 
 	mFp->toXML(writer);
 
@@ -752,7 +736,7 @@ void loadPadstacks(QXmlStreamReader &reader, QHash<int, Padstack*> &padstacks)
 
 }
 
-void loadFootprints(QXmlStreamReader &reader, QList<Footprint*> &footprints, const QHash<int, Padstack*> &padstacks)
+void loadFootprints(QXmlStreamReader &reader, QHash<QUuid, QSharedPointer<Footprint> > &footprints)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "footprints");
 	while(!reader.atEnd() && !reader.hasError())
@@ -764,13 +748,13 @@ void loadFootprints(QXmlStreamReader &reader, QList<Footprint*> &footprints, con
 			continue; // comments, etc.
 		if (reader.name() == "footprint")
 		{
-			Footprint* fp = Footprint::newFromXML(reader, padstacks);
+			Footprint* fp = Footprint::newFromXML(reader);
 			if (!fp)
 			{
 				Log::instance().error("Error loading footprint");
 			}
 			else
-				footprints.append(fp);
+				footprints.insert(fp->uuid(), QSharedPointer<Footprint>(fp));
 		}
 	}
 	do

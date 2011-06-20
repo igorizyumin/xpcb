@@ -369,6 +369,7 @@ Polygon Polygon::newFromXML(QXmlStreamReader &reader)
 
 void Polygon::toXML(QXmlStreamWriter &writer) const
 {
+	if (isVoid()) return;
 	writer.writeStartElement("polygon");
 	writer.writeStartElement("outline");
 	mOutline.toXML(writer);
@@ -385,4 +386,9 @@ void Polygon::toXML(QXmlStreamWriter &writer) const
 QRect Polygon::bbox() const
 {
 	return mOutline.bbox();
+}
+
+bool Polygon::isVoid() const
+{
+	return bbox().isEmpty();
 }

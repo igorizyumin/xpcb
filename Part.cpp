@@ -91,7 +91,7 @@ bool PartPin::loadState(PCBObjState &state)
 ///////////////////// PART /////////////////////
 Part::Part(PCBDoc *doc)
 	: mAngle(0), mSide(SIDE_TOP), mLocked(false), mRefdes(NULL), mRefVisible(false), mValue(NULL),
-	mValueVisible(false), mFp(NULL), mDoc(doc)
+	mValueVisible(false), mDoc(doc)
 {
 
 }
@@ -114,23 +114,30 @@ void Part::resetFp()
 	mPins.clear();
 }
 
-void Part::setFootprint(Footprint *fp)
+void Part::setFootprint(QUuid uuid)
+{
+	mFpUuid = uuid;
+	updateFp();
+}
+
+void Part::updateFp()
 {
 	resetFp();
-
-	// set pointer
-	mFp = fp;
+	mFp = doc()->getFootprint(mFpUuid);
+	if (mFp.isNull()) return;
 
 	// create new pins
-	for(int i = 0; i < fp->numPins(); i++)
+	for(int i = 0; i < mFp->numPins(); i++)
 	{
-		const Pin *p = fp->getPin(i);
+		const Pin *p = mFp->getPin(i);
 		mPins.append(new PartPin(this, p));
 	}
 
 	// create texts
-	mRefdes = new Text(fp->getRefText());
-	mValue = new Text(fp->getValueText());
+	mRefdes = new Text(mFp->getRefText());
+	mRefdes->setParent(this);
+	mValue = new Text(mFp->getValueText());
+	mValue->setParent(this);
 }
 
 Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
@@ -143,16 +150,8 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 	Part *pp = new Part(doc);
 
 
-	// find footprint
-	Footprint *fp = doc->getFootprint(attr.value("footprint").toString());
-	if (!fp)
-	{
-		Log::instance().error("Error when creating part: footprint not found");
-		delete pp;
-		return NULL;
-	}
-	else
-		pp->setFootprint(fp);
+	pp->mFpUuid = QUuid(attr.value("footprint_uuid").toString());
+	pp->updateFp();
 
 	// reference designator
 	pp->mRefdes->setText(attr.value("refdes").toString());
@@ -225,7 +224,7 @@ void Part::toXML(QXmlStreamWriter &writer) const
 	QPoint valuePos = transform().inverted().map(mValue->pos());
 
 	writer.writeStartElement("part");
-	writer.writeAttribute("footprint", mFp->name());
+	writer.writeAttribute("footprint_uuid", mFpUuid.toString());
 	writer.writeAttribute("refdes", this->mRefdes->text());
 	writer.writeAttribute("value", this->mValue->text());
 	writer.writeAttribute("x", QString::number(mPos.x()));
@@ -273,23 +272,14 @@ void Part::updateTransform()
 
 void Part::draw(QPainter *painter, const Layer& layer) const
 {
-	if (layer.type() == Layer::LAY_SELECTION)
-	{
-		painter->drawRect(bbox());
-		if (refVisible())
-			painter->drawRect(refdesText()->bbox());
-		if (valueVisible())
-			painter->drawRect(valueText()->bbox());
-		return;
-	}
-
 	painter->save();
 	painter->setTransform(mTransform, true);
 
 
 	// draw footprint
 	if ((layer.type() == Layer::LAY_SILK_TOP && mSide == SIDE_TOP) ||
-		(layer.type() == Layer::LAY_SILK_BOTTOM && mSide == SIDE_BOTTOM))
+		(layer.type() == Layer::LAY_SILK_BOTTOM && mSide == SIDE_BOTTOM) ||
+			layer.type() == Layer::LAY_SELECTION)
 		mFp->draw(painter, Footprint::LAY_START);
 	else if ((layer.type() == Layer::LAY_SILK_TOP && mSide == SIDE_BOTTOM) ||
 		(layer.type() == Layer::LAY_SILK_BOTTOM && mSide == SIDE_TOP))
@@ -337,6 +327,7 @@ bool Part::loadState(PCBObjState &state)
 	mRefVisible = s->refVis;
 	mValueVisible = s->valVis;
 	mFp = s->fp;
+	mFpUuid = s->uuid;
 	mPins = s->pins;
 	mDoc = s->doc;
 	return true;

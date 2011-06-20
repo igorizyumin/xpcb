@@ -80,13 +80,13 @@ public:
 //	virtual void addPadstack(Padstack* ps);
 //	virtual void removePadstack(Padstack* ps);
 
-//	void addPin(Pin* p);
-//	void removePin(Pin* p);
+	void addPin(Pin* p /Transfer/);
+	void removePin(Pin* p /TransferBack/);
 
 	void addLine(Line* l /Transfer/);
 	void removeLine(Line* l /TransferBack/);
 
-//	Footprint* footprint() { return mFp; }
+	Footprint* footprint();
 
 };
 
@@ -315,3 +315,26 @@ protected:
 	Controller* ctrl();
 };
 
+class AbstractSelFPDialog : QDialog
+{
+%TypeHeaderCode
+#include "EditPartDialog.h"
+%End
+public:
+	AbstractSelFPDialog(QWidget* parent = NULL);
+	virtual bool fpSelected() = 0;
+	virtual QUuid uuid() = 0;
+};
+
+class AbstractSelFPDialogFactory
+{
+%TypeHeaderCode
+#include "EditPartDialog.h"
+%End
+
+public:
+	virtual AbstractSelFPDialog* makeDialog(QWidget* parent) = 0 /Factory/;
+	static AbstractSelFPDialogFactory* instance();
+protected:
+	void registerInstance(AbstractSelFPDialogFactory* f);
+};

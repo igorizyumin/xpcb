@@ -449,13 +449,48 @@ bool Pin::loadState(PCBObjState &state)
 /////////////////////// FOOTPRINT /////////////////////////
 
 Footprint::Footprint()
-	: mName("EMPTY_SHAPE"), mUnits(XPcb::MIL), mCustomCentroid(false)
+	: mName("EMPTY_SHAPE"), mUnits(XPcb::MIL), mCustomCentroid(false), mUuid(QUuid::createUuid())
 {
 	mValueText.setText("VALUE");
 	mValueText.setLayer(Layer::LAY_SILK_TOP);
 	mValueText.setPos(QPoint(0, XPcb::MIL2PCB(-120)));
 	mRefText.setText("REF");
 	mRefText.setLayer(Layer::LAY_SILK_TOP);
+	Log::instance().message("FP constructed");
+}
+
+Footprint::Footprint(const Footprint &other)
+	: mName(other.mName), mAuthor(other.mAuthor),
+	  mSource(other.mSource), mDesc(other.mDesc),
+	  mUnits(other.mUnits), mRefText(other.mRefText),
+	  mValueText(other.mValueText), mCentroid(other.mCentroid),
+	  mCustomCentroid(other.mCustomCentroid), mUuid(other.mUuid)
+{
+	QHash<Padstack*, Padstack*> psmap;
+	foreach(Padstack* ps, other.mPadstacks)
+	{
+		Padstack* newps = new Padstack(*ps);
+		psmap.insert(ps, newps);
+		mPadstacks.append(newps);
+	}
+	foreach(Pin* p, other.mPins)
+	{
+		Pin* np = new Pin(this);
+		np->setPos(p->pos());
+		np->setName(p->name());
+		np->setAngle(p->angle());
+		np->setPadstack(psmap.value(p->padstack()));
+	}
+	foreach(Line* p, other.mOutlineLines)
+	{
+		mOutlineLines.append(new Line(*p));
+	}
+	foreach(Text* p, other.mTexts)
+	{
+		mTexts.append(new Text(*p));
+	}
+	Log::instance().message("FP copy constructor");
+
 }
 
 // destructor
@@ -464,8 +499,14 @@ Footprint::~Footprint()
 {
 	foreach(Text* t, mTexts)
 		delete t;
+	foreach(Pin* p, mPins)
+		delete p;
 	foreach(Line* l, mOutlineLines)
 		delete l;
+	foreach(Padstack* ps, mPadstacks)
+		delete ps;
+	Log::instance().message("FP destroyed");
+
 }
 
 void Footprint::draw(QPainter *painter, FP_DRAW_LAYER layer) const
@@ -479,9 +520,11 @@ void Footprint::draw(QPainter *painter, FP_DRAW_LAYER layer) const
 		t->draw(painter, pcblayer);
 }
 
-Footprint* Footprint::newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks)
+Footprint* Footprint::newFromXML(QXmlStreamReader &reader)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "footprint");
+
+	QHash<int, Padstack*> psHash;
 
 	Footprint *fp = new Footprint();
 	while(reader.readNextStartElement())
@@ -490,6 +533,10 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader, const QHash<int, Pads
 		if (el == "name")
 		{
 			fp->mName = reader.readElementText();
+		}
+		else if (el == "uuid")
+		{
+			fp->mUuid = QUuid(reader.readElementText());
 		}
 		else if (el == "units")
 		{
@@ -529,11 +576,20 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader, const QHash<int, Pads
 		{
 			fp->mTexts.append(Text::newFromXML(reader));
 		}
+		else if (el == "padstacks")
+		{
+			while(reader.readNextStartElement())
+			{
+				int psid = reader.attributes().value("id").toString().toInt();
+				Padstack* ps = Padstack::newFromXML(reader);
+				psHash.insert(psid, ps);
+			}
+		}
 		else if (el == "pins")
 		{
 			while(reader.readNextStartElement())
 			{
-				Pin* pin = Pin::newFromXML(reader, padstacks, fp);
+				Pin* pin = Pin::newFromXML(reader, psHash, fp);
 				fp->mPins.append(pin);
 			}
 		}
@@ -566,6 +622,7 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader, const QHash<int, Pads
 			while(!reader.isEndElement());
 		}
 	}
+	fp->mPadstacks = psHash.values();
 	return fp;
 }
 
@@ -574,6 +631,7 @@ void Footprint::toXML(QXmlStreamWriter &writer) const
 	writer.writeStartElement("footprint");
 
 	writer.writeTextElement("name", mName);
+	writer.writeTextElement("uuid", mUuid.toString());
 	writer.writeTextElement("units", mUnits == XPcb::MM ? "mm" : "mils");
 	writer.writeTextElement("author", mAuthor);
 	writer.writeTextElement("source", mSource);
@@ -589,6 +647,11 @@ void Footprint::toXML(QXmlStreamWriter &writer) const
 		l->toXML(writer);
 	foreach(Text* t, mTexts)
 		t->toXML(writer);
+
+	writer.writeStartElement("padstacks");
+	foreach(Padstack* ps, mPadstacks)
+		ps->toXML(writer);
+	writer.writeEndElement();
 
 	writer.writeStartElement("pins");
 	foreach(Pin* p, mPins)
@@ -612,6 +675,18 @@ void Footprint::toXML(QXmlStreamWriter &writer) const
 	writer.writeEndElement();
 
 	writer.writeEndElement(); // footprint
+}
+
+void Footprint::removePadstack(Padstack *ps)
+{
+	// check if it is in use
+	foreach(Pin* p, mPins)
+	{
+		if (p->padstack() == ps)
+			return;
+	}
+	// not in use, delete
+	mPadstacks.removeOne(ps);
 }
 
 int Footprint::numPins() const
@@ -773,13 +848,23 @@ FPDBFile* FPDatabase::createFile(QString path)
 	FPDBFile* f = new FPDBFile(path, doc.footprint()->name(),
 							   doc.footprint()->author(),
 							   doc.footprint()->source(),
-							   doc.footprint()->desc());
+							   doc.footprint()->desc(),
+							   doc.footprint()->uuid());
+	mUuidHash.insert(doc.footprint()->uuid(), f);
 	return f;
 }
 
-FPDBFile::FPDBFile(QString path, QString name, QString author, QString source, QString desc)
-	: mFpPath(path), mName(name), mAuthor(author), mSource(source), mDesc(desc), mParent(NULL)
+FPDBFile::FPDBFile(QString path, QString name, QString author, QString source, QString desc, QUuid uuid)
+	: mFpPath(path), mName(name), mAuthor(author), mSource(source), mDesc(desc), mUuid(uuid), mParent(NULL)
 {
+}
+
+QSharedPointer<Footprint> FPDBFile::loadFootprint() const
+{
+	FPDoc doc;
+	if(!static_cast<Document*>(&doc)->loadFromFile(path()))
+		return QSharedPointer<Footprint>();
+	return QSharedPointer<Footprint>(new Footprint(*doc.footprint()));
 }
 
 FPDBFolder::FPDBFolder(QString name, QList<FPDBFolder *> folders, QList<FPDBFile *> files)

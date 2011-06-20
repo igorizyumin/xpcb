@@ -17,9 +17,14 @@
 
 #include "EditPartDialog.h"
 #include "Part.h"
+#include "PCBDoc.h"
+#include <QMessageBox>
 
-EditPartDialog::EditPartDialog(QWidget *parent)
-	: QDialog(parent), mInMM(false), mFpChanged(false), mCurrFp(NULL)
+AbstractSelFPDialogFactory* AbstractSelFPDialogFactory::mInst = NULL;
+
+
+EditPartDialog::EditPartDialog(QWidget *parent, PCBDoc* doc)
+	: QDialog(parent), mInMM(false), mFpChanged(false), mPart(NULL), mDoc(doc)
 {
     setupUi(this);
 }
@@ -59,29 +64,64 @@ void EditPartDialog::updateUnits()
 void EditPartDialog::init(Part *p)
 {
 	unitsBox->setCurrentIndex(0);
-
+	mPart = p;
 	if (p)
 	{
 		this->refdesEdit->setText(p->refdes());
 		this->refdesVis->setChecked(p->refVisible());
 		this->valueEdit->setText(p->value());
 		this->valueVis->setChecked(p->valueVisible());
-		this->fpNameEdit->setText(p->footprint()->name());
-		this->descEdit->setText(p->footprint()->desc());
-		this->authorEdit->setText(p->footprint()->author());
-		this->sourceEdit->setText(p->footprint()->source());
+		this->mCurrFpUuid = p->footprint()->uuid();
+		updateFp();
 		this->setPosRadio->setChecked(true);
 		this->sideBox->setCurrentIndex(static_cast<int>(p->side()));
 		this->angleBox->setCurrentIndex(p->angle() / 90);
 		this->xPos->setValue(XPcb::PCB2MIL(p->pos().x()));
 		this->yPos->setValue(XPcb::PCB2MIL(p->pos().y()));
 		this->mFpChanged = false;
-		this->mCurrFp = p->footprint();
 	}
 	else
 	{
 		this->mFpChanged = false;
-		this->mCurrFp = NULL;
 		this->dragPosRadio->setChecked(true);
 	}
+}
+
+void EditPartDialog::updateFp()
+{
+	QSharedPointer<Footprint> fp = mDoc->getFootprint(mCurrFpUuid);
+	if (fp.isNull()) return;
+	this->fpNameEdit->setText(fp->name());
+	this->descEdit->setText(fp->desc());
+	this->authorEdit->setText(fp->author());
+	this->sourceEdit->setText(fp->source());
+}
+
+void EditPartDialog::on_fpSelButton_clicked()
+{
+	AbstractSelFPDialog* d = AbstractSelFPDialogFactory::instance()->makeDialog(this);
+	int res = d->exec();
+	if (res == QDialog::Accepted && d->fpSelected())
+	{
+		mCurrFpUuid = d->uuid();
+		mFpChanged = true;
+		updateFp();
+	}
+}
+
+void EditPartDialog::accept()
+{
+	if(this->refdesEdit->text().isEmpty())
+	{
+		QMessageBox mb(QMessageBox::Warning, "No reference designator", "You have not entered a reference designator.  Please enter a reference designator and try again.", QMessageBox::Ok, this);
+		mb.exec();
+	}
+	else if (mCurrFpUuid.isNull())
+	{
+		QMessageBox mb(QMessageBox::Warning, "No footprint selected", "You have not selected a footprint.  Please select a footprint and try again.", QMessageBox::Ok, this);
+		mb.exec();
+	}
+
+	else
+		QDialog::accept();
 }
