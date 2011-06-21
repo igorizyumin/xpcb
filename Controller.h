@@ -166,11 +166,13 @@ public:
 protected slots:
 	void onAddPinAction();
 	void onAddTextAction();
+	void onEditPropsAction();
 
 protected:
 	FPDoc* mDoc;
 	CtrlAction mAddPinAction;
 	CtrlAction mAddTextAction;
+	CtrlAction mEditPropsAction;
 
 };
 

@@ -22,6 +22,7 @@
 #include "LayerWidget.h"
 #include "Log.h"
 #include "ActionBar.h"
+#include "FPPropDialog.h"
 
 Controller::Controller(QObject *parent) :
 	QObject(parent), mView(NULL), mEditor(NULL), mLayerWidget(NULL), mActionBar(NULL),
@@ -354,10 +355,13 @@ void PCBController::onAddPartAction()
 FPController::FPController(QObject *parent)
 		: Controller(parent), mDoc(NULL),
 		mAddPinAction(3, "Add Pin"),
-		mAddTextAction(1, "Add Text")
+		mAddTextAction(1, "Add Text"),
+		mEditPropsAction(0, "Edit Properties")
 {
 	connect(&mAddPinAction, SIGNAL(execFired()), SLOT(onAddPinAction()));
 	connect(&mAddTextAction, SIGNAL(execFired()), SLOT(onAddTextAction()));
+	connect(&mEditPropsAction, SIGNAL(execFired()), this, SLOT(onEditPropsAction()));
+	registerAction(&mEditPropsAction);
 	registerAction(&mAddPinAction);
 	registerAction(&mAddTextAction);
 }
@@ -402,4 +406,15 @@ void FPController::onAddTextAction()
 	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
 
 	installEditor(EditorFactory::instance().newTextEditor(this));
+}
+
+void FPController::onEditPropsAction()
+{
+	FPPropDialog d(this->view());
+	d.init(mDoc->footprint());
+	int result = d.exec();
+	if (result == QDialog::Accepted)
+	{
+		d.updateFp(mDoc->footprint());
+	}
 }

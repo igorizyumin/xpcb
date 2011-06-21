@@ -57,7 +57,16 @@ QRect PartPin::bbox() const
 void PartPin::draw(QPainter *painter, const Layer& layer) const
 {
 	if (layer.type() == Layer::LAY_SELECTION)
-		painter->drawRect(bbox());
+	{
+		painter->save();
+		painter->setBrush(Qt::NoBrush);
+		painter->setRenderHint(QPainter::Antialiasing, false);
+		QPen p = painter->pen();
+		p.setWidth(0);
+		painter->setPen(p);
+		painter->drawRect(mPin->bbox());
+		painter->restore();
+	}
 	if (!layer.isCopper() && layer.type() != Layer::LAY_HOLE) return;
 	mPin->draw(painter, mapLayer(layer));
 }
@@ -126,6 +135,8 @@ void Part::updateFp()
 	mFp = doc()->getFootprint(mFpUuid);
 	if (mFp.isNull()) return;
 
+	Log::instance().message(QString("num pins: %1").arg(mFp->numPins()));
+
 	// create new pins
 	for(int i = 0; i < mFp->numPins(); i++)
 	{
@@ -149,7 +160,6 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 
 	Part *pp = new Part(doc);
 
-
 	pp->mFpUuid = QUuid(attr.value("footprint_uuid").toString());
 	pp->updateFp();
 
@@ -162,7 +172,6 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 		pp->mValue->setText(attr.value("value").toString());
 		pp->mValueVisible = true;
 	}
-
 
 	// position/rotation
 	pp->mPos = QPoint(attr.value("x").toString().toInt(),
@@ -177,6 +186,11 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 	pp->mLocked = (attr.value("locked") == "1");
 
 	pp->updateTransform();
+
+	pp->mRefdes->setParent(pp);
+	pp->mValue->setParent(pp);
+	pp->mRefdes->setLayer(pp->mSide == SIDE_TOP ? Layer::LAY_SILK_TOP : Layer::LAY_SILK_BOTTOM);
+	pp->mValue->setLayer(pp->mSide == SIDE_TOP ? Layer::LAY_SILK_TOP : Layer::LAY_SILK_BOTTOM);
 
 	// set text properties from part def, if they exist
 	while(reader.readNextStartElement())
@@ -211,17 +225,14 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 			while(!reader.isEndElement());
 		}
 	}
-	pp->mRefdes->setLayer(pp->mSide == SIDE_TOP ? Layer::LAY_SILK_TOP : Layer::LAY_SILK_BOTTOM);
-	pp->mValue->setLayer(pp->mSide == SIDE_TOP ? Layer::LAY_SILK_TOP : Layer::LAY_SILK_BOTTOM);
-	pp->mRefdes->setParent(pp);
-	pp->mValue->setParent(pp);
+
 	return pp;
 }
 
 void Part::toXML(QXmlStreamWriter &writer) const
 {
-	QPoint refdesPos = transform().inverted().map(mRefdes->pos());
-	QPoint valuePos = transform().inverted().map(mValue->pos());
+//	QPoint refdesPos = transform().inverted().map(mRefdes->pos());
+//	QPoint valuePos = transform().inverted().map(mValue->pos());
 
 	writer.writeStartElement("part");
 	writer.writeAttribute("footprint_uuid", mFpUuid.toString());
@@ -233,16 +244,16 @@ void Part::toXML(QXmlStreamWriter &writer) const
 	writer.writeAttribute("side", mSide == SIDE_TOP ? "top" : "bot");
 	writer.writeAttribute("locked", mLocked ? "1" : "0");
 	writer.writeStartElement("refText");
-	writer.writeAttribute("x", QString::number(refdesPos.x()));
-	writer.writeAttribute("y", QString::number(refdesPos.y()));
+	writer.writeAttribute("x", QString::number(mRefdes->pos().x()));
+	writer.writeAttribute("y", QString::number(mRefdes->pos().y()));
 	writer.writeAttribute("rot", QString::number(mRefdes->angle()));
 	writer.writeAttribute("textSize", QString::number(mRefdes->fontSize()));
 	writer.writeAttribute("lineWidth", QString::number(mRefdes->strokeWidth()));
 	writer.writeAttribute("visible", mRefVisible ? "1" : "0");
 	writer.writeEndElement();
 	writer.writeStartElement("valueText");
-	writer.writeAttribute("x", QString::number(valuePos.x()));
-	writer.writeAttribute("y", QString::number(valuePos.y()));
+	writer.writeAttribute("x", QString::number(mValue->pos().x()));
+	writer.writeAttribute("y", QString::number(mValue->pos().y()));
 	writer.writeAttribute("rot", QString::number(mValue->angle()));
 	writer.writeAttribute("textSize", QString::number(mValue->fontSize()));
 	writer.writeAttribute("lineWidth", QString::number(mValue->strokeWidth()));

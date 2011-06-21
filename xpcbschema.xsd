@@ -523,10 +523,10 @@
     <xs:complexType>
       <xs:attribute name="width" use="required" type="Dimension"/>
       <xs:attribute name="layer" use="required" type="Layer"/>
-      <xs:attribute name="x1" use="required" type="Dimension"/>
-      <xs:attribute name="y1" use="required" type="Dimension"/>
-      <xs:attribute name="x2" use="required" type="Dimension"/>
-      <xs:attribute name="y2" use="required" type="Dimension"/>
+      <xs:attribute name="x1" use="required" type="Coord"/>
+      <xs:attribute name="y1" use="required" type="Coord"/>
+      <xs:attribute name="x2" use="required" type="Coord"/>
+      <xs:attribute name="y2" use="required" type="Coord"/>
     </xs:complexType>
   </xs:element>
   <!-- arc definition -->
@@ -534,10 +534,10 @@
     <xs:complexType>
       <xs:attribute name="width" use="required" type="Dimension"/>
       <xs:attribute name="layer" use="required" type="Layer"/>
-      <xs:attribute name="x1" use="required" type="Dimension"/>
-      <xs:attribute name="y1" use="required" type="Dimension"/>
-      <xs:attribute name="x2" use="required" type="Dimension"/>
-      <xs:attribute name="y2" use="required" type="Dimension"/>
+      <xs:attribute name="x1" use="required" type="Coord"/>
+      <xs:attribute name="y1" use="required" type="Coord"/>
+      <xs:attribute name="x2" use="required" type="Coord"/>
+      <xs:attribute name="y2" use="required" type="Coord"/>
       <xs:attributeGroup ref="ArcDirAttr"/>
     </xs:complexType>
   </xs:element>

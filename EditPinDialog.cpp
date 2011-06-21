@@ -19,6 +19,7 @@
 #include "PCBDoc.h"
 #include "ManagePadstacksDialog.h"
 #include "Shape.h"
+#include <QMessageBox>
 
 Q_DECLARE_METATYPE(Padstack*);
 
@@ -170,4 +171,21 @@ double EditPinDialog::toUnits(int pcbu) const
 Padstack* EditPinDialog::padstack() const
 {
 	return psList->itemData(psList->currentIndex()).value<Padstack*>();
+}
+
+void EditPinDialog::accept()
+{
+	if (!this->padstack())
+	{
+		QMessageBox mb(QMessageBox::Warning, "No padstack selected", "You have not selected a padstack for this pin.  Please select a padstack and try again.", QMessageBox::Ok, this);
+		mb.exec();
+		return;
+	}
+	if (this->name().isEmpty())
+	{
+		QMessageBox mb(QMessageBox::Warning, "No name entered", "You have not entered a name for this pin.  Please enter a name and try again.", QMessageBox::Ok, this);
+		mb.exec();
+		return;
+	}
+	QDialog::accept();
 }

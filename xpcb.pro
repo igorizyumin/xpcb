@@ -48,7 +48,8 @@ SOURCES += PCBView.cpp \
     ManagePadstacksDialog.cpp \
     EditPinDialog.cpp \
     PinEditor.cpp \
-    Plugin.cpp
+    Plugin.cpp \
+    FPPropDialog.cpp
 
 unittest {
 	QT += testlib
@@ -92,7 +93,8 @@ HEADERS  += PCBView.h \
     ManagePadstacksDialog.h \
     EditPinDialog.h \
     PinEditor.h \
-    Plugin.h
+    Plugin.h \
+    FPPropDialog.h
 
 FORMS    += GridToolbarWidget.ui \
     AboutDialog.ui \
@@ -103,7 +105,8 @@ FORMS    += GridToolbarWidget.ui \
     EditPartDialog.ui \
     EditPadstackDialog.ui \
     ManagePadstacksDialog.ui \
-    EditPinDialog.ui
+    EditPinDialog.ui \
+    FPPropDialog.ui
 
 RESOURCES += \
     qtfreepcb.qrc

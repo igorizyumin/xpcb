@@ -368,7 +368,7 @@ class PluginMain(xpcb.Plugin):
 		self.factory = LineEditorFactory()
 		xpcb.EditorFactory.registerFactory(xpcb.EditorFactory.ObjLine, self.factory)
 		if isinstance(win, xpcb.FPEditWindow):
-			self.action = xpcb.CtrlAction(6, 'New Line')
+			self.action = xpcb.CtrlAction(2, 'Add Line')
 			self.action.execFired.connect(self.startEditor)
 			self.win = win
 			win.ctrl().registerAction(self.action)

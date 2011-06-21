@@ -46,6 +46,9 @@ private slots:
 	void on_unitsBox_currentIndexChanged(const QString &s);
 	void on_manageBtn_clicked();
 
+protected:
+	void accept();
+
 private:
 	void updatePsList();
 	void updateUnits();

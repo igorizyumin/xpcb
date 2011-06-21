@@ -159,13 +159,7 @@ class TreeItem(object):
 		return len(self._children)
 
 	def columnCount(self):
-		if type(self._fpobj) is xpcb.FPDBFolder:
-			return 1
-		if type(self._fpobj) is xpcb.FPDBFile:
-			return 4
-		if self._fpobj is None:
-			return 1
-		return 0 # should never happen
+		return 4
 
 	def data(self, col):
 		if type(self._fpobj) is xpcb.FPDBFolder and col == 0:

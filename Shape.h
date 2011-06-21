@@ -193,9 +193,17 @@ public:
 	QRect bbox() const;
 
 	QString name() const { return mName; }
+	void setName(QString name) { mName = name; }
+
 	QString author() const { return mAuthor; }
+	void setAuthor(QString author) { mAuthor = author; }
+
 	QString source() const { return mSource; }
+	void setSource(QString src) { mSource = src; }
+
 	QString desc() const { return mDesc; }
+	void setDesc(QString desc) { mDesc = desc; }
+
 
 	QList<Padstack*> padstacks() { return mPadstacks; }
 	void addPadstack(Padstack* ps) { mPadstacks.append(ps); }

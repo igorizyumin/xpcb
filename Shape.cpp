@@ -480,6 +480,7 @@ Footprint::Footprint(const Footprint &other)
 		np->setName(p->name());
 		np->setAngle(p->angle());
 		np->setPadstack(psmap.value(p->padstack()));
+		mPins.append(np);
 	}
 	foreach(Line* p, other.mOutlineLines)
 	{

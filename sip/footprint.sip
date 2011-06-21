@@ -128,9 +128,16 @@ public:
 	QRect bbox() const;
 
 	QString name() const;
+	void setName(QString name);
+
 	QString author() const;
+	void setAuthor(QString author);
+
 	QString source() const;
+	void setSource(QString src);
+
 	QString desc() const;
+	void setDesc(QString desc);
 
 	QList<Padstack*> padstacks();
 	void addPadstack(Padstack* ps);

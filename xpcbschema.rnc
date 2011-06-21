@@ -221,20 +221,20 @@ ArcTo = element arcTo { CoordsAttr, ArcDirAttr }
 Line = element line {
 	attribute width {Dimension},
 	attribute layer {Layer},
-	attribute x1 {Dimension},
-	attribute y1 {Dimension},
-	attribute x2 {Dimension},
-	attribute y2 {Dimension}
+	attribute x1 {Coord},
+	attribute y1 {Coord},
+	attribute x2 {Coord},
+	attribute y2 {Coord}
 }
 
 # arc definition
 Arc = element arc {
 	attribute width {Dimension},
 	attribute layer {Layer},
-	attribute x1 {Dimension},
-	attribute y1 {Dimension},
-	attribute x2 {Dimension},
-	attribute y2 {Dimension},
+	attribute x1 {Coord},
+	attribute y1 {Coord},
+	attribute x2 {Coord},
+	attribute y2 {Coord},
 	ArcDirAttr
 }
 
