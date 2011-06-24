@@ -119,3 +119,28 @@ bool Net::loadState(PCBObjState &state)
 	mPins = s->pins;
 	return true;
 }
+
+
+/////////////////////////////////////////////////////////////////////
+
+QList<NetlistLoader*> NetlistLoader::mLoaders;
+
+Netlist* NetlistLoader::loadFile(QString path)
+{
+	QFile f(path);
+	if (!f.open(QFile::ReadOnly | QFile::Text))
+		return NULL;
+
+	Netlist* n;
+	foreach(NetlistLoader* l, mLoaders)
+	{
+		n = l->loadFromFile(f);
+		if (n)
+		{
+			f.close();
+			return n;
+		}
+	}
+	f.close();
+	return NULL;
+}

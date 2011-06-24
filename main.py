@@ -9,6 +9,7 @@ import xpcb
 import cmdLinePlugin
 import LineEditorPlugin
 import FPSelectorPlugin
+import NetlistLoaderPlugin
 import sip
 
 def setDefaultValue(s, key, value):
@@ -66,10 +67,12 @@ initSettings()
 pl = cmdLinePlugin.PluginMain()
 p2 = LineEditorPlugin.PluginMain()
 p3 = FPSelectorPlugin.PluginMain()
-w = xpcb.PCBEditWindow(None, [pl, p2, p3])
+p4 = NetlistLoaderPlugin.PluginMain()
+w = xpcb.PCBEditWindow(None, [pl, p2, p3, p4])
 pl.initPlugin(w)
 p2.initPlugin(w)
 p3.initPlugin(w)
+p4.initPlugin(w)
 w.show()
 sys.exit(app.exec_())
 

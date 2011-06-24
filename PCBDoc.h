@@ -161,6 +161,8 @@ public:
 	FPDoc();
 	virtual ~FPDoc();
 
+	using Document::saveToFile;
+	using Document::loadFromFile;
 	virtual bool saveToXml(QXmlStreamWriter &writer);
 	virtual bool loadFromFile(QFile & file);
 	virtual bool loadFromXml(QXmlStreamReader &reader);
