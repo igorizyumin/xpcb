@@ -21,7 +21,7 @@ class Segment;
 class Vertex : public PCBObject
 {
 public:
-	Vertex(TraceList* parent, QPoint pos = QPoint(0, 0), bool forcevia = false);
+	Vertex(QPoint pos = QPoint(0, 0), bool forcevia = false);
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
@@ -30,6 +30,7 @@ public:
 	virtual bool loadState(PCBObjState& /*state*/) { return false; }
 
 	QPoint pos() const {return mPos;}
+	void setPos(QPoint pos) { mPos = pos; }
 
 	/// Adds a connected segment to the vertex's segment set.
 	void addSegment(Segment* seg);
@@ -41,14 +42,14 @@ public:
 	bool onLayer(const Layer& layer) const;
 	/// Returns true if the vertex is a via (exists on multiple layers)
 	bool isVia() const;
+	/// Returns the number of connected segments
+	int numSegments() const { return mSegs.count(); }
 
 	bool isForcedVia() const {return mForceVia; }
 
 private:
-	TraceList * mParent;
 	QPoint mPos;
 	QSet<Segment*> mSegs;
-	PartPin* mPartPin;
 	Padstack* mPadstack;
 	bool mForceVia;
 
@@ -60,11 +61,12 @@ private:
 class Segment : public PCBObject
 {
 public:
-	Segment(TraceList* parent, Vertex* v1, Vertex* v2, const Layer& layer, int w = 0);
+	Segment(Vertex* v1, Vertex* v2, const Layer& layer, int w = 0);
 	~Segment();
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
+	virtual bool testHit(QPoint p, const Layer &l) const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual PCBObjState getState() const { return PCBObjState(NULL); }
 	virtual bool loadState(PCBObjState& /*state*/) { return false; }
@@ -74,12 +76,16 @@ public:
 	const Layer& layer() const {return mLayer;}
 	void setLayer(const Layer& layer) {mLayer = layer;}
 
+	Vertex* v1() { return mV1; }
 	const Vertex* v1() const { return mV1; }
+	Vertex* v2() { return mV2; }
 	const Vertex* v2() const { return mV2; }
 	Vertex* otherVertex(Vertex* v) const {return (v == mV1 ? mV2 : mV1);}
+
+	// workaround so that python can compare object pointers correctly
+	bool operator==(const Segment& other) const { return this == &other; }
 private:
 	Layer mLayer;
-	TraceList *mParent;
 	Vertex *mV1;
 	Vertex *mV2;
 	int mWidth;
@@ -98,19 +104,23 @@ public:
 	QSet<Vertex*> getConnectedVertices(Vertex* vtx) const;
 	QSet<Vertex*> getVerticesInArea(const Area& poly) const;
 
+	void addSegment(Segment* s);
+	void removeSegment(Segment* s);
+
 	QSet<Segment*> segments() const {return mySeg;}
 	QSet<Vertex*> vertices() const {return myVtx;}
 	void loadFromXml(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 private:
 	void clear();
-	void rebuildConnectionList();
+	void update() const;
 
 	QSet<Segment*> mySeg;		// set of segments
 	QSet<Vertex*> myVtx;		// set of vertices
 
+	bool mIsDirty;
 	/// Master list of connections
-	QList< QSet<Vertex*> > mConnections;
+	mutable QList< QSet<Vertex*> > mConnections;
 };
 
 

@@ -121,8 +121,11 @@ public:
 	virtual QList<PCBObject*> findObjs(QRect &rect);
 
 	TraceList& traceList() const {return *mTraceList;}
+
 	Part* getPart(const QString & refdes);
+
 	QSharedPointer<Footprint> getFootprint(QUuid uuid);
+
 	Net* getNet(const QString &name) const;
 
 	void addText(Text* t);

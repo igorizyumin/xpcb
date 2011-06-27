@@ -100,7 +100,7 @@ public:
 	virtual QList<PCBObject*> findObjs(QPoint &pt);
 	virtual QList<PCBObject*> findObjs(QRect &rect);
 
-//	TraceList& traceList() const; 
+	TraceList& traceList() const; 
 	Part* getPart(const QString & refdes);
 	QSharedPointer<Footprint> getFootprint(QUuid uuid);
 	Net* getNet(const QString &name) const;

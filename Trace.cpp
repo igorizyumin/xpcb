@@ -6,8 +6,8 @@
 static void vertexDFS(QSet<Vertex*> &toVisit, QSet<Vertex*> &currSet, Vertex *currVtx);
 
 
-Vertex::Vertex(TraceList* parent, QPoint pos, bool forcevia)
-	: mParent(parent), mPos(pos), mPartPin(NULL), mPadstack(NULL), mForceVia(forcevia)
+Vertex::Vertex(QPoint pos, bool forcevia)
+	: mPos(pos), mPadstack(NULL), mForceVia(forcevia)
 {
 
 }
@@ -35,6 +35,7 @@ void Vertex::removeSegment(Segment* seg)
 
 QSet<Vertex*> TraceList::getConnectedVertices(Vertex* vtx) const
 {
+	update();
 	foreach(QSet<Vertex*> set, mConnections)
 	{
 		if (set.contains(vtx))
@@ -55,9 +56,45 @@ QSet<Vertex*> TraceList::getVerticesInArea(const Area& a) const
 	return set;
 }
 
-
-void TraceList::rebuildConnectionList()
+void TraceList::addSegment(Segment *s)
 {
+	mySeg.insert(s);
+	myVtx.insert(s->v1());
+	myVtx.insert(s->v2());
+	mIsDirty = true;
+}
+
+void TraceList::removeSegment(Segment *s)
+{
+	Vertex *v1, *v2;
+	if (mySeg.remove(s))
+	{
+		// Remove vertices if no other segments in the list are referencing them.
+		// Note that it is possible for other segments not in the list to still
+		// be referencing them, so we check if segments are still present.
+		v1 = s->v1();
+		v2 = s->v2();
+		bool found = false;
+		foreach(Segment* s, v1->segments())
+		{
+			if (mySeg.contains(s))
+				found = true;
+		}
+		if (!found) myVtx.remove(v1);
+		found = false;
+		foreach(Segment* s, v2->segments())
+		{
+			if (mySeg.contains(s))
+				found = true;
+		}
+		if (!found) myVtx.remove(v2);
+	}
+}
+
+void TraceList::update() const
+{
+	if (!mIsDirty) return;
+	// rebuild connection list
 	QSet<Vertex*> toVisit(myVtx);
 	QSet<Vertex*> currSet;
 	this->mConnections.clear();
@@ -121,7 +158,7 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 
 		// XXX TODO find padstack / pin reference
 
-		Vertex* v = new Vertex(this, pt, forcevia);
+		Vertex* v = new Vertex(pt, forcevia);
 		this->myVtx.insert(v);
 		vmap.insert(id, v);
 		do
@@ -141,8 +178,7 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 		Layer layer(static_cast<Layer::Type>(attr.value("layer").toString().toInt()));
 		int width = attr.value("width").toString().toInt();
 
-		Segment* s = new Segment(this,
-								 vmap.value(start, NULL),
+		Segment* s = new Segment(vmap.value(start, NULL),
 								 vmap.value(end, NULL),
 								 layer, width);
 		this->mySeg.insert(s);
@@ -184,8 +220,8 @@ void TraceList::toXML(QXmlStreamWriter &writer) const
 
 /////////////////////// SEGMENT ///////////////////////
 
-Segment::Segment(TraceList* parent, Vertex* v1, Vertex* v2, const Layer& l, int w)
-	: mLayer(l), mParent(parent), mV1(v1), mV2(v2) , mWidth(w)
+Segment::Segment(Vertex* v1, Vertex* v2, const Layer& l, int w)
+	: mLayer(l), mV1(v1), mV2(v2) , mWidth(w)
 {
 	mV1->addSegment(this);
 	mV2->addSegment(this);
@@ -195,17 +231,32 @@ Segment::~Segment()
 {
 	mV1->removeSegment(this);
 	mV2->removeSegment(this);
+	if (mV1->numSegments() == 0)
+		delete mV1;
+	if (mV2->numSegments() == 0)
+		delete mV2;
 }
 
-void Segment::draw(QPainter */*painter*/, const Layer& /*layer*/) const
+void Segment::draw(QPainter *painter, const Layer& layer) const
 {
-	// XXX TODO draw via if needed
+	if (layer != mLayer && layer != Layer::LAY_SELECTION)
+		return;
+
+	QPen pen = painter->pen();
+	pen.setWidth(mWidth);
+	painter->setPen(pen);
+
+	painter->drawLine(mV1->pos(), mV2->pos());
 }
 
 QRect Segment::bbox() const
 {
-	// XXX TODO do something useful here
-	return QRect();
+	return QRect(mV1->pos(), mV2->pos()).normalized().adjusted(-mWidth/2, -mWidth/2, mWidth/2, mWidth/2);
+}
+
+bool Segment::testHit(QPoint p, const Layer &l) const
+{
+	return bbox().contains(p) && l == layer();
 }
 
 /////////////////////// VERTEX ///////////////////////

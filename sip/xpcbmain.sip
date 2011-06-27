@@ -8,6 +8,7 @@
 %Include net.sip
 %Include doc.sip
 %Include part.sip
+%Include trace.sip
 
 
 

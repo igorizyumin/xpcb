@@ -344,6 +344,12 @@ QList<PCBObject*> PCBDoc::findObjs(QPoint &pt)
 		if(t->bbox().contains(pt))
 			out.append(t);
 	}
+	foreach(Segment* s, mTraceList->segments())
+	{
+		if (s->bbox().contains(pt))
+			out.append(s);
+	}
+
 	return out;
 }
 
