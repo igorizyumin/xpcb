@@ -4,14 +4,8 @@ class PCBObjState
 %TypeHeaderCode
 #include "PCBObject.h"
 %End
+	PCBObjState();
 };
-
-
-//class PCBObjStateInternal /Abstract/
-//{
-//public:
-//	virtual ~PCBObjStateInternal();
-//};
 
 class PCBObject /Abstract/
 {
@@ -96,6 +90,19 @@ public:
 private:
 	EditorFactory();
 	EditorFactory(EditorFactory &other);
+};
+
+class PCBObjEditCmd : QUndoCommand
+{
+%TypeHeaderCode
+#include "PCBObject.h"
+%End
+public:
+	PCBObjEditCmd(QUndoCommand* parent /TransferThis/, PCBObject *obj /Transfer/,
+				  PCBObjState prevState);
+
+	virtual void undo();
+	virtual void redo();
 };
 
 class Text : PCBObject 

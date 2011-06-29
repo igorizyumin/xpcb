@@ -292,3 +292,20 @@ bool Vertex::onLayer(const Layer& layer) const
 			return false;
 	}
 }
+
+bool Vertex::loadState(PCBObjState& state)
+{
+	// convert to vertex state
+	if (state.ptr().isNull())
+		return false;
+	QSharedPointer<VtxState> vs = state.ptr().dynamicCast<VtxState>();
+	if (vs.isNull())
+		return false;
+	// restore state
+	mPos = vs->mPos;
+	mSegs = vs->mSegs;
+	mPadstack = vs->mPadstack;
+	mForceVia = vs->mForceVia;
+	return true;
+}
+

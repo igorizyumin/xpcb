@@ -26,8 +26,8 @@ public:
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
-	virtual PCBObjState getState() const { return PCBObjState(); }
-	virtual bool loadState(PCBObjState& /*state*/) { return false; }
+	virtual PCBObjState getState() const { return PCBObjState(new VtxState(*this)); }
+	virtual bool loadState(PCBObjState& state);
 
 	QPoint pos() const {return mPos;}
 	void setPos(QPoint pos) { mPos = pos; }
@@ -45,9 +45,28 @@ public:
 	/// Returns the number of connected segments
 	int numSegments() const { return mSegs.count(); }
 
+	/// Returns the via padstack
+	Padstack* padstack() const { return mPadstack; }
+
 	bool isForcedVia() const {return mForceVia; }
 
 private:
+	class VtxState : public PCBObjStateInternal
+	{
+	public:
+		virtual ~VtxState() {}
+	private:
+		friend class Vertex;
+		VtxState(const Vertex &v)
+			: mPos(v.pos()), mSegs(v.segments()),
+			  mPadstack(v.padstack()), mForceVia(v.isForcedVia())
+		{}
+
+		QPoint mPos;
+		QSet<Segment*> mSegs;
+		Padstack* mPadstack;
+		bool mForceVia;
+	};
 	QPoint mPos;
 	QSet<Segment*> mSegs;
 	Padstack* mPadstack;

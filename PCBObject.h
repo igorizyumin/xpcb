@@ -104,9 +104,7 @@ class PCBObjState
 public:
 	PCBObjState() {}
 	PCBObjState(PCBObjStateInternal* ptr) : mPtr(ptr) {  }
-	PCBObjState(const PCBObjState &other) : mPtr(other.mPtr) { }
-	~PCBObjState() { }
-	const QSharedPointer<PCBObjStateInternal>& ptr() const { return mPtr; }
+	const QSharedPointer<PCBObjStateInternal> ptr() const { return mPtr; }
 
 
 protected:

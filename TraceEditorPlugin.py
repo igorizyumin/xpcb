@@ -9,6 +9,8 @@ from xpcb import Layer, XPcb
 import sip
 
 def sign(x):
+	if x == 0:
+		return 0
 	if x > 0:
 		return 1
 	return -1
@@ -229,28 +231,72 @@ class SegmentEditor(xpcb.AbstractEditor):
 
 	def updateMove(self):
 		# mouse is at self.pos
-		ok = True
+		pos = self.pos
+
+		# if there are no neighboring segments,
+		# just make fake lines perpendicular to the secant
 		if self.vector1 is not None:
-			# find the intersection of vec1 and the secant
-			sc = lineIntersect(self.pt1_fixed, self.vector1, self.pos, self.vec_sec)
-			newpt1 = self.pt1_fixed + self.vector1 * sc
-			if (sc < 0):
-				ok = False
+			v1 = self.vector1
+			pf1 = self.pt1_fixed
 		else:
-			# otherwise just translate the point in a direction perpendicular to the line
-			newpt1 = lineIntersectPt(self.pt1, perp(self.vec_sec), self.pos, self.vec_sec)
+			v1 = perp(self.vec_sec)
+			pf1 = self.pt1
+
 		if self.vector2 is not None:
-			sc = lineIntersect(self.pt2_fixed, self.vector2, self.pos, self.vec_sec)
-			newpt2 = self.pt2_fixed + self.vector2 * sc
-			if (sc < 0):
-				ok = False
+			v2 = self.vector2
+			pf2 = self.pt2_fixed
 		else:
-			newpt2 = lineIntersectPt(self.pt2, perp(self.vec_sec), self.pos, self.vec_sec)
-		if (self.signx != sign((newpt2 - newpt1).x()) or self.signy != sign((newpt2 - newpt1).y())):
-			ok = False
-		if ok:
-			self.pt1 = newpt1
-			self.pt2 = newpt2
+			v2 = perp(self.vec_sec)
+			pf2 = self.pt2
+
+		while True:
+			# find the intersection of vec1 and the secant
+			sc = lineIntersect(pf1, v1, pos, self.vec_sec)
+			newpt1 = pf1 + v1 * sc
+			# make sure neighboring segment length is not negative
+			if sc < 0 and self.vector1 is not None:
+				pos = self.pt1_fixed
+				# go back and recalculate with new position
+				continue
+
+			sc = lineIntersect(pf2, v2, pos, self.vec_sec)
+			newpt2 = pf2 + v2 * sc
+			if (sc < 0 and self.vector2 is not None):
+				pos = self.pt2_fixed
+				continue
+
+			# check that the segment length isn't less than zero (we don't want the
+			# neighboring segments to overlap)
+			sx = sign((newpt2 - newpt1).x())
+			sy = sign((newpt2 - newpt1).y())
+			if ((sx != 0 and self.signx != sx) or (sy != 0 and self.signy != sy)):
+				# limit is where neighboring segments intersect
+				pos = lineIntersectPt(pf1, v1, pf2, v2)
+				continue
+			# everything is ok, stop the loop
+			break
+		# update the points
+		self.pt1 = newpt1
+		self.pt2 = newpt2
+
+	def finishMove(self):
+		parentcmd = QUndoCommand("move segment")
+		v1 = self.segment.v1()
+		v2 = self.segment.v2()
+		st1 = v1.getState()
+		st2 = v2.getState()
+		v1.setPos(self.pt1)
+		v2.setPos(self.pt2)
+		ch1 = xpcb.PCBObjEditCmd(parentcmd, v1, st1)
+		ch2 = xpcb.PCBObjEditCmd(parentcmd, v2, st2)
+		self.ctrl.doc().doCommand(parentcmd)
+		if self.seg1 is not None:
+			self.ctrl.unhideObj(self.seg1)
+		if self.seg2 is not None:
+			self.ctrl.unhideObj(self.seg2)
+		self.state = self.State.Selected
+		self.actionsChanged.emit()
+		self.overlayChanged.emit()
 
 	def drawOverlay(self, painter):
 		# draw 45 degree crosshair when in add vertex mode
@@ -295,11 +341,17 @@ class SegmentEditor(xpcb.AbstractEditor):
 			self.overlayChanged.emit()
 		
 	def mousePressEvent(self, event):
-		event.accept()
+		if self.state is self.State.Move:
+			event.accept()
+			return
+		event.ignore()
 		
 	def mouseReleaseEvent(self, event):
-		event.accept()
-
+		if self.state is self.State.Move:
+			event.accept()
+			self.finishMove()	
+			return
+		event.ignore()
 		
 	def keyPressEvent(self, event):
 		if (event.key() == Qt.Qt.Key_Escape):
