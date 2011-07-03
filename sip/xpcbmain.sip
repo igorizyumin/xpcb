@@ -3,6 +3,7 @@
 %Import QtGui/QtGuimod.sip
 
 %Include global.sip
+%Include sharedptr.sip
 %Include pcbobject.sip
 %Include footprint.sip
 %Include net.sip

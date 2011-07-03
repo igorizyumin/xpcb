@@ -102,7 +102,7 @@ public:
 
 	TraceList& traceList() const; 
 	Part* getPart(const QString & refdes);
-	QSharedPointer<Footprint> getFootprint(QUuid uuid);
+	QSharedPointer<Footprint> getFootprint(QUuid uuid) /Factory/;
 	Net* getNet(const QString &name) const;
 
 	void addText(Text* t /Transfer/);

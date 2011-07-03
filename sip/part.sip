@@ -66,7 +66,7 @@ public:
 	void setRefVisible(bool vis); 
 	void setValueVisible(bool vis);
 
-	QSharedPointer<Footprint> footprint() const;
+	QSharedPointer<Footprint> footprint() const /Factory/;
 	const QUuid& fpUuid() const;
 	void setFootprint(QUuid uuid);
 

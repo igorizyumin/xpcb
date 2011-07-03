@@ -120,7 +120,18 @@ class Footprint
 %End
 public:
 	Footprint();
+	
 	~Footprint();
+	%MethodCode
+		// check if there is an outstanding shared pointer
+		if (sharedPtrManager<Footprint>::hasPtr(sipCppV))
+		{
+			// decrement the reference count and get out
+			sharedPtrManager<Footprint>::decRef(sipCppV);
+			return;
+		}
+		// otherwise let python deal with it
+	%End
 
 	enum FP_DRAW_LAYER { LAY_START, LAY_INNER, LAY_END };
 
@@ -232,34 +243,4 @@ public:
 	QList<FPDBFile*> items() const;
 };
 
-template<TYPE>
-%MappedType QSharedPointer<TYPE>
-{
-%TypeHeaderCode
-#include <QSharedPointer>
-%End
-
-%ConvertToTypeCode
-	// from python object
-	if (sipIsErr == NULL)
-		return PyInstance_Check(sipPy) && sipCanConvertToType(sipPy, sipType_TYPE, 0);
-	
-	TYPE* t = reinterpret_cast<TYPE*>(sipConvertToType(sipPy, sipType_TYPE, 0, 0, 0, sipIsErr));
-	if (*sipIsErr)
-		return 0;
-	QSharedPointer<TYPE> *ptr = new QSharedPointer<TYPE>(t);
-	*sipCppPtr = ptr;
-	return sipGetState(sipTransferObj);
-%End
-%ConvertFromTypeCode
-	// to python object
-	if (!sipCpp)
-		return NULL;
-
-	QSharedPointer<TYPE> *cPtr = new QSharedPointer<TYPE>(*reinterpret_cast<QSharedPointer<TYPE>*>(sipCpp));
-	TYPE* cpp = cPtr->data();
-	PyObject *obj = sipConvertFromType(cpp, sipType_TYPE, Py_None);
-	return obj;
-%End
-};
 

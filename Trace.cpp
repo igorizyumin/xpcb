@@ -56,39 +56,56 @@ QSet<Vertex*> TraceList::getVerticesInArea(const Area& a) const
 	return set;
 }
 
-void TraceList::addSegment(Segment *s)
+void TraceList::addSegment(Segment *s, Vertex *v1, Vertex *v2)
 {
+	// ensure vertices are added to the list
+	myVtx.insert(v1);
+	myVtx.insert(v2);
 	mySeg.insert(s);
-	myVtx.insert(s->v1());
-	myVtx.insert(s->v2());
+	s->setV1(v1);
+	s->setV2(v2);
+	v1->addSegment(s);
+	v2->addSegment(s);
 	mIsDirty = true;
 }
 
 void TraceList::removeSegment(Segment *s)
 {
-	Vertex *v1, *v2;
-	if (mySeg.remove(s))
+	if (!mySeg.remove(s))
+		return;
+
+	s->v1()->removeSegment(s);
+	s->v2()->removeSegment(s);
+
+	if (s->v1()->segments().count() == 0)
 	{
-		// Remove vertices if no other segments in the list are referencing them.
-		// Note that it is possible for other segments not in the list to still
-		// be referencing them, so we check if segments are still present.
-		v1 = s->v1();
-		v2 = s->v2();
-		bool found = false;
-		foreach(Segment* s, v1->segments())
-		{
-			if (mySeg.contains(s))
-				found = true;
-		}
-		if (!found) myVtx.remove(v1);
-		found = false;
-		foreach(Segment* s, v2->segments())
-		{
-			if (mySeg.contains(s))
-				found = true;
-		}
-		if (!found) myVtx.remove(v2);
+		myVtx.remove(s->v1());
+		delete s->v1();
 	}
+	if (s->v2()->segments().count() == 0)
+	{
+		myVtx.remove(s->v2());
+		delete s->v2();
+	}
+	delete s;
+	mIsDirty = true;
+}
+
+void TraceList::swapVtx(Segment *s, Vertex *vOld, Vertex *vNew)
+{
+	Q_ASSERT(s && vOld && vNew && (s->v1() == vOld || s->v2() == vOld));
+	vOld->removeSegment(s);
+	if (vOld->segments().count() == 0)
+	{
+		myVtx.remove(vOld);
+		delete vOld;
+	}
+	if (s->v1() == vOld)
+		s->setV1(vNew);
+	else
+		s->setV2(vNew);
+	myVtx.insert(vNew);
+	vNew->addSegment(s);
 }
 
 void TraceList::update() const
@@ -178,10 +195,8 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 		Layer layer(static_cast<Layer::Type>(attr.value("layer").toString().toInt()));
 		int width = attr.value("width").toString().toInt();
 
-		Segment* s = new Segment(vmap.value(start, NULL),
-								 vmap.value(end, NULL),
-								 layer, width);
-		this->mySeg.insert(s);
+		Segment* s = new Segment(layer, width);
+		addSegment(s, vmap.value(start, NULL), vmap.value(end, NULL));
 		do
 				reader.readNext();
 		while(!reader.isEndElement());
@@ -218,27 +233,26 @@ void TraceList::toXML(QXmlStreamWriter &writer) const
 	writer.writeEndElement();
 }
 
-/////////////////////// SEGMENT ///////////////////////
-
-Segment::Segment(Vertex* v1, Vertex* v2, const Layer& l, int w)
-	: mLayer(l), mV1(v1), mV2(v2) , mWidth(w)
+Segment* TraceList::segment(Vertex *v1, Vertex *v2) const
 {
-	mV1->addSegment(this);
-	mV2->addSegment(this);
+	foreach(Segment* s, v1->segments())
+	{
+		if (s->otherVertex(v1) == v2)
+			return s;
+	}
+	return NULL;
 }
 
-Segment::~Segment()
+/////////////////////// SEGMENT ///////////////////////
+
+Segment::Segment(const Layer& l, int w)
+	: mLayer(l), mV1(NULL), mV2(NULL) , mWidth(w)
 {
-	mV1->removeSegment(this);
-	mV2->removeSegment(this);
-	if (mV1->numSegments() == 0)
-		delete mV1;
-	if (mV2->numSegments() == 0)
-		delete mV2;
 }
 
 void Segment::draw(QPainter *painter, const Layer& layer) const
 {
+	if (!mV1 || !mV2) return;
 	if (layer != mLayer && layer != Layer::LAY_SELECTION)
 		return;
 
@@ -251,12 +265,27 @@ void Segment::draw(QPainter *painter, const Layer& layer) const
 
 QRect Segment::bbox() const
 {
+	if (!mV1 || !mV2) return QRect();
 	return QRect(mV1->pos(), mV2->pos()).normalized().adjusted(-mWidth/2, -mWidth/2, mWidth/2, mWidth/2);
 }
 
 bool Segment::testHit(QPoint p, const Layer &l) const
 {
 	return bbox().contains(p) && l == layer();
+}
+
+bool Segment::loadState(PCBObjState& state)
+{
+	// convert to vertex state
+	if (state.ptr().isNull())
+		return false;
+	QSharedPointer<SegState> vs = state.ptr().dynamicCast<SegState>();
+	if (vs.isNull())
+		return false;
+	// restore state
+	mLayer = vs->mLayer;
+	mWidth = vs->mWidth;
+	return true;
 }
 
 /////////////////////// VERTEX ///////////////////////
@@ -303,9 +332,175 @@ bool Vertex::loadState(PCBObjState& state)
 		return false;
 	// restore state
 	mPos = vs->mPos;
-	mSegs = vs->mSegs;
 	mPadstack = vs->mPadstack;
 	mForceVia = vs->mForceVia;
 	return true;
+}
+
+////////////////////// UNDO COMMANDS //////////////////////
+
+
+TraceList::AddSegCmd::AddSegCmd(QUndoCommand *parent, TraceList *tl, Segment *s, Vertex *v1, Vertex *v2)
+	: QUndoCommand(parent), mTl(tl), mSeg(s), mV1(v1), mV2(v2), mUndone(true)
+{
+}
+
+TraceList::AddSegCmd::~AddSegCmd()
+{
+	if (mUndone)
+	{
+		// only delete the objects that are not referenced by anything else
+		if (mV1->segments().count() == 0)
+			delete mV1;
+		if (mV2->segments().count() == 0)
+			delete mV2;
+		delete mSeg;
+	}
+	// don't delete anything if the command hasn't been undone
+}
+
+void TraceList::AddSegCmd::undo()
+{
+	if (mUndone)
+		return;
+	mTl->mySeg.remove(mSeg);
+	mV1->removeSegment(mSeg);
+	mV2->removeSegment(mSeg);
+
+	if (mV1->segments().count() == 0)
+		mTl->myVtx.remove(mV1);
+	if (mV2->segments().count() == 0)
+		mTl->myVtx.remove(mV2);
+	mUndone = true;
+}
+
+void TraceList::AddSegCmd::redo()
+{
+	if (!mUndone)
+		return;
+	mTl->addSegment(mSeg, mV1, mV2);
+	mUndone = false;
+}
+
+
+TraceList::DelSegCmd::DelSegCmd(QUndoCommand *parent, TraceList *tl, Segment *s)
+	: QUndoCommand(parent), mTl(tl), mSeg(s), mV1(s->v1()), mV2(s->v2()), mUndone(true)
+{
+}
+
+TraceList::DelSegCmd::~DelSegCmd()
+{
+	if (!mUndone)
+	{
+		// only delete the objects that are not referenced by anything else
+		if (mV1->segments().count() == 0)
+			delete mV1;
+		if (mV2->segments().count() == 0)
+			delete mV2;
+		delete mSeg;
+	}
+	// don't delete anything if the command has been undone
+}
+
+void TraceList::DelSegCmd::undo()
+{
+	mTl->addSegment(mSeg, mV1, mV2);
+	mUndone = true;
+}
+
+void TraceList::DelSegCmd::redo()
+{
+	mTl->mySeg.remove(mSeg);
+	mV1->removeSegment(mSeg);
+	mV2->removeSegment(mSeg);
+
+	if (mV1->segments().count() == 0)
+		mTl->myVtx.remove(mV1);
+	if (mV2->segments().count() == 0)
+		mTl->myVtx.remove(mV2);
+	mUndone = false;
+}
+
+/////////////////
+
+TraceList::SwapVtxCmd::SwapVtxCmd(QUndoCommand *parent, TraceList *tl, Segment *s, Vertex* vOld, Vertex* vNew)
+	: QUndoCommand(parent), mTl(tl), mSeg(s), mVOld(vOld), mVNew(vNew), mNewRemoved(!tl->myVtx.contains(vNew)), mOldRemoved(!tl->myVtx.contains(vOld))
+{
+	Q_ASSERT(mVOld != mVNew);
+	Q_ASSERT(s->v1() != mVNew && s->v2() != mVNew);
+}
+
+TraceList::SwapVtxCmd::~SwapVtxCmd()
+{
+	if (mNewRemoved)
+	{
+		Q_ASSERT(mVNew->segments().count() == 0);
+		delete mVNew;
+	}
+//	if (mOldRemoved)
+//	{
+//		Q_ASSERT(mVOld->segments().count() == 0);
+//	/	delete mVOld;
+//	}
+}
+
+void TraceList::SwapVtxCmd::undo()
+{
+	Q_ASSERT((mSeg->v1() == mVNew && mSeg->v2() != mVNew) || (mSeg->v1() != mVNew && mSeg->v2() == mVNew));
+
+	Q_ASSERT(mSeg->v1()->segments().contains(mSeg));
+	Q_ASSERT(mSeg->v2()->segments().contains(mSeg));
+
+	mVNew->removeSegment(mSeg);
+	if (mVNew->segments().count() == 0)
+	{
+		mTl->myVtx.remove(mVNew);
+		mNewRemoved = true;
+	}
+	mTl->myVtx.insert(mVOld);
+	mOldRemoved = false;
+	mVOld->addSegment(mSeg);
+	if (mSeg->v1() == mVNew)
+		mSeg->setV1(mVOld);
+	else
+		mSeg->setV2(mVOld);
+
+	Q_ASSERT(mSeg->v1()->segments().contains(mSeg));
+	Q_ASSERT(mSeg->v2()->segments().contains(mSeg));
+	Q_ASSERT((mSeg->v1() == mVOld && mSeg->v2() != mVOld) || (mSeg->v1() != mVOld && mSeg->v2() == mVOld));
+}
+
+void TraceList::SwapVtxCmd::redo()
+{
+	Q_ASSERT((mSeg->v1() == mVOld && mSeg->v2() != mVOld) || (mSeg->v1() != mVOld && mSeg->v2() == mVOld));
+	Q_ASSERT(mSeg->v1()->segments().contains(mSeg));
+	Q_ASSERT(mSeg->v2()->segments().contains(mSeg));
+
+	mVOld->removeSegment(mSeg);
+	if (mVOld->segments().count() == 0)
+	{
+		mTl->myVtx.remove(mVOld);
+		mOldRemoved = true;
+	}
+	if (mSeg->v1() == mVOld)
+	{
+		mSeg->setV1(mVNew);
+		Q_ASSERT(mSeg->v1() == mVNew);
+		Q_ASSERT(mSeg->v2() != mVNew);
+	}
+	else
+	{
+		mSeg->setV2(mVNew);
+		Q_ASSERT(mSeg->v1() != mVNew);
+		Q_ASSERT(mSeg->v2() == mVNew);
+	}
+	mVNew->addSegment(mSeg);
+	mNewRemoved = false;
+	mTl->myVtx.insert(mVNew);
+
+	Q_ASSERT(mSeg->v1()->segments().contains(mSeg));
+	Q_ASSERT(mSeg->v2()->segments().contains(mSeg));
+	Q_ASSERT((mSeg->v1() == mVNew && mSeg->v2() != mVNew) || (mSeg->v1() != mVNew && mSeg->v2() == mVNew));
+
 }
 

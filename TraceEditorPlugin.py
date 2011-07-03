@@ -21,12 +21,15 @@ def perp(vec):
 def dotProd(pt1, pt2):
 	return pt1.x() * pt2.x() + pt1.y() * pt2.y()
 
+def isParallel(dir1, dir2):
+	return dotProd(dir1, perp(dir2)) == 0
+
 # finds the intersection of the two lines given by (pt1, dir1) and (pt2, dir2)
 # ptN = point on line, dirN = direction vector
 # returns scale factor for dir1 vector (intersection pt = pt1 + return value * dir1)
 def lineIntersect(pt1, dir1, pt2, dir2):
-	# check for collinearity
-	if (dotProd(dir1, perp(dir2)) == 0):
+	# check if parallel 
+	if isParallel(dir1, dir2):
 		return None
 	w = pt1 - pt2
 	return (1.0*dir2.y()*w.x() - dir2.x()*w.y())/(1.0*dir2.x()*dir1.y()-dir2.y()*dir1.x())
@@ -134,17 +137,27 @@ class NewTraceEditor(xpcb.AbstractEditor):
 			self.vtxStart = xpcb.Vertex(self.pos)
 			self.vtxMid = xpcb.Vertex(self.pos)
 			self.vtxEnd = xpcb.Vertex(self.pos)
-			self.seg1 = xpcb.Segment(self.vtxStart, self.vtxMid, self.layer, self.width)
-			self.seg2 = xpcb.Segment(self.vtxMid, self.vtxEnd, self.layer, self.width)
+			self.seg1 = xpcb.Segment(self.layer, self.width)
+			self.seg1.setV1(self.vtxStart)
+			self.seg1.setV2(self.vtxMid)
+			self.seg2 = xpcb.Segment(self.layer, self.width)
+			self.seg2.setV1(self.vtxMid)
+			self.seg2.setV2(self.vtxEnd)
 			self.state = self.State.PickEnd
 		elif self.state is self.State.PickEnd:
-			# TODO add first segment, update start vtx,, move second->first, create new seg/vtx
-			cmd = NewSegmentCmd(None, self.ctrl.doc(), self.seg1)
+			# check for zero length segment
+			if self.vtxStart.pos() == self.vtxMid.pos():
+				event.accept()
+				return
+			# add first segment, update start vtx,, move second->first, create new seg/vtx
+			cmd = sip.cast(self.ctrl.doc(), xpcb.PCBDoc).traceList().addSegmentCmd(self.seg1, self.vtxStart, self.vtxMid)
 			self.seg1 = self.seg2
 			self.vtxStart = self.vtxMid
 			self.vtxMid = self.vtxEnd
 			self.vtxEnd = xpcb.Vertex(self.pos)
-			self.seg2 = xpcb.Segment(self.vtxMid, self.vtxEnd, self.layer, self.width)
+			self.seg2 = xpcb.Segment(self.layer, self.width)
+			self.seg2.setV1(self.vtxMid)
+			self.seg2.setV2(self.vtxEnd)
 			self.ctrl.doc().doCommand(cmd)
 			self.toggleMode()
 		event.accept()
@@ -154,21 +167,6 @@ class NewTraceEditor(xpcb.AbstractEditor):
 		if (event.key() == Qt.Qt.Key_Escape):
 			self.editorFinished.emit()
 
-	
-
-class NewSegmentCmd(QUndoCommand):
-	def __init__(self, parent, doc, seg):
-		QUndoCommand.__init__(self, parent)
-		self.doc = sip.cast(doc, xpcb.PCBDoc)
-		self.segment = seg
-
-	def undo(self):
-		self.doc.traceList().removeSegment(self.segment)
-
-	def redo(self):
-		self.doc.traceList().addSegment(self.segment)
-
-	 
 class SegmentEditor(xpcb.AbstractEditor):
 	class State:
 		Selected, Move, AddVtx = range(3)
@@ -280,7 +278,35 @@ class SegmentEditor(xpcb.AbstractEditor):
 		self.pt2 = newpt2
 
 	def finishMove(self):
+		# creates commands to remove the given segment and join its vertices together
+		def removeSegAndJoin(seg, parentCmd):
+			def segParallel(seg1, seg2):
+				dir1 = seg1.v1().pos() - seg1.v2().pos()
+				dir2 = seg2.v1().pos() - seg2.v2().pos()
+				return isParallel(dir1, dir2)
+			tl = sip.cast(self.ctrl.doc(), xpcb.PCBDoc).traceList()
+			v1s = seg.v1().segments()
+			v1s.remove(seg)
+			v2s = seg.v2().segments()
+			v2s.remove(seg)
+			print (v1s, v2s)
+			# check for collinearity
+			if v1s and v2s and segParallel(v1s[0], v2s[0]):
+				# remove one of these
+				print "removing collinear segs"
+				tl.swapVtxCmd(v1s[0], seg.v1(), v2s[0].otherVertex(seg.v2()), parentCmd)
+				tl.removeSegmentCmd(v2s[0], parentCmd)
+			elif v1s:
+				tl.swapVtxCmd(v1s[0], seg.v1(), seg.v2(), parentCmd)
+			elif v2s:
+				tl.swapVtxCmd(v2s[0], seg.v2(), seg.v1(), parentCmd)
+			tl.removeSegmentCmd(seg, parentCmd)
+
+		def segZeroLength(seg):
+			return seg.v1().pos() == seg.v2().pos()
+
 		parentcmd = QUndoCommand("move segment")
+		# move the points and create undo commands
 		v1 = self.segment.v1()
 		v2 = self.segment.v2()
 		st1 = v1.getState()
@@ -289,12 +315,26 @@ class SegmentEditor(xpcb.AbstractEditor):
 		v2.setPos(self.pt2)
 		ch1 = xpcb.PCBObjEditCmd(parentcmd, v1, st1)
 		ch2 = xpcb.PCBObjEditCmd(parentcmd, v2, st2)
-		self.ctrl.doc().doCommand(parentcmd)
+		# remove any zero-length segments
+		if self.seg1 is not None and segZeroLength(self.seg1):
+			removeSegAndJoin(self.seg1, parentcmd)
+		if segZeroLength(self.segment):
+			removeSegAndJoin(self.segment, parentcmd)
+		if self.seg2 is not None and segZeroLength(self.seg2):
+			removeSegAndJoin(self.seg2, parentcmd)
+		# unhide objs
 		if self.seg1 is not None:
 			self.ctrl.unhideObj(self.seg1)
 		if self.seg2 is not None:
 			self.ctrl.unhideObj(self.seg2)
-		self.state = self.State.Selected
+		# execute command and reset state
+		self.ctrl.doc().doCommand(parentcmd)
+		tl = sip.cast(self.ctrl.doc(), xpcb.PCBDoc).traceList()
+		if (self.segment not in tl.segments()):
+			self.editorFinished.emit()
+			return
+		else:
+			self.state = self.State.Selected
 		self.actionsChanged.emit()
 		self.overlayChanged.emit()
 
