@@ -21,7 +21,6 @@ public:
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
 	virtual bool testHit(QPoint p, const Layer &l) const;
@@ -37,7 +36,7 @@ public:
 	LineType type() const { return mType; }
 	void setType(LineType t) { mType = t; }
 
-	static Line* newFromXml(QXmlStreamReader &reader);
+	static QSharedPointer<Line> newFromXml(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 
 	static void drawArc(QPainter* painter, QPoint start, QPoint end, LineType type);

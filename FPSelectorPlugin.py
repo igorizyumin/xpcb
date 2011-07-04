@@ -78,8 +78,7 @@ class FPPreview(QWidget):
 	def showFP(self, path):
 		print "show fp: " + str(path)
 		self._doc = xpcb.FPDoc()
-		d = sip.cast(self._doc, xpcb.Document)
-		if path is None or d is None or not d.loadFromFile(path):
+		if path is None or not self._doc.loadFromFile(path):
 			self._doc = None
 			self.update()
 			return

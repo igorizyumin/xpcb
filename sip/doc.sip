@@ -3,6 +3,14 @@ class Document : QObject /Abstract/
 %TypeHeaderCode
 #include "PCBDoc.h"
 %End
+%ConvertToSubClassCode
+	if (dynamic_cast<PCBDoc*>(sipCpp))
+		sipType = sipType_PCBDoc;
+	else if (dynamic_cast<FPDoc*>(sipCpp))
+		sipType = sipType_FPDoc;
+	else
+		sipType = NULL;
+%End
 public:
 	enum LayerOrder
 	{
@@ -56,8 +64,8 @@ public:
 	FPDoc();
 	virtual ~FPDoc();
 
-//	using Document::saveToFile;
-//	using Document::loadFromFile;
+	virtual bool loadFromFile(const QString & file);
+	virtual bool saveToFile(const QString & file);
 	virtual bool saveToXml(QXmlStreamWriter &writer);
 	virtual bool loadFromFile(QFile & file);
 	virtual bool loadFromXml(QXmlStreamReader &reader);
@@ -81,7 +89,6 @@ public:
 	void removeLine(Line* l /TransferBack/);
 
 	Footprint* footprint();
-
 };
 
 class PCBDoc : Document
@@ -91,8 +98,8 @@ public:
 	virtual ~PCBDoc();
 
 	// overrides
-//	using Document::saveToFile;
-//	using Document::loadFromFile;
+	virtual bool loadFromFile(const QString & file);
+	virtual bool saveToFile(const QString & file);
 	virtual bool saveToXml(QXmlStreamWriter &writer);
 	virtual bool loadFromFile(QFile & file);
 	virtual bool loadFromXml(QXmlStreamReader &reader);
@@ -103,6 +110,7 @@ public:
 	TraceList& traceList() const; 
 	Part* getPart(const QString & refdes);
 	QSharedPointer<Footprint> getFootprint(QUuid uuid) /Factory/;
+	QList<QSharedPointer<Footprint> > footprints() /Factory/;
 	Net* getNet(const QString &name) const;
 
 	void addText(Text* t /Transfer/);

@@ -37,7 +37,6 @@ public:
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual PCBObjState getState() const { return PCBObjState(NULL); }
 	virtual bool loadState(PCBObjState &/*state*/) { return false; }
 
@@ -55,14 +54,14 @@ public:
 	void setHatchStyle( HatchStyle hatch ) { mHatchStyle = hatch; }
 
 	bool connSmt() { return mConnectSMT; }
-	Net* net() { return mNet; }
+	QSharedPointer<Net> net() { return mNet.toStrongRef(); }
 	Polygon& poly() { return mPoly; }
 
 	/// Check if a point is within the area boundaries.
 	/// \returns true if p is inside area.
 	bool pointInside(const QPoint &p) const;
 
-	static Area* newFromXML(QXmlStreamReader &reader, const PCBDoc &doc);
+	static QSharedPointer<Area> newFromXML(QXmlStreamReader &reader, const PCBDoc &doc);
 	void toXML(QXmlStreamWriter &writer);
 
 private:
@@ -73,7 +72,7 @@ private:
 	const PCBDoc* mDoc;
 
 	/// Net assigned to this area
-	Net* mNet;
+	QWeakPointer<Net> mNet;
 
 	/// Whether to connect SMT pads to this area
 	bool mConnectSMT;
@@ -81,9 +80,10 @@ private:
 	Polygon mPoly;
 
 	/// List of connected pins
-	QSet<PartPin*> mConnPins;
+	QList<QWeakPointer<PartPin> > mConnPins;
+
 	/// List of connected vias and vertices
-	QSet<Vertex*> mConnVtx;
+	QSet<Vertex* > mConnVtx;
 
 	/// Layer this polygon is on.
 	Layer mLayer;

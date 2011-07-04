@@ -7,13 +7,13 @@ Line::Line()
 {
 }
 
-Line* Line::newFromXml(QXmlStreamReader &reader)
+QSharedPointer<Line> Line::newFromXml(QXmlStreamReader &reader)
 {
 	Q_ASSERT(reader.isStartElement() && (reader.name() == "line" || reader.name() == "arc"));
 
 	QXmlStreamAttributes attr = reader.attributes();
 
-	Line* l = new Line();
+	QSharedPointer<Line> l(new Line());
 	l->mWidth = attr.value("width").toString().toInt();
 	l->mLayer = Layer(attr.value("layer").toString().toInt());
 	l->mStart = QPoint(

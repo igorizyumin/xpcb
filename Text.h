@@ -4,6 +4,7 @@
 #include <QUndoCommand>
 #include "PCBObject.h"
 #include "Editor.h"
+#include "Controller.h"
 
 class QXmlStreamReader;
 class QXmlStreamWriter;
@@ -26,13 +27,12 @@ public:
 	// overrides
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual bool testHit(QPoint pt, const Layer& l) const { return bbox().contains(pt) && mLayer == l; }
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
 
 	// i/o
-	static Text* newFromXML(QXmlStreamReader &reader);
+	static QSharedPointer<Text> newFromXML(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 
 	// getters / setters
@@ -118,7 +118,7 @@ class TextEditor : public AbstractEditor
 {
 	Q_OBJECT
 public:
-	TextEditor(Controller *ctrl, Text *text);
+	TextEditor(Controller *ctrl, QSharedPointer<Text> text = QSharedPointer<Text>());
 	virtual ~TextEditor();
 
 	virtual void drawOverlay(QPainter* painter);
@@ -146,45 +146,28 @@ private:
 	void finishNew();
 
 	State mState;
-	Text* mText;
-	EditTextDialog *mDialog;
+	QSharedPointer<Text> mText;
+	QSharedPointer<EditTextDialog> mDialog;
 	QPoint mPos;
 	QRect mBox;
 	int mAngleDelta;
 
-        CtrlAction mRotateAction;
-        CtrlAction mEditAction;
-        CtrlAction mMoveAction;
-        CtrlAction mDeleteAction;
-};
-
-class TextMoveCmd : public QUndoCommand
-{
-public:
-	TextMoveCmd(QUndoCommand *parent, Text* obj, QPoint newPos, int angleDelta);
-
-	virtual void undo();
-	virtual void redo();
-
-private:
-	Text* mText;
-	QPoint mNewPos;
-	QPoint mPrevPos;
-	int mNewAngle;
-	int mPrevAngle;
+	CtrlAction mRotateAction;
+	CtrlAction mEditAction;
+	CtrlAction mMoveAction;
+	CtrlAction mDeleteAction;
 };
 
 class TextNewCmd : public QUndoCommand
 {
 public:
-	TextNewCmd(QUndoCommand *parent, Text* obj, Document* doc);
-	virtual ~TextNewCmd();
+	TextNewCmd(QUndoCommand *parent, QSharedPointer<Text> obj, Document* doc);
 
 	virtual void undo();
 	virtual void redo();
 
 private:
-	Text* mText;
+	QSharedPointer<Text> mText;
 	Document* mDoc;
 	bool mInDoc;
 };
@@ -192,49 +175,15 @@ private:
 class TextDeleteCmd : public QUndoCommand
 {
 public:
-	TextDeleteCmd(QUndoCommand *parent, Text* obj, Document* doc);
-	virtual ~TextDeleteCmd();
+	TextDeleteCmd(QUndoCommand *parent, QSharedPointer<Text> obj, Document* doc);
 
 	virtual void undo();
 	virtual void redo();
 
 private:
-	Text* mText;
+	QSharedPointer<Text> mText;
 	Document* mDoc;
 	bool mInDoc;
 };
-
-class TextEditCmd : public QUndoCommand
-{
-public:
-	TextEditCmd(QUndoCommand *parent, Text* obj, QPoint newPos, const Layer& layer,
-				int newAngle, bool isMirrored, bool isNegative, int newSize,
-				int newWidth, QString newText );
-
-	virtual void undo();
-	virtual void redo();
-
-private:
-	Text* mText;
-	// old
-	QPoint mOldPos;
-	Layer mOldLayer;
-	int mOldAngle;
-	bool mOldIsMirrored;
-	bool mOldIsNegative;
-	int mOldFontSize;
-	int mOldStrokeWidth;
-	QString mOldText;
-	// new
-	QPoint mNewPos;
-	Layer mNewLayer;
-	int mNewAngle;
-	bool mNewIsMirrored;
-	bool mNewIsNegative;
-	int mNewFontSize;
-	int mNewStrokeWidth;
-	QString mNewText;
-};
-
 
 #endif // TEXT_H

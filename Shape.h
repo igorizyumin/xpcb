@@ -72,7 +72,7 @@ public:
 	Padstack();
 	bool operator==(const Padstack &p) const;
 
-	static Padstack* newFromXML(QXmlStreamReader &reader);
+	static QSharedPointer<Padstack> newFromXML(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 
 	QString name() const {return mName; }
@@ -112,19 +112,18 @@ class Pin : public PCBObject
 {
 public:
 
-	Pin(Footprint* fp) : mAngle(0), mIsDirty(true), mPadstack(NULL), mFootprint(fp) {}
+	Pin(Footprint* fp) : mAngle(0), mIsDirty(true), mFootprint(fp) {}
 
 	int angle() const { return mAngle; }
 	QPoint pos() const { return mPos; }
-	Padstack* padstack() const { return mPadstack; }
+	QSharedPointer<Padstack> padstack() const { return mPadstack; }
 	QString name() const { return mName; }
 
 	void setName(QString name) { mName = name; }
 	void setPos(QPoint pos) { mPos = pos; markDirty(); }
 	void setAngle(int angle) { mAngle = angle; markDirty(); }
-	void setPadstack(Padstack* ps) { mPadstack = ps; }
+	void setPadstack(QSharedPointer<Padstack> ps) { mPadstack = ps; }
 
-	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual PCBObjState getState() const;
@@ -132,7 +131,7 @@ public:
 
 	virtual bool testHit(QPoint pt, const Layer& layer) const;
 
-	static Pin* newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks, Footprint* fp);
+	static QSharedPointer<Pin> newFromXML(QXmlStreamReader &reader, const QHash<int, QSharedPointer<Padstack> > &padstacks, Footprint* fp);
 	void toXML(QXmlStreamWriter &writer) const;
 
 	Pad getPadOnLayer(const Layer& layer) const;
@@ -154,7 +153,7 @@ private:
 		QString name;
 		QPoint pos;
 		int angle;
-		Padstack* ps;
+		QSharedPointer<Padstack> ps;
 	};
 
 	// disabled copy constructor
@@ -174,7 +173,7 @@ private:
 	mutable QTransform mFpTransform;
 	mutable bool mIsDirty;
 	/// Padstack used for this pin
-	Padstack* mPadstack;
+	QSharedPointer<Padstack> mPadstack;
 	/// Parent footprint
 	Footprint* mFootprint;
 };
@@ -205,36 +204,36 @@ public:
 	void setDesc(QString desc) { mDesc = desc; }
 
 
-	QList<Padstack*> padstacks() { return mPadstacks; }
-	void addPadstack(Padstack* ps) { mPadstacks.append(ps); }
-	void removePadstack(Padstack* ps);
+	QList<QSharedPointer<Padstack> > padstacks() { return mPadstacks; }
+	void addPadstack(QSharedPointer<Padstack> ps) { mPadstacks.append(ps); }
+	void removePadstack(QSharedPointer<Padstack> ps);
 
 	int numPins() const;
-	const Pin* getPin(const QString & pin) const;
-	const Pin* getPin(int i) {return mPins.at(i);}
-	const QList<Pin*> pins() { return mPins; }
-	void addPin(Pin* p) { mPins.append(p); }
-	void removePin(Pin* p) { mPins.removeOne(p); }
+	QSharedPointer<Pin> pin(const QString & pin) const;
+	QSharedPointer<Pin> pin(int i) {return mPins.at(i);}
+	const QList<QSharedPointer<Pin> > pins() { return mPins; }
+	void addPin(QSharedPointer<Pin> p) { mPins.append(p); }
+	void removePin(QSharedPointer<Pin> p) { mPins.removeOne(p); }
 
-	const QList<Text*> texts() { return mTexts; }
-	void addText(Text* t) { mTexts.append(t); }
-	void removeText(Text* t) { mTexts.removeOne(t); }
+	const QList<QSharedPointer<Text> > texts() { return mTexts; }
+	void addText(QSharedPointer<Text> t) { mTexts.append(t); }
+	void removeText(QSharedPointer<Text> t) { mTexts.removeOne(t); }
 
-	const QList<Line*> getLines() { return mOutlineLines; }
+	const QList<QSharedPointer<Line> > lines() { return mOutlineLines; }
 
-	void addLine(Line* l) { mOutlineLines.append(l); }
-	void removeLine(Line* l) { mOutlineLines.removeOne(l); }
+	void addLine(QSharedPointer<Line> l) { mOutlineLines.append(l); }
+	void removeLine(QSharedPointer<Line> l) { mOutlineLines.removeOne(l); }
 
 	QRect getPinBounds() const;
 
-	const Text& getRefText() {return mRefText;}
-	const Text& getValueText() {return mValueText;}
+	QSharedPointer<Text> refText() {return mRefText;}
+	QSharedPointer<Text> valueText() {return mValueText;}
 
 	QPoint centroid() {return mCentroid;}
 	bool isCustomCentroid() {return mCustomCentroid;}
 	XPcb::UNIT units() {return mUnits; }
 
-	static Footprint* newFromXML(QXmlStreamReader &reader);
+	static QSharedPointer<Footprint> newFromXML(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 
 	const QUuid& uuid() const { return mUuid; }
@@ -257,22 +256,22 @@ private:
 	/// Units used to draw the footprint
 	XPcb::UNIT mUnits;
 	/// Reference designator text
-	Text mRefText;
+	QSharedPointer<Text> mRefText;
 	/// Value text
-	Text mValueText;
+	QSharedPointer<Text> mValueText;
 	/// Centroid point; can be automatic or user-defined
 	QPoint mCentroid;
 	/// If false, centroid is automatically set to the center of all pins
 	/// If true, centroid is user-defined
 	bool mCustomCentroid;
 	/// Footprint padstacks
-	QList<Padstack*> mPadstacks;
+	QList<QSharedPointer<Padstack> > mPadstacks;
 	/// Footprint pins
-	QList<Pin*> mPins;
+	QList<QSharedPointer<Pin> > mPins;
 	/// Silkscreen lines (used for part outline)
-	QList<Line*> mOutlineLines;
+	QList<QSharedPointer<Line> > mOutlineLines;
 	/// Silkscreen text
-	QList<Text*> mTexts;
+	QList<QSharedPointer<Text> > mTexts;
 	/// UUID for this footprint
 	QUuid mUuid;
 };

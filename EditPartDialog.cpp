@@ -61,7 +61,7 @@ void EditPartDialog::updateUnits()
 	}
 }
 
-void EditPartDialog::init(Part *p)
+void EditPartDialog::init(QSharedPointer<Part> p)
 {
 	unitsBox->setCurrentIndex(0);
 	mPart = p;

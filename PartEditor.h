@@ -20,17 +20,16 @@
 
 #include "Editor.h"
 #include "PCBDoc.h"
+#include "EditPartDialog.h"
 
 class Part;
-class EditPartDialog;
 class Controller;
 
 class PartEditor : public AbstractEditor
 {
 	Q_OBJECT
 public:
-	PartEditor(PCBController *ctrl, Part *part = NULL);
-	virtual ~PartEditor();
+	PartEditor(PCBController *ctrl, QSharedPointer<Part> part = QSharedPointer<Part>());
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
@@ -61,8 +60,8 @@ private:
 
 	PCBObjState mPrevPartState;
 	State mState;
-	Part* mPart;
-	EditPartDialog *mDialog;
+	QSharedPointer<Part> mPart;
+	QSharedPointer<EditPartDialog> mDialog;
 	CtrlAction mChangeSideAction;
 	CtrlAction mRotateCWAction;
 	CtrlAction mRotateCCWAction;
@@ -76,31 +75,29 @@ private:
 class PartNewCmd : public QUndoCommand
 {
 public:
-	PartNewCmd(QUndoCommand *parent, Part* obj, PCBDoc* doc);
+	PartNewCmd(QUndoCommand *parent, QSharedPointer<Part> obj, PCBDoc* doc);
 	virtual ~PartNewCmd();
 
 	virtual void undo();
 	virtual void redo();
 
 private:
-	Part* mPart;
+	QSharedPointer<Part> mPart;
 	PCBDoc* mDoc;
-	bool mInDoc;
 };
 
 class PartDeleteCmd : public QUndoCommand
 {
 public:
-	PartDeleteCmd(QUndoCommand *parent, Part* obj, PCBDoc* doc);
+	PartDeleteCmd(QUndoCommand *parent, QSharedPointer<Part> obj, PCBDoc* doc);
 	virtual ~PartDeleteCmd();
 
 	virtual void undo();
 	virtual void redo();
 
 private:
-	Part* mPart;
+	QSharedPointer<Part> mPart;
 	PCBDoc* mDoc;
-	bool mInDoc;
 };
 
 #endif // PARTEDITOR_H

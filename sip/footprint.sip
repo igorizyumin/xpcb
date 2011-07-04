@@ -124,10 +124,10 @@ public:
 	~Footprint();
 	%MethodCode
 		// check if there is an outstanding shared pointer
-		if (sharedPtrManager<Footprint>::hasPtr(sipCppV))
+		if (SharedPtrMgr::hasRef(sipCppV))
 		{
 			// decrement the reference count and get out
-			sharedPtrManager<Footprint>::decRef(sipCppV);
+			SharedPtrMgr::decRef(sipCppV);
 			return;
 		}
 		// otherwise let python deal with it

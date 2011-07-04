@@ -7,8 +7,6 @@
 
 PartPin::~PartPin()
 {
-	if (mNet)
-		mNet->removePin(this);
 }
 
 Pad PartPin::getPadOnLayer(const Layer& layer) const
@@ -71,15 +69,6 @@ void PartPin::draw(QPainter *painter, const Layer& layer) const
 	mPin->draw(painter, mapLayer(layer));
 }
 
-void PartPin::setNet(Net *newnet)
-{
-	if (mNet)
-		mNet->removePin(this);
-	mNet = newnet;
-	if (newnet)
-		mNet->addPin(this);
-}
-
 PCBObjState PartPin::getState() const
 {
 	return PCBObjState(new PartPinState(*this));
@@ -99,7 +88,7 @@ bool PartPin::loadState(PCBObjState &state)
 
 ///////////////////// PART /////////////////////
 Part::Part(PCBDoc *doc)
-	: mAngle(0), mSide(SIDE_TOP), mLocked(false), mRefdes(NULL), mRefVisible(false), mValue(NULL),
+	: mAngle(0), mSide(SIDE_TOP), mLocked(false), mRefVisible(false),
 	mValueVisible(false), mDoc(doc)
 {
 
@@ -112,14 +101,8 @@ Part::~Part()
 
 void Part::resetFp()
 {
-	delete mRefdes;
-	mRefdes = NULL;
-	delete mValue;
-	mValue = NULL;
-	foreach(PartPin* pin, mPins)
-	{
-		delete pin;
-	}
+	mRefdes.clear();
+	mValue.clear();
 	mPins.clear();
 }
 
@@ -140,25 +123,25 @@ void Part::updateFp()
 	// create new pins
 	for(int i = 0; i < mFp->numPins(); i++)
 	{
-		const Pin *p = mFp->getPin(i);
-		mPins.append(new PartPin(this, p));
+		QSharedPointer<Pin> p = mFp->pin(i);
+		mPins.append(QSharedPointer<PartPin>(new PartPin(this, p)));
 	}
 
 	// create texts
-	mRefdes = new Text(mFp->getRefText());
+	mRefdes = QSharedPointer<Text>(new Text(*mFp->refText()));
 	mRefdes->setParent(this);
-	mValue = new Text(mFp->getValueText());
+	mValue = QSharedPointer<Text>(new Text(*mFp->valueText()));
 	mValue->setParent(this);
 }
 
-Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
+QSharedPointer<Part> Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "part");
 
 
 	QXmlStreamAttributes attr = reader.attributes();
 
-	Part *pp = new Part(doc);
+	QSharedPointer<Part> pp(new Part(doc));
 
 	pp->mFpUuid = QUuid(attr.value("footprint_uuid").toString());
 	pp->updateFp();
@@ -187,8 +170,8 @@ Part* Part::newFromXML(QXmlStreamReader &reader, PCBDoc *doc)
 
 	pp->updateTransform();
 
-	pp->mRefdes->setParent(pp);
-	pp->mValue->setParent(pp);
+	pp->mRefdes->setParent(pp.data());
+	pp->mValue->setParent(pp.data());
 	pp->mRefdes->setLayer(pp->mSide == SIDE_TOP ? Layer::LAY_SILK_TOP : Layer::LAY_SILK_BOTTOM);
 	pp->mValue->setLayer(pp->mSide == SIDE_TOP ? Layer::LAY_SILK_TOP : Layer::LAY_SILK_BOTTOM);
 
@@ -297,7 +280,7 @@ void Part::draw(QPainter *painter, const Layer& layer) const
 		mFp->draw(painter, Footprint::LAY_END);
 
 	// draw pins
-	foreach(PartPin* p, mPins)
+	foreach(QSharedPointer<PartPin> p, mPins)
 	{
 		p->draw(painter, layer);
 	}
@@ -310,14 +293,14 @@ QRect Part::bbox() const
 	return mTransform.mapRect(mFp->bbox());
 }
 
-PartPin* Part::getPin(const QString &name)
+QSharedPointer<PartPin> Part::pin(const QString &name)
 {
-	foreach(PartPin* p, mPins)
+	foreach(QSharedPointer<PartPin> p, mPins)
 	{
 		if (p->name() == name)
 			return p;
 	}
-	return NULL;
+	return QSharedPointer<PartPin>();
 }
 
 PCBObjState Part::getState() const

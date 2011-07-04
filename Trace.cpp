@@ -3,11 +3,13 @@
 #include "Trace.h"
 #include "Area.h"
 
-static void vertexDFS(QSet<Vertex*> &toVisit, QSet<Vertex*> &currSet, Vertex *currVtx);
+static void vertexDFS(QSet<QSharedPointer<Vertex> > &toVisit,
+					  QSet<Vertex* > &currSet,
+					  QSharedPointer<Vertex> currVtx);
 
 
 Vertex::Vertex(QPoint pos, bool forcevia)
-	: mPos(pos), mPadstack(NULL), mForceVia(forcevia)
+	: mPos(pos), mForceVia(forcevia)
 {
 
 }
@@ -23,12 +25,12 @@ QRect Vertex::bbox() const
 	return QRect();
 }
 
-void Vertex::addSegment(Segment* seg)
+void Vertex::addSegment(QSharedPointer<Segment> seg)
 {
 	mSegs.insert(seg);
 }
 
-void Vertex::removeSegment(Segment* seg)
+void Vertex::removeSegment(QSharedPointer<Segment> seg)
 {
 	mSegs.remove(seg);
 }
@@ -48,15 +50,17 @@ QSet<Vertex*> TraceList::getVerticesInArea(const Area& a) const
 {
 	Layer layer = a.layer();
 	QSet<Vertex*> set;
-	foreach(Vertex* vtx, myVtx)
+	foreach(QSharedPointer<Vertex> vtx, myVtx)
 	{
 		if (vtx->onLayer(layer)  && a.pointInside(vtx->pos()))
-			set.insert(vtx);
+			set.insert(vtx.data());
 	}
 	return set;
 }
 
-void TraceList::addSegment(Segment *s, Vertex *v1, Vertex *v2)
+void TraceList::addSegment(QSharedPointer<Segment> s,
+						   QSharedPointer<Vertex> v1,
+						   QSharedPointer<Vertex> v2)
 {
 	// ensure vertices are added to the list
 	myVtx.insert(v1);
@@ -69,7 +73,7 @@ void TraceList::addSegment(Segment *s, Vertex *v1, Vertex *v2)
 	mIsDirty = true;
 }
 
-void TraceList::removeSegment(Segment *s)
+void TraceList::removeSegment(QSharedPointer<Segment> s)
 {
 	if (!mySeg.remove(s))
 		return;
@@ -80,25 +84,25 @@ void TraceList::removeSegment(Segment *s)
 	if (s->v1()->segments().count() == 0)
 	{
 		myVtx.remove(s->v1());
-		delete s->v1();
 	}
+
 	if (s->v2()->segments().count() == 0)
 	{
 		myVtx.remove(s->v2());
-		delete s->v2();
 	}
-	delete s;
+
 	mIsDirty = true;
 }
 
-void TraceList::swapVtx(Segment *s, Vertex *vOld, Vertex *vNew)
+void TraceList::swapVtx(QSharedPointer<Segment> s,
+						QSharedPointer<Vertex> vOld,
+						QSharedPointer<Vertex> vNew)
 {
 	Q_ASSERT(s && vOld && vNew && (s->v1() == vOld || s->v2() == vOld));
 	vOld->removeSegment(s);
 	if (vOld->segments().count() == 0)
 	{
 		myVtx.remove(vOld);
-		delete vOld;
 	}
 	if (s->v1() == vOld)
 		s->setV1(vNew);
@@ -112,28 +116,30 @@ void TraceList::update() const
 {
 	if (!mIsDirty) return;
 	// rebuild connection list
-	QSet<Vertex*> toVisit(myVtx);
-	QSet<Vertex*> currSet;
+	QSet<QSharedPointer<Vertex> > toVisit(myVtx);
+	QSet<Vertex* > currSet;
 	this->mConnections.clear();
 	while(!toVisit.empty())
 	{
 		currSet.clear();
-		Vertex* vtx = *toVisit.begin();
+		QSharedPointer<Vertex> vtx = *toVisit.begin();
 		toVisit.remove(vtx);
 		vertexDFS(toVisit, currSet, vtx);
 		mConnections.append(currSet);
 	}
 }
 
-void vertexDFS(QSet<Vertex*> &toVisit, QSet<Vertex*> &currSet, Vertex *currVtx)
+void vertexDFS(QSet<QSharedPointer<Vertex> > &toVisit,
+			   QSet<Vertex* > &currSet,
+			   QSharedPointer<Vertex> currVtx)
 {
-	foreach(Segment* seg, currVtx->segments())
+	foreach(QSharedPointer<Segment> seg, currVtx->segments())
 	{
-		Vertex* vtx = seg->otherVertex(currVtx);
+		QSharedPointer<Vertex> vtx = seg->otherVertex(currVtx);
 		if (toVisit.contains(vtx))
 		{
 			toVisit.remove(vtx);
-			currSet.insert(vtx);
+			currSet.insert(vtx.data());
 			vertexDFS(toVisit, currSet, vtx);
 		}
 
@@ -142,14 +148,15 @@ void vertexDFS(QSet<Vertex*> &toVisit, QSet<Vertex*> &currSet, Vertex *currVtx)
 
 void TraceList::clear()
 {
-	foreach(Segment* seg, mySeg)
+	// clear all internal refs to prevent leaks due to cycles
+	foreach(QSharedPointer<Segment> seg, mySeg)
 	{
-		delete seg;
+		seg->clear();
 	}
 	mySeg.clear();
-	foreach(Vertex* vtx, myVtx)
+	foreach(QSharedPointer<Vertex> vtx, myVtx)
 	{
-		delete vtx;
+		vtx->clear();
 	}
 	myVtx.clear();
 }
@@ -162,7 +169,7 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 	// read vertices
 	reader.readNextStartElement();
 	Q_ASSERT(reader.isStartElement() && reader.name() == "vertices");
-	QHash<int, Vertex*> vmap;
+	QHash<int, QSharedPointer<Vertex> > vmap;
 	while(reader.readNextStartElement())
 	{
 		Q_ASSERT(reader.name() == "vertex");
@@ -175,7 +182,7 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 
 		// XXX TODO find padstack / pin reference
 
-		Vertex* v = new Vertex(pt, forcevia);
+		QSharedPointer<Vertex> v(new Vertex(pt, forcevia));
 		this->myVtx.insert(v);
 		vmap.insert(id, v);
 		do
@@ -195,8 +202,10 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 		Layer layer(static_cast<Layer::Type>(attr.value("layer").toString().toInt()));
 		int width = attr.value("width").toString().toInt();
 
-		Segment* s = new Segment(layer, width);
-		addSegment(s, vmap.value(start, NULL), vmap.value(end, NULL));
+		QSharedPointer<Segment> s(new Segment(layer, width));
+		addSegment(s,
+				   vmap.value(start, QSharedPointer<Vertex>()),
+				   vmap.value(end, QSharedPointer<Vertex>()));
 		do
 				reader.readNext();
 		while(!reader.isEndElement());
@@ -207,7 +216,7 @@ void TraceList::toXML(QXmlStreamWriter &writer) const
 {
 	writer.writeStartElement("traces");
 	writer.writeStartElement("vertices");
-	foreach(Vertex* v, myVtx)
+	foreach(QSharedPointer<Vertex> v, myVtx)
 	{
 		writer.writeStartElement("vertex");
 		writer.writeAttribute("id", QString::number(v->getid()));
@@ -219,7 +228,7 @@ void TraceList::toXML(QXmlStreamWriter &writer) const
 	writer.writeEndElement();
 
 	writer.writeStartElement("segments");
-	foreach(Segment* s, mySeg)
+	foreach(QSharedPointer<Segment> s, mySeg)
 	{
 		writer.writeStartElement("segment");
 		writer.writeAttribute("start", QString::number(s->v1()->getid()));
@@ -233,26 +242,27 @@ void TraceList::toXML(QXmlStreamWriter &writer) const
 	writer.writeEndElement();
 }
 
-Segment* TraceList::segment(Vertex *v1, Vertex *v2) const
+QSharedPointer<Segment> TraceList::segment(QSharedPointer<Vertex> v1,
+										   QSharedPointer<Vertex> v2) const
 {
-	foreach(Segment* s, v1->segments())
+	foreach(QSharedPointer<Segment> s, v1->segments())
 	{
 		if (s->otherVertex(v1) == v2)
 			return s;
 	}
-	return NULL;
+	return QSharedPointer<Segment>();
 }
 
 /////////////////////// SEGMENT ///////////////////////
 
 Segment::Segment(const Layer& l, int w)
-	: mLayer(l), mV1(NULL), mV2(NULL) , mWidth(w)
+	: mLayer(l), mWidth(w)
 {
 }
 
 void Segment::draw(QPainter *painter, const Layer& layer) const
 {
-	if (!mV1 || !mV2) return;
+	if (mV1.isNull() || mV2.isNull()) return;
 	if (layer != mLayer && layer != Layer::LAY_SELECTION)
 		return;
 
@@ -265,7 +275,7 @@ void Segment::draw(QPainter *painter, const Layer& layer) const
 
 QRect Segment::bbox() const
 {
-	if (!mV1 || !mV2) return QRect();
+	if (mV1.isNull() || mV2.isNull()) return QRect();
 	return QRect(mV1->pos(), mV2->pos()).normalized().adjusted(-mWidth/2, -mWidth/2, mWidth/2, mWidth/2);
 }
 
@@ -294,7 +304,7 @@ bool Vertex::isVia() const
 {
 	Layer layer;
 	bool first = true;
-	foreach(Segment* seg, this->mSegs)
+	foreach(QSharedPointer<Segment> seg, this->mSegs)
 	{
 		if (!first && seg->layer() != layer)
 			return true; // consecutive segments on different layers
@@ -314,7 +324,7 @@ bool Vertex::onLayer(const Layer& layer) const
 	else
 	{
 		// not a via, all segments must be on same layer
-		Segment* first = *this->mSegs.begin();
+		QSharedPointer<Segment> first = *this->mSegs.begin();
 		if (layer == first->layer())
 			return true;
 		else
@@ -340,29 +350,17 @@ bool Vertex::loadState(PCBObjState& state)
 ////////////////////// UNDO COMMANDS //////////////////////
 
 
-TraceList::AddSegCmd::AddSegCmd(QUndoCommand *parent, TraceList *tl, Segment *s, Vertex *v1, Vertex *v2)
-	: QUndoCommand(parent), mTl(tl), mSeg(s), mV1(v1), mV2(v2), mUndone(true)
+TraceList::AddSegCmd::AddSegCmd(QUndoCommand *parent,
+								TraceList *tl,
+								QSharedPointer<Segment> s,
+								QSharedPointer<Vertex> v1,
+								QSharedPointer<Vertex> v2)
+	: QUndoCommand(parent), mTl(tl), mSeg(s), mV1(v1), mV2(v2)
 {
-}
-
-TraceList::AddSegCmd::~AddSegCmd()
-{
-	if (mUndone)
-	{
-		// only delete the objects that are not referenced by anything else
-		if (mV1->segments().count() == 0)
-			delete mV1;
-		if (mV2->segments().count() == 0)
-			delete mV2;
-		delete mSeg;
-	}
-	// don't delete anything if the command hasn't been undone
 }
 
 void TraceList::AddSegCmd::undo()
 {
-	if (mUndone)
-		return;
 	mTl->mySeg.remove(mSeg);
 	mV1->removeSegment(mSeg);
 	mV2->removeSegment(mSeg);
@@ -371,41 +369,24 @@ void TraceList::AddSegCmd::undo()
 		mTl->myVtx.remove(mV1);
 	if (mV2->segments().count() == 0)
 		mTl->myVtx.remove(mV2);
-	mUndone = true;
 }
 
 void TraceList::AddSegCmd::redo()
 {
-	if (!mUndone)
-		return;
 	mTl->addSegment(mSeg, mV1, mV2);
-	mUndone = false;
 }
 
 
-TraceList::DelSegCmd::DelSegCmd(QUndoCommand *parent, TraceList *tl, Segment *s)
-	: QUndoCommand(parent), mTl(tl), mSeg(s), mV1(s->v1()), mV2(s->v2()), mUndone(true)
+TraceList::DelSegCmd::DelSegCmd(QUndoCommand *parent,
+								TraceList *tl,
+								QSharedPointer<Segment> s)
+	: QUndoCommand(parent), mTl(tl), mSeg(s), mV1(s->v1()), mV2(s->v2())
 {
-}
-
-TraceList::DelSegCmd::~DelSegCmd()
-{
-	if (!mUndone)
-	{
-		// only delete the objects that are not referenced by anything else
-		if (mV1->segments().count() == 0)
-			delete mV1;
-		if (mV2->segments().count() == 0)
-			delete mV2;
-		delete mSeg;
-	}
-	// don't delete anything if the command has been undone
 }
 
 void TraceList::DelSegCmd::undo()
 {
 	mTl->addSegment(mSeg, mV1, mV2);
-	mUndone = true;
 }
 
 void TraceList::DelSegCmd::redo()
@@ -418,30 +399,18 @@ void TraceList::DelSegCmd::redo()
 		mTl->myVtx.remove(mV1);
 	if (mV2->segments().count() == 0)
 		mTl->myVtx.remove(mV2);
-	mUndone = false;
 }
 
 /////////////////
 
-TraceList::SwapVtxCmd::SwapVtxCmd(QUndoCommand *parent, TraceList *tl, Segment *s, Vertex* vOld, Vertex* vNew)
-	: QUndoCommand(parent), mTl(tl), mSeg(s), mVOld(vOld), mVNew(vNew), mNewRemoved(!tl->myVtx.contains(vNew)), mOldRemoved(!tl->myVtx.contains(vOld))
+TraceList::SwapVtxCmd::SwapVtxCmd(QUndoCommand *parent, TraceList *tl,
+								  QSharedPointer<Segment> s,
+								  QSharedPointer<Vertex> vOld,
+								  QSharedPointer<Vertex> vNew)
+	: QUndoCommand(parent), mTl(tl), mSeg(s), mVOld(vOld), mVNew(vNew)
 {
 	Q_ASSERT(mVOld != mVNew);
 	Q_ASSERT(s->v1() != mVNew && s->v2() != mVNew);
-}
-
-TraceList::SwapVtxCmd::~SwapVtxCmd()
-{
-	if (mNewRemoved)
-	{
-		Q_ASSERT(mVNew->segments().count() == 0);
-		delete mVNew;
-	}
-//	if (mOldRemoved)
-//	{
-//		Q_ASSERT(mVOld->segments().count() == 0);
-//	/	delete mVOld;
-//	}
 }
 
 void TraceList::SwapVtxCmd::undo()
@@ -455,10 +424,8 @@ void TraceList::SwapVtxCmd::undo()
 	if (mVNew->segments().count() == 0)
 	{
 		mTl->myVtx.remove(mVNew);
-		mNewRemoved = true;
 	}
 	mTl->myVtx.insert(mVOld);
-	mOldRemoved = false;
 	mVOld->addSegment(mSeg);
 	if (mSeg->v1() == mVNew)
 		mSeg->setV1(mVOld);
@@ -480,7 +447,6 @@ void TraceList::SwapVtxCmd::redo()
 	if (mVOld->segments().count() == 0)
 	{
 		mTl->myVtx.remove(mVOld);
-		mOldRemoved = true;
 	}
 	if (mSeg->v1() == mVOld)
 	{
@@ -495,7 +461,6 @@ void TraceList::SwapVtxCmd::redo()
 		Q_ASSERT(mSeg->v2() == mVNew);
 	}
 	mVNew->addSegment(mSeg);
-	mNewRemoved = false;
 	mTl->myVtx.insert(mVNew);
 
 	Q_ASSERT(mSeg->v1()->segments().contains(mSeg));

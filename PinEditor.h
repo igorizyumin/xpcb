@@ -19,15 +19,15 @@
 #define PINEDITOR_H
 
 #include "Editor.h"
-
-class EditPinDialog;
+#include "Controller.h"
+#include "Shape.h"
+#include "EditPinDialog.h"
 
 class PinEditor : public AbstractEditor
 {
 	Q_OBJECT
 public:
-	PinEditor(FPController* ctrl, Pin* pin = NULL);
-	virtual ~PinEditor();
+	PinEditor(FPController* ctrl, QSharedPointer<Pin> pin = QSharedPointer<Pin>());
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
@@ -56,8 +56,8 @@ private:
 	enum State { SELECTED, MOVE, ADD_MOVE, EDIT_MOVE };
 
 	State mState;
-	QList<Pin*> mPins;
-	EditPinDialog* mDialog;
+	QList<QSharedPointer<Pin> > mPins;
+	QSharedPointer<EditPinDialog> mDialog;
 	QPoint mPos;
 	int mAngle;
 	QPoint mStartPos;
@@ -72,50 +72,13 @@ private:
 class NewPinCmd : public QUndoCommand
 {
 public:
-	NewPinCmd(QUndoCommand *parent, FPDoc* doc, QList<Pin*> pins);
-	virtual ~NewPinCmd();
+	NewPinCmd(QUndoCommand *parent, FPDoc* doc, QList<QSharedPointer<Pin> > pins);
 
 	virtual void undo();
 	virtual void redo();
 private:
-	QList<Pin*> mPins;
+	QList<QSharedPointer<Pin> > mPins;
 	FPDoc* mDoc;
-	bool mInDoc;
-};
-
-class PinMoveCmd : public QUndoCommand
-{
-public:
-	PinMoveCmd(QUndoCommand *parent, FPDoc* doc, Pin* pin, QPoint pos, int angle);
-
-	virtual void undo();
-	virtual void redo();
-private:
-	Pin* mPin;
-	FPDoc* mDoc;
-	QPoint mNewPos;
-	int mNewAngle;
-	QPoint mOldPos;
-	int mOldAngle;
-};
-
-class PinEditCmd : public QUndoCommand
-{
-public:
-	PinEditCmd(QUndoCommand *parent, Pin* pin, QString name, Padstack* ps, QPoint pos, int angle);
-
-	virtual void undo();
-	virtual void redo();
-private:
-	Pin* mPin;
-	QString mNewName;
-	QString mPrevName;
-	Padstack* mNewPS;
-	Padstack* mPrevPS;
-	QPoint mNewPos;
-	QPoint mPrevPos;
-	int mNewAngle;
-	int mPrevAngle;
 };
 
 #endif // PINEDITOR_H

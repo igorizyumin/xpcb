@@ -32,7 +32,7 @@ class EditPadstackDialog : public QDialog, private Ui::EditPadstackDialog
 public:
     explicit EditPadstackDialog(QWidget *parent = 0);
 
-	void init(Padstack* ps);
+	void init(QSharedPointer<Padstack> ps);
 	Padstack toPadstack();
 
 public slots:

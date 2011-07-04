@@ -66,22 +66,22 @@ public:
 	virtual XPcb::UNIT units() const { return mUnits; }
 
 	/// Returns a list of all objects that are hit
-	virtual QList<PCBObject*> findObjs(QPoint &pt) = 0;
+	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt) = 0;
 	/// Returns list of all objects touching rect
-	virtual QList<PCBObject*> findObjs(QRect &rect) = 0;
+	virtual QList<QSharedPointer<PCBObject> > findObjs(QRect &rect) = 0;
 
 	/// Add text object to document.
-	virtual void addText(Text* t) = 0;
+	virtual void addText(QSharedPointer<Text> t) = 0;
 	/// Remove text object from document.
-	virtual void removeText(Text* t) = 0;
+	virtual void removeText(QSharedPointer<Text> t) = 0;
 
 
 	/// Returns a list of all padstacks used in the document.
-	virtual QList<Padstack*> padstacks() = 0;
+	virtual QList<QSharedPointer<Padstack> > padstacks() = 0;
 	/// Adds the provided padstack to the document.
-	virtual void addPadstack(Padstack* ps) = 0;
+	virtual void addPadstack(QSharedPointer<Padstack>) = 0;
 	/// Removes the provided padstack from the document.
-	virtual void removePadstack(Padstack* ps) = 0;
+	virtual void removePadstack(QSharedPointer<Padstack>) = 0;
 signals:
 	void changed();
 	void cleanChanged(bool clean);
@@ -98,7 +98,7 @@ protected:
 	/// Default units
 	XPcb::UNIT mUnits;
 	/// Undo stack
-	QUndoStack *mUndoStack;
+	QUndoStack mUndoStack;
 };
 
 class PCBDoc : public Document
@@ -117,43 +117,44 @@ public:
 	virtual bool loadFromFile(QFile & file);
 	virtual bool loadFromXml(QXmlStreamReader &reader);
 	virtual QList<Layer> layerList(LayerOrder order = ListOrder);
-	virtual QList<PCBObject*> findObjs(QPoint &pt);
-	virtual QList<PCBObject*> findObjs(QRect &rect);
+	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt);
+	virtual QList<QSharedPointer<PCBObject> > findObjs(QRect &rect);
 
 	TraceList& traceList() const {return *mTraceList;}
 
-	Part* getPart(const QString & refdes);
+	QSharedPointer<Part> part(const QString & refdes);
 
 	QSharedPointer<Footprint> getFootprint(QUuid uuid);
+	QList<QSharedPointer<Footprint> > footprints() { return mFootprints.values(); }
 
-	Net* getNet(const QString &name) const;
+	QSharedPointer<Net> net(const QString &name) const;
 
-	void addText(Text* t);
-	void removeText(Text* t);
+	virtual void addText(QSharedPointer<Text> t);
+	virtual void removeText(QSharedPointer<Text> t);
 
-	void addPart(Part* p);
-	void removePart(Part* p);
+	virtual void addPart(QSharedPointer<Part> p);
+	virtual void removePart(QSharedPointer<Part> p);
 
 	int numLayers() const { return mNumLayers; }
 
-	virtual QList<Padstack*> padstacks() { return mPadstacks; }
-	virtual void addPadstack(Padstack* ps);
-	virtual void removePadstack(Padstack* ps);
+	virtual QList<QSharedPointer<Padstack> > padstacks() { return mPadstacks; }
+	virtual void addPadstack(QSharedPointer<Padstack> ps);
+	virtual void removePadstack(QSharedPointer<Padstack> ps);
 
 private:
 	void clearDoc();
 
 	/// Number of copper layers
 	int mNumLayers;
-	TraceList* mTraceList;
-	QList<Net*> mNets;
-	QList<Part*> mParts;
-	QList<Text*> mTexts;
-	QList<Area*> mAreas;
+	QSharedPointer<TraceList> mTraceList;
+	QList<QSharedPointer<Net> > mNets;
+	QList<QSharedPointer<Part> > mParts;
+	QList<QSharedPointer<Text> > mTexts;
+	QList<QSharedPointer<Area> > mAreas;
 	QHash<QUuid, QSharedPointer<Footprint> > mFootprints;
-	QList<Padstack*> mPadstacks;
+	QList<QSharedPointer<Padstack> > mPadstacks;
 	Polygon mBoardOutline;
-	Padstack* mDefaultPadstack;
+	QSharedPointer<Padstack> mDefaultPadstack;
 };
 
 class FPDoc : public Document
@@ -172,28 +173,26 @@ public:
 
 	virtual QList<Layer> layerList(LayerOrder order = ListOrder);
 
-	virtual QList<PCBObject*> findObjs(QPoint &pt);
-	virtual QList<PCBObject*> findObjs(QRect &rect);
+	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt);
+	virtual QList<QSharedPointer<PCBObject> > findObjs(QRect &rect);
 
-	virtual void addText(Text* t) { mFp->addText(t); }
-	virtual void removeText(Text* t) { mFp->removeText(t); }
+	virtual void addText(QSharedPointer<Text> t) { mFp->addText(t); }
+	virtual void removeText(QSharedPointer<Text> t) { mFp->removeText(t); }
 
-	virtual QList<Padstack*> padstacks() { return mFp->padstacks(); }
-	virtual void addPadstack(Padstack* ps) { return mFp->addPadstack(ps); }
-	virtual void removePadstack(Padstack* ps) { return mFp->removePadstack(ps); }
+	virtual QList<QSharedPointer<Padstack> > padstacks() { return mFp->padstacks(); }
+	virtual void addPadstack(QSharedPointer<Padstack> ps) { return mFp->addPadstack(ps); }
+	virtual void removePadstack(QSharedPointer<Padstack> ps) { return mFp->removePadstack(ps); }
 
-	void addPin(Pin* p);
-	void removePin(Pin* p);
+	void addPin(QSharedPointer<Pin> p) { mFp->addPin(p); }
+	void removePin(QSharedPointer<Pin> p) { mFp->removePin(p); }
 
-	void addLine(Line* l);
-	void removeLine(Line* l);
+	void addLine(QSharedPointer<Line> l) { mFp->addLine(l); }
+	void removeLine(QSharedPointer<Line> l) { mFp->removeLine(l); }
 
-	Footprint* footprint() { return mFp; }
+	QSharedPointer<Footprint> footprint() { return mFp; }
 
 private:
-	void clearFP();
-
-	Footprint *mFp;
+	QSharedPointer<Footprint> mFp;
 };
 
 #endif // PCBDOC_H

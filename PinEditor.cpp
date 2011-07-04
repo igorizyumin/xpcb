@@ -23,7 +23,7 @@
 #include "PCBDoc.h"
 #include "Log.h"
 
-PinEditor::PinEditor(FPController* ctrl, Pin* pin)
+PinEditor::PinEditor(FPController* ctrl, QSharedPointer<Pin> pin)
 	: AbstractEditor(ctrl), mState(SELECTED), mDialog(NULL),
 	mAngle(0),
 	mRotateAction(2, "Rotate"),
@@ -38,12 +38,6 @@ PinEditor::PinEditor(FPController* ctrl, Pin* pin)
 
 	if (pin)
 		mPins.append(pin);
-}
-
-PinEditor::~PinEditor()
-{
-	if (mDialog)
-		delete mDialog;
 }
 
 void PinEditor::init()
@@ -102,9 +96,12 @@ void PinEditor::mouseReleaseEvent(QMouseEvent *event)
 	if (mState == MOVE)
 	{
 		mState = SELECTED;
-		PinMoveCmd* cmd = new PinMoveCmd(NULL, dynamic_cast<FPDoc*>(ctrl()->doc()), mPins[0], mPos, mAngle);
+		PCBObjState s = mPins[0]->getState();
+		mPins[0]->setPos(mPos);
+		mPins[0]->setAngle(mAngle);
+		PCBObjEditCmd* cmd = new PCBObjEditCmd(NULL, mPins[0], s);
 		ctrl()->doc()->doCommand(cmd);
-		foreach(Pin* p, mPins)
+		foreach(QSharedPointer<Pin> p, mPins)
 			ctrl()->unhideObj(p);
 		emit actionsChanged();
 		emit overlayChanged();
@@ -125,8 +122,6 @@ void PinEditor::mouseReleaseEvent(QMouseEvent *event)
 
 void PinEditor::clearPins()
 {
-	foreach(Pin* p, mPins)
-		delete p;
 	mPins.clear();
 }
 
@@ -134,7 +129,7 @@ void PinEditor::keyPressEvent(QKeyEvent *event)
 {
 	if (event->key() == Qt::Key_Escape && mState != SELECTED)
 	{
-		foreach(Pin* p, mPins)
+		foreach(QSharedPointer<Pin> p, mPins)
 			ctrl()->unhideObj(p);
 		if (mState == ADD_MOVE)
 		{
@@ -167,7 +162,7 @@ void PinEditor::startMove()
 	Q_ASSERT(mPins.size() > 0);
 	mPos = mStartPos = mPins[0]->pos();
 	mAngle = mStartAngle = mPins[0]->angle();
-	foreach(Pin* p, mPins)
+	foreach(QSharedPointer<Pin> p, mPins)
 		ctrl()->hideObj(p);
 }
 
@@ -188,7 +183,7 @@ void PinEditor::actionRotate()
 void PinEditor::newPin()
 {
 	if (!mDialog)
-		mDialog = new EditPinDialog(ctrl()->view(), ctrl()->doc());
+		mDialog = QSharedPointer<EditPinDialog>(new EditPinDialog(ctrl()->view(), ctrl()->doc()));
 
 //	mDialog->init();
 
@@ -216,7 +211,7 @@ void PinEditor::actionEdit()
 {
 	Q_ASSERT(mPins.size() == 1);
 	if (!mDialog)
-		mDialog = new EditPinDialog(ctrl()->view(), ctrl()->doc());
+		mDialog = QSharedPointer<EditPinDialog>(new EditPinDialog(ctrl()->view(), ctrl()->doc()));
 	mDialog->init(mPins[0]);
 	if (mDialog->exec() == QDialog::Accepted)
 	{
@@ -243,7 +238,7 @@ void PinEditor::finishNew(bool setPos)
 		QTransform tf;
 		tf.translate(mPos.x(), mPos.y());
 		tf.rotate(mAngle);
-		foreach(Pin* p, mPins)
+		foreach(QSharedPointer<Pin> p, mPins)
 		{
 			p->setPos(tf.map(p->pos()));
 			p->setAngle(mAngle);
@@ -251,7 +246,7 @@ void PinEditor::finishNew(bool setPos)
 	}
 	NewPinCmd *cmd = new NewPinCmd(NULL, dynamic_cast<FPDoc*>(ctrl()->doc()), mPins);
 	ctrl()->doc()->doCommand(cmd);
-	foreach(Pin* p, mPins)
+	foreach(QSharedPointer<Pin> p, mPins)
 		ctrl()->unhideObj(p);
 	mPins.clear(); // pins now owned by cmd
 	emit editorFinished();
@@ -259,10 +254,14 @@ void PinEditor::finishNew(bool setPos)
 
 void PinEditor::finishEdit()
 {
-	PinEditCmd *cmd = new PinEditCmd(NULL, mPins[0], mDialog->name(), mDialog->padstack(),
-									 mPos, mAngle);
+	PCBObjState s = mPins[0]->getState();
+	mPins[0]->setName(mDialog->name());
+	mPins[0]->setPadstack(mDialog->padstack());
+	mPins[0]->setPos(mPos);
+	mPins[0]->setAngle(mAngle);
+	PCBObjEditCmd* cmd = new PCBObjEditCmd(NULL, mPins[0], s);
 	ctrl()->doc()->doCommand(cmd);
-	foreach(Pin* p, mPins)
+	foreach(QSharedPointer<Pin> p, mPins)
 		ctrl()->unhideObj(p);
 	emit overlayChanged();
 }
@@ -274,7 +273,7 @@ void PinEditor::drawOverlay(QPainter *painter)
 		painter->save();
 		painter->setRenderHint(QPainter::Antialiasing, false);
 		painter->setBrush(Qt::NoBrush);
-		foreach(Pin* p, mPins)
+		foreach(QSharedPointer<Pin> p, mPins)
 		{
 			p->draw(painter, Layer::LAY_SELECTION);
 		}
@@ -290,7 +289,7 @@ void PinEditor::drawOverlay(QPainter *painter)
 		painter->drawLine(QPoint(-INT_MAX, 0), QPoint(INT_MAX, 0));
 		painter->translate(-mStartPos);
 		painter->rotate(mAngle - mStartAngle);
-		foreach(Pin* p, mPins)
+		foreach(QSharedPointer<Pin> p, mPins)
 		{
 			p->draw(painter, Layer::LAY_SELECTION);
 		}
@@ -301,73 +300,19 @@ void PinEditor::drawOverlay(QPainter *painter)
 /////////////////////////////// UNDO COMMANDS ////////////////////////////
 
 
-NewPinCmd::NewPinCmd(QUndoCommand *parent, FPDoc *doc, QList<Pin *> pins)
-	: QUndoCommand(parent), mPins(pins), mDoc(doc), mInDoc(false)
+NewPinCmd::NewPinCmd(QUndoCommand *parent, FPDoc *doc, QList<QSharedPointer<Pin> > pins)
+	: QUndoCommand(parent), mPins(pins), mDoc(doc)
 {
-}
-
-NewPinCmd::~NewPinCmd()
-{
-	if (!mInDoc)
-	{
-		foreach(Pin* p, mPins)
-			delete p;
-	}
 }
 
 void NewPinCmd::redo()
 {
-	foreach(Pin* p, mPins)
+	foreach(QSharedPointer<Pin> p, mPins)
 		mDoc->addPin(p);
-	mInDoc = true;
 }
 
 void NewPinCmd::undo()
 {
-	foreach(Pin* p, mPins)
+	foreach(QSharedPointer<Pin> p, mPins)
 		mDoc->removePin(p);
-	mInDoc = false;
-}
-
-PinMoveCmd::PinMoveCmd(QUndoCommand *parent, FPDoc *doc, Pin *pin, QPoint pos, int angle)
-	: QUndoCommand(parent), mPin(pin), mDoc(doc), mNewPos(pos), mNewAngle(angle),
-	mOldPos(pin->pos()), mOldAngle(pin->angle())
-{
-}
-
-void PinMoveCmd::undo()
-{
-	mPin->setPos(mOldPos);
-	mPin->setAngle(mOldAngle);
-}
-
-void PinMoveCmd::redo()
-{
-	mPin->setPos(mNewPos);
-	mPin->setAngle(mNewAngle);
-}
-
-PinEditCmd::PinEditCmd(QUndoCommand *parent, Pin *pin,
-					   QString name, Padstack *ps, QPoint pos, int angle)
-	: QUndoCommand(parent), mPin(pin), mNewName(name), mPrevName(pin->name()), mNewPS(ps),
-	mPrevPS(pin->padstack()), mNewPos(pos), mPrevPos(pin->pos()),
-	mNewAngle(angle), mPrevAngle(pin->angle())
-{
-
-}
-
-void PinEditCmd::undo()
-{
-	mPin->setName(mPrevName);
-	mPin->setPadstack(mPrevPS);
-	mPin->setPos(mPrevPos);
-	mPin->setAngle(mPrevAngle);
-}
-
-void PinEditCmd::redo()
-{
-	mPin->setName(mNewName);
-	mPin->setPadstack(mNewPS);
-	mPin->setPos(mNewPos);
-	mPin->setAngle(mNewAngle);
 }

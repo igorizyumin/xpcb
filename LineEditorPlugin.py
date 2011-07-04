@@ -319,7 +319,7 @@ class LineEditor(xpcb.AbstractEditor):
 class NewLineCmd(QUndoCommand):
 	def __init__(self, parent, doc, line):
 		QUndoCommand.__init__(self, parent)
-		self.doc = sip.cast(doc, xpcb.FPDoc)
+		self.doc = doc
 		self.line = line
 		
 	def undo(self):
@@ -331,7 +331,7 @@ class NewLineCmd(QUndoCommand):
 class DeleteLineCmd(QUndoCommand):
 	def __init__(self, parent, doc, line):
 		QUndoCommand.__init__(self, parent)
-		self.doc = sip.cast(doc, xpcb.FPDoc)
+		self.doc = doc
 		self.line = line
 		
 	def undo(self):

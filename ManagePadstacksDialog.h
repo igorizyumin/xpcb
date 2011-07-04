@@ -39,7 +39,7 @@ private slots:
 
 private:
 	void updateItems();
-	Padstack* currItem();
+	QSharedPointer<Padstack> currItem();
 
 	Document* mDoc;
 };
@@ -48,27 +48,25 @@ class NewPadstackCmd : public QUndoCommand
 {
 public:
 	NewPadstackCmd(QUndoCommand *parent, Document* doc, Padstack ps);
-	virtual ~NewPadstackCmd();
 
 	virtual void undo();
 	virtual void redo();
 private:
-	Padstack* mPs;
+	QSharedPointer<Padstack> mPs;
 	Document* mDoc;
-	bool mInDoc;
 };
 
 class EditPadstackCmd : public QUndoCommand
 {
 public:
-	EditPadstackCmd(QUndoCommand *parent, Padstack* ps, Padstack newPs);
+	EditPadstackCmd(QUndoCommand *parent, QSharedPointer<Padstack> ps, Padstack newPs);
 
 	virtual void undo();
 	virtual void redo();
 private:
 	Padstack mPrev;
 	Padstack mNew;
-	Padstack* mPs;
+	QSharedPointer<Padstack> mPs;
 };
 
 #endif // MANAGEPADSTACKSDIALOG_H

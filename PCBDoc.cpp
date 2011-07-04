@@ -14,40 +14,38 @@
 ////////////// DOCUMENT ////////////////////////////////////////////////
 
 Document::Document()
-	: mUnits(XPcb::MM)
+	: mUnits(XPcb::MM), mUndoStack(this)
 {
-	mUndoStack = new QUndoStack(this);
-	connect(mUndoStack, SIGNAL(canUndoChanged(bool)), this, SIGNAL(canUndoChanged(bool)));
-	connect(mUndoStack, SIGNAL(canRedoChanged(bool)), this, SIGNAL(canRedoChanged(bool)));
-	connect(mUndoStack, SIGNAL(cleanChanged(bool)), this, SIGNAL(cleanChanged(bool)));
+	connect(&mUndoStack, SIGNAL(canUndoChanged(bool)), this, SIGNAL(canUndoChanged(bool)));
+	connect(&mUndoStack, SIGNAL(canRedoChanged(bool)), this, SIGNAL(canRedoChanged(bool)));
+	connect(&mUndoStack, SIGNAL(cleanChanged(bool)), this, SIGNAL(cleanChanged(bool)));
 }
 
 Document::~Document()
 {
-	mUndoStack->clear();
-	delete mUndoStack;
+	mUndoStack.clear();
 }
 
 bool Document::isModified()
 {
-	return !mUndoStack->isClean();
+	return !mUndoStack.isClean();
 }
 
 void Document::doCommand(QUndoCommand *cmd)
 {
-	mUndoStack->push(cmd);
+	mUndoStack.push(cmd);
 	emit changed();
 }
 
 void Document::undo()
 {
-	mUndoStack->undo();
+	mUndoStack.undo();
 	emit changed();
 }
 
 void Document::redo()
 {
-	mUndoStack->redo();
+	mUndoStack.redo();
 	emit changed();
 }
 
@@ -84,20 +82,8 @@ bool Document::saveToFile(const QString &file)
 /////////////////////////////// FPDOC /////////////////////////////////
 
 FPDoc::FPDoc()
-	: Document()
+	: mFp(QSharedPointer<Footprint>(new Footprint()))
 {
-	mFp = new Footprint();
-}
-
-FPDoc::~FPDoc()
-{
-	clearFP();
-}
-
-void FPDoc::clearFP()
-{
-	delete mFp;
-	mFp = NULL;
 }
 
 QList<Layer> FPDoc::layerList(LayerOrder order)
@@ -142,99 +128,79 @@ QList<Layer> FPDoc::layerList(LayerOrder order)
 	return l;
 }
 
-QList<PCBObject*> FPDoc::findObjs(QPoint &pt)
+QList<QSharedPointer<PCBObject> > FPDoc::findObjs(QPoint &pt)
 {
-	QList<PCBObject*> out;
+	Q_ASSERT(!mFp.isNull());
 
-	foreach(Pin* p, mFp->pins())
+	QList<QSharedPointer<PCBObject> > out;
+
+	foreach(QSharedPointer<Pin> p, mFp->pins())
 	{
 		if (p->bbox().contains(pt))
 			out.append(p);
 	}
-	foreach(Text* p, mFp->texts())
+	foreach(QSharedPointer<Text> p, mFp->texts())
 	{
 		if (p->bbox().contains(pt))
 			out.append(p);
 	}
-	foreach(Line* p, mFp->getLines())
+	foreach(QSharedPointer<Line> p, mFp->lines())
 	{
 		if (p->bbox().contains(pt))
 			out.append(p);
 	}
 
-	if (mFp->getRefText().bbox().contains(pt))
-		out.append(const_cast<Text*>(&mFp->getRefText()));
-	if (mFp->getValueText().bbox().contains(pt))
-		out.append(const_cast<Text*>(&mFp->getValueText()));
+	if (mFp->refText()->bbox().contains(pt))
+		out.append(mFp->refText());
+	if (mFp->valueText()->bbox().contains(pt))
+		out.append(mFp->valueText());
 
 	return out;
 }
 
-QList<PCBObject*> FPDoc::findObjs(QRect &rect)
+QList<QSharedPointer<PCBObject> > FPDoc::findObjs(QRect &rect)
 {
-	Q_ASSERT(mFp);
-	QList<PCBObject*> out;
+	Q_ASSERT(!mFp.isNull());
+	QList<QSharedPointer<PCBObject> > out;
 
-	QList<Pin*> pins = mFp->pins();
-	QList<Line*> lines = mFp->getLines();
-	QList<Text*> texts = mFp->texts();
+	QList<QSharedPointer<Pin> > pins = mFp->pins();
+	QList<QSharedPointer<Line> > lines = mFp->lines();
+	QList<QSharedPointer<Text> > texts = mFp->texts();
 
-	foreach(Pin* p, pins)
+	foreach(QSharedPointer<Pin> p, pins)
 	{
 		if (p->bbox().intersects(rect))
 			out.append(p);
 	}
-	foreach(Text* p, texts)
+	foreach(QSharedPointer<Text> p, texts)
 	{
 		if (p->bbox().intersects(rect))
 			out.append(p);
 	}
-	foreach(Line* p, lines)
+	foreach(QSharedPointer<Line> p, lines)
 	{
 		if (p->bbox().intersects(rect))
 			out.append(p);
 	}
-	if (mFp->getRefText().bbox().intersects(rect))
-		out.append(const_cast<Text*>(&mFp->getRefText()));
-	if (mFp->getValueText().bbox().intersects(rect))
-		out.append(const_cast<Text*>(&mFp->getValueText()));
+	if (mFp->refText()->bbox().intersects(rect))
+		out.append(mFp->refText());
+	if (mFp->valueText()->bbox().intersects(rect))
+		out.append(mFp->valueText());
 
 	return out;
-}
-
-void FPDoc::addPin(Pin *p)
-{
-	mFp->addPin(p);
-}
-
-void FPDoc::removePin(Pin *p)
-{
-	mFp->removePin(p);
-}
-
-void FPDoc::addLine(Line *l)
-{
-	mFp->addLine(l);
-}
-
-void FPDoc::removeLine(Line *l)
-{
-	mFp->removeLine(l);
 }
 
 ////////////////////////////// PCBDOC /////////////////////////////////
 
 PCBDoc::PCBDoc()
-		: Document(), mNumLayers(2), mTraceList(NULL), mBoardOutline(NULL), mDefaultPadstack(NULL)
+		: mNumLayers(2), mTraceList(QSharedPointer<TraceList>(new TraceList())),
+		  mDefaultPadstack(QSharedPointer<Padstack>(new Padstack()))
 {
-	mTraceList = new TraceList();
-	mDefaultPadstack = new Padstack();
 	mPadstacks.append(mDefaultPadstack);
 }
 
 PCBDoc::~PCBDoc()
 {
-	clearDoc();
 }
 
 QSharedPointer<Footprint> PCBDoc::getFootprint(QUuid uuid)
@@ -251,27 +217,27 @@ QSharedPointer<Footprint> PCBDoc::getFootprint(QUuid uuid)
 	return ptr;
 }
 
-Part* PCBDoc::getPart(const QString &refdes)
+QSharedPointer<Part> PCBDoc::part(const QString &refdes)
 {
-	foreach(Part* p, mParts)
+	foreach(QSharedPointer<Part> p, mParts)
 	{
 		if (p->refdes() == refdes)
 			return p;
 	}
-	return NULL;
+	return QSharedPointer<Part>();
 }
 
-Net* PCBDoc::getNet(const QString &name) const
+QSharedPointer<Net> PCBDoc::net(const QString &name) const
 {
-	foreach(Net* p, mNets)
+	foreach(QSharedPointer<Net> p, mNets)
 	{
 		if (p->name() == name)
 			return p;
 	}
-	return NULL;
+	return QSharedPointer<Net>();
 }
 
-void PCBDoc::addText(Text *t)
+void PCBDoc::addText(QSharedPointer<Text> t)
 {
 	if (!mTexts.contains(t))
 		mTexts.append(t);
@@ -279,7 +245,7 @@ void PCBDoc::addText(Text *t)
 		Log::instance().error("Text object already in document");
 }
 
-void PCBDoc::removeText(Text *t)
+void PCBDoc::removeText(QSharedPointer<Text> t)
 {
 	if (mTexts.contains(t))
 	{
@@ -290,17 +256,17 @@ void PCBDoc::removeText(Text *t)
 		Log::instance().error("Text object does not exist in document");
 }
 
-QList<PCBObject*> PCBDoc::findObjs(QRect &rect)
+QList<QSharedPointer<PCBObject> > PCBDoc::findObjs(QRect &rect)
 {
-	QList<PCBObject*> out;
+	QList<QSharedPointer<PCBObject> > out;
 
-	foreach(Segment* s, mTraceList->segments())
+	foreach(QSharedPointer<Segment> s, mTraceList->segments())
 	{
 		if (rect.intersects(s->bbox()))
 			out.append(s);
 	}
 
-	foreach(Part* p, mParts)
+	foreach(QSharedPointer<Part> p, mParts)
 	{
 		if (rect.intersects(p->bbox()))
 			out.append(p);
@@ -310,13 +276,13 @@ QList<PCBObject*> PCBDoc::findObjs(QRect &rect)
 			out.append(p->valueText());
 	}
 
-	foreach(Text* t, mTexts)
+	foreach(QSharedPointer<Text> t, mTexts)
 	{
 		if (rect.intersects(t->bbox()))
 			out.append(t);
 	}
 
-	foreach(Area* a, mAreas)
+	foreach(QSharedPointer<Area> a, mAreas)
 	{
 		if (rect.intersects(a->bbox()))
 			out.append(a);
@@ -325,10 +291,10 @@ QList<PCBObject*> PCBDoc::findObjs(QRect &rect)
 	return out;
 }
 
-QList<PCBObject*> PCBDoc::findObjs(QPoint &pt)
+QList<QSharedPointer<PCBObject> > PCBDoc::findObjs(QPoint &pt)
 {
-	QList<PCBObject*> out;
-	foreach(Part* p, mParts)
+	QList<QSharedPointer<PCBObject> > out;
+	foreach(QSharedPointer<Part> p, mParts)
 	{
 		if (p->bbox().contains(pt))
 		{
@@ -339,12 +305,12 @@ QList<PCBObject*> PCBDoc::findObjs(QPoint &pt)
 		if (p->valueVisible() && p->valueText()->bbox().contains(pt))
 			out.append(p->valueText());
 	}
-	foreach(Text* t, mTexts)
+	foreach(QSharedPointer<Text> t, mTexts)
 	{
 		if(t->bbox().contains(pt))
 			out.append(t);
 	}
-	foreach(Segment* s, mTraceList->segments())
+	foreach(QSharedPointer<Segment> s, mTraceList->segments())
 	{
 		if (s->bbox().contains(pt))
 			out.append(s);
@@ -355,37 +321,20 @@ QList<PCBObject*> PCBDoc::findObjs(QPoint &pt)
 
 void PCBDoc::clearDoc()
 {
-	delete mTraceList;
-	mTraceList = NULL;
+	mTraceList = QSharedPointer<TraceList>(new TraceList());
 
-	foreach(Net* n, mNets)
-		delete n;
 	mNets.clear();
-
-	foreach(Part* n, mParts)
-		delete n;
 	mParts.clear();
-
-	foreach(Text* t, mTexts)
-		delete t;
 	mTexts.clear();
-
-	foreach(Area* n, mAreas)
-		delete n;
 	mAreas.clear();
-
 	mFootprints.clear();
-
-	foreach(Padstack* n, mPadstacks)
-		delete n;
 	mPadstacks.clear();
 
 	mBoardOutline = Polygon();
 
-	mDefaultPadstack = NULL;
+	mDefaultPadstack = QSharedPointer<Padstack>(new Padstack());
+	mPadstacks.append(mDefaultPadstack);
 }
-
-
 
 QList<Layer> PCBDoc::layerList(LayerOrder order)
 {
@@ -429,23 +378,23 @@ QList<Layer> PCBDoc::layerList(LayerOrder order)
 	}
 }
 
-void PCBDoc::addPadstack(Padstack* ps)
+void PCBDoc::addPadstack(QSharedPointer<Padstack> ps)
 {
 	mPadstacks.append(ps);
 }
 
-void PCBDoc::removePadstack(Padstack *ps)
+void PCBDoc::removePadstack(QSharedPointer<Padstack> ps)
 {
-
+	mPadstacks.removeOne(ps);
 }
 
-void PCBDoc::addPart(Part *p)
+void PCBDoc::addPart(QSharedPointer<Part> p)
 {
 	Q_ASSERT(!mParts.contains(p));
 	mParts.append(p);
 }
 
-void PCBDoc::removePart(Part *p)
+void PCBDoc::removePart(QSharedPointer<Part> p)
 {
 	Q_ASSERT(mParts.contains(p));
 	mParts.removeOne(p);
@@ -456,13 +405,13 @@ void PCBDoc::removePart(Part *p)
 //////// XML PARSING /////////
 // parser methods
 void loadProps(QXmlStreamReader &reader, QString &name, XPcb::UNIT &units, int &defaultps, int &numLayers);
-void loadPadstacks(QXmlStreamReader &reader, QHash<int, Padstack*> &padstacks);
+void loadPadstacks(QXmlStreamReader &reader, QHash<int, QSharedPointer<Padstack> > &padstacks);
 void loadFootprints(QXmlStreamReader &reader, QHash<QUuid, QSharedPointer<Footprint> > &footprints);
 void loadOutline(QXmlStreamReader &reader, Polygon & poly);
-void loadParts(QXmlStreamReader &reader, QList<Part*>& parts, PCBDoc* doc);
-void loadNets(QXmlStreamReader &reader, QList<Net*>& nets, PCBDoc* doc, const QHash<int, Padstack*> &padstacks);
-void loadAreas(QXmlStreamReader &reader, QList<Area*>& areas, PCBDoc *doc);
-void loadTexts(QXmlStreamReader &reader, QList<Text*>& texts);
+void loadParts(QXmlStreamReader &reader, QList<QSharedPointer<Part> >& parts, PCBDoc* doc);
+void loadNets(QXmlStreamReader &reader, QList<QSharedPointer<Net> >& nets, PCBDoc* doc, const QHash<int, QSharedPointer<Padstack> > &padstacks);
+void loadAreas(QXmlStreamReader &reader, QList<QSharedPointer<Area> >& areas, PCBDoc *doc);
+void loadTexts(QXmlStreamReader &reader, QList<QSharedPointer<Text> >& texts);
 
 
 bool validateFile(QIODevice &file)
@@ -501,7 +450,7 @@ bool PCBDoc::saveToXml(QXmlStreamWriter &writer)
 	writer.writeEndElement();
 
 	writer.writeStartElement("padstacks");
-	foreach(Padstack* ps, mPadstacks)
+	foreach(QSharedPointer<Padstack> ps, mPadstacks)
 		ps->toXML(writer);
 	writer.writeEndElement();
 
@@ -515,31 +464,31 @@ bool PCBDoc::saveToXml(QXmlStreamWriter &writer)
 	writer.writeEndElement();
 
 	writer.writeStartElement("parts");
-	foreach(Part* p, mParts)
+	foreach(QSharedPointer<Part> p, mParts)
 		p->toXML(writer);
 	writer.writeEndElement();
 
 	writer.writeStartElement("nets");
-	foreach(Net* n, mNets)
+	foreach(QSharedPointer<Net> n, mNets)
 		n->toXML(writer);
 	writer.writeEndElement();
 
 	mTraceList->toXML(writer);
 
 	writer.writeStartElement("areas");
-	foreach(Area* a, mAreas)
+	foreach(QSharedPointer<Area> a, mAreas)
 		a->toXML(writer);
 	writer.writeEndElement();
 
 	writer.writeStartElement("texts");
-	foreach(Text* t, mTexts)
+	foreach(QSharedPointer<Text> t, mTexts)
 		t->toXML(writer);
 	writer.writeEndElement();
 
 	writer.writeEndElement();
 	writer.writeEndDocument();
 
-	mUndoStack->setClean();
+	mUndoStack.setClean();
 	return true;
 }
 
@@ -561,12 +510,12 @@ bool PCBDoc::loadFromFile(QFile &inFile)
 bool PCBDoc::loadFromXml(QXmlStreamReader &reader)
 {
 	clearDoc();
-	mTraceList = new TraceList();
+	mTraceList = QSharedPointer<TraceList>(new TraceList());
 
 	// default padstack id
 	int defaultPS;
 
-	QHash<int, Padstack*> padstacks;
+	QHash<int, QSharedPointer<Padstack> > padstacks;
 
 	reader.readNextStartElement();
 	if (reader.name() != "xpcbBoard")
@@ -588,7 +537,7 @@ bool PCBDoc::loadFromXml(QXmlStreamReader &reader)
 			else
 			{
 				Log::instance().error("Invalid default padstack specified.");
-				mDefaultPadstack = new Padstack();
+				mDefaultPadstack = QSharedPointer<Padstack>(new Padstack());
 				mPadstacks.append(mDefaultPadstack);
 			}
 		}
@@ -638,8 +587,6 @@ bool FPDoc::loadFromFile(QFile &file)
 
 bool FPDoc::loadFromXml(QXmlStreamReader &reader)
 {
-	clearFP();
-
 	reader.readNextStartElement();
 	if (reader.name() != "xpcbFootprint")
 	{
@@ -679,7 +626,7 @@ bool FPDoc::saveToXml(QXmlStreamWriter &writer)
 	writer.writeEndElement();
 	writer.writeEndDocument();
 
-	mUndoStack->setClean();
+	mUndoStack.setClean();
 	return true;
 }
 
@@ -713,7 +660,7 @@ void loadProps(QXmlStreamReader &reader, QString &name, XPcb::UNIT &units, int &
 	Q_ASSERT(reader.isEndElement() && reader.name() == "props");
 }
 
-void loadPadstacks(QXmlStreamReader &reader, QHash<int, Padstack*> &padstacks)
+void loadPadstacks(QXmlStreamReader &reader, QHash<int, QSharedPointer<Padstack> > &padstacks)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "padstacks");
 	while(!reader.atEnd() && !reader.hasError())
@@ -726,7 +673,7 @@ void loadPadstacks(QXmlStreamReader &reader, QHash<int, Padstack*> &padstacks)
 		if (reader.name() == "padstack")
 		{
 			int psid = reader.attributes().value("id").toString().toInt();
-			Padstack* ps = Padstack::newFromXML(reader);
+			QSharedPointer<Padstack> ps = Padstack::newFromXML(reader);
 			if (!ps)
 			{
 				Log::instance().error("Error loading padstack");
@@ -754,7 +701,7 @@ void loadFootprints(QXmlStreamReader &reader, QHash<QUuid, QSharedPointer<Footpr
 			continue; // comments, etc.
 		if (reader.name() == "footprint")
 		{
-			Footprint* fp = Footprint::newFromXML(reader);
+			QSharedPointer<Footprint> fp = Footprint::newFromXML(reader);
 			if (!fp)
 			{
 				Log::instance().error("Error loading footprint");
@@ -783,12 +730,12 @@ void loadOutline(QXmlStreamReader &reader, Polygon& poly)
 
 }
 
-void loadParts(QXmlStreamReader &reader, QList<Part*>& parts, PCBDoc *doc)
+void loadParts(QXmlStreamReader &reader, QList<QSharedPointer<Part> >& parts, PCBDoc *doc)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "parts");
 	while(reader.readNextStartElement())
 	{
-		Part* part = Part::newFromXML(reader, doc);
+		QSharedPointer<Part> part = Part::newFromXML(reader, doc);
 		if (!part)
 		{
 			Log::instance().error("Error loading part");
@@ -800,12 +747,14 @@ void loadParts(QXmlStreamReader &reader, QList<Part*>& parts, PCBDoc *doc)
 
 }
 
-void loadNets(QXmlStreamReader &reader, QList<Net*> &nets, PCBDoc *doc, const QHash<int, Padstack*> &padstacks)
+void loadNets(QXmlStreamReader &reader, QList<QSharedPointer<Net> > &nets,
+			  PCBDoc *doc,
+			  const QHash<int, QSharedPointer<Padstack> > &padstacks)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "nets");
 	while(reader.readNextStartElement())
 	{
-		Net* net = Net::newFromXML(reader, doc, padstacks);
+		QSharedPointer<Net> net = Net::newFromXML(reader, doc, padstacks);
 		if (!net)
 		{
 			Log::instance().error("Error loading net");
@@ -818,12 +767,12 @@ void loadNets(QXmlStreamReader &reader, QList<Net*> &nets, PCBDoc *doc, const QH
 }
 
 
-void loadAreas(QXmlStreamReader &reader, QList<Area*> &areas, PCBDoc *doc)
+void loadAreas(QXmlStreamReader &reader, QList<QSharedPointer<Area> > &areas, PCBDoc *doc)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "areas");
 	while(reader.readNextStartElement())
 	{
-		Area* area = Area::newFromXML(reader, *doc);
+		QSharedPointer<Area> area = Area::newFromXML(reader, *doc);
 		if (!area)
 		{
 			Log::instance().error("Error loading area");
@@ -839,12 +788,12 @@ void loadAreas(QXmlStreamReader &reader, QList<Area*> &areas, PCBDoc *doc)
 
 }
 
-void loadTexts(QXmlStreamReader &reader, QList<Text*> &texts)
+void loadTexts(QXmlStreamReader &reader, QList<QSharedPointer<Text> > &texts)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "texts");
 	while(reader.readNextStartElement())
 	{
-		texts.append(Text::newFromXML(reader));
+		texts.append(QSharedPointer<Text>(Text::newFromXML(reader)));
 	}
 	Q_ASSERT(reader.isEndElement() && reader.name() == "texts");
 

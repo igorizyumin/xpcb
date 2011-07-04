@@ -71,7 +71,7 @@ double EditPadstackDialog::toUnits(int pcbu)
 	else return XPcb::PCB2MIL(pcbu);
 }
 
-void EditPadstackDialog::init(Padstack *ps)
+void EditPadstackDialog::init(QSharedPointer<Padstack> ps)
 {
 	psName->setText(ps->name());
 	sameAsTopPad->setChecked(false);

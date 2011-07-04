@@ -25,7 +25,7 @@
 ////////////////////////// PART EDITOR //////////////////////////////////////
 
 
-PartEditor::PartEditor(PCBController *ctrl, Part *part)
+PartEditor::PartEditor(PCBController *ctrl, QSharedPointer<Part> part)
 	: AbstractEditor(ctrl), mState(NEW), mPart(part), mDialog(NULL),
 	mChangeSideAction(1, "Change Side"),
 	mRotateCWAction(2, "Rotate CW"),
@@ -58,12 +58,6 @@ void PartEditor::init()
 		ctrl()->hideObj(mPart->valueText());
 	}
 	emit actionsChanged();
-}
-
-PartEditor::~PartEditor()
-{
-	if (mDialog)
-		delete mDialog;
 }
 
 QList<const CtrlAction*> PartEditor::actions() const
@@ -145,8 +139,7 @@ void PartEditor::keyPressEvent(QKeyEvent *event)
 	{
 		if (mState == ADD_MOVE)
 		{
-			delete mPart;
-			mPart = NULL;
+			mPart.clear();
 			emit editorFinished();
 		}
 		else
@@ -218,14 +211,14 @@ void PartEditor::actionChangeSide()
 void PartEditor::newPart()
 {
 	if (!mDialog)
-		mDialog = new EditPartDialog(ctrl()->view(), dynamic_cast<PCBDoc*>(ctrl()->doc()));
+		mDialog = QSharedPointer<EditPartDialog>(new EditPartDialog(ctrl()->view(), dynamic_cast<PCBDoc*>(ctrl()->doc())));
 	mDialog->init();
 	if (mDialog->exec() == QDialog::Rejected)
 	{
 		emit editorFinished();
 		return;
 	}
-	mPart = new Part(dynamic_cast<PCBDoc*>(ctrl()->doc()));
+	mPart = QSharedPointer<Part>(new Part(dynamic_cast<PCBDoc*>(ctrl()->doc())));
 	mPart->setFootprint(mDialog->footprint());
 	mPart->refdesText()->setText(mDialog->ref());
 	mPart->valueText()->setText(mDialog->value());
@@ -249,7 +242,7 @@ void PartEditor::newPart()
 void PartEditor::actionEdit()
 {
 	if (!mDialog)
-		mDialog = new EditPartDialog(ctrl()->view(), dynamic_cast<PCBDoc*>(ctrl()->doc()));
+		mDialog = QSharedPointer<EditPartDialog>(new EditPartDialog(ctrl()->view(), dynamic_cast<PCBDoc*>(ctrl()->doc())));
 	mPrevPartState = mPart->getState();
 	mDialog->init(mPart);
 	if (mDialog->exec() == QDialog::Accepted)
@@ -322,52 +315,32 @@ void PartEditor::drawOverlay(QPainter *painter)
 	painter->restore();
 }
 
-PartNewCmd::PartNewCmd(QUndoCommand *parent, Part *obj, PCBDoc *doc)
-	: QUndoCommand(parent), mPart(obj), mDoc(doc), mInDoc(false)
+PartNewCmd::PartNewCmd(QUndoCommand *parent, QSharedPointer<Part> obj, PCBDoc *doc)
+	: QUndoCommand(parent), mPart(obj), mDoc(doc)
 {
-}
-
-PartNewCmd::~PartNewCmd()
-{
-	if (!mInDoc)
-		delete mPart;
 }
 
 void PartNewCmd::undo()
 {
-	if (mInDoc)
-		mDoc->removePart(mPart);
-	mInDoc = false;
+	mDoc->removePart(mPart);
 }
 
 void PartNewCmd::redo()
 {
-	if (!mInDoc)
-		mDoc->addPart(mPart);
-	mInDoc = true;
+	mDoc->addPart(mPart);
 }
 
-PartDeleteCmd::PartDeleteCmd(QUndoCommand *parent, Part *obj, PCBDoc *doc)
-	: QUndoCommand(parent), mPart(obj), mDoc(doc), mInDoc(true)
+PartDeleteCmd::PartDeleteCmd(QUndoCommand *parent, QSharedPointer<Part> obj, PCBDoc *doc)
+	: QUndoCommand(parent), mPart(obj), mDoc(doc)
 {
-}
-
-PartDeleteCmd::~PartDeleteCmd()
-{
-	if (!mInDoc)
-		delete mPart;
 }
 
 void PartDeleteCmd::undo()
 {
-	if (!mInDoc)
-		mDoc->addPart(mPart);
-	mInDoc = true;
+	mDoc->addPart(mPart);
 }
 
 void PartDeleteCmd::redo()
 {
-	if (mInDoc)
-		mDoc->removePart(mPart);
-	mInDoc = false;
+	mDoc->removePart(mPart);
 }

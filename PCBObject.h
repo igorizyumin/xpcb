@@ -33,8 +33,6 @@ class PCBObject
 public:
 	PCBObject();
 
-	virtual void accept(PCBObjectVisitor *v) = 0;
-
 	/// Draws the object using the provided QPainter.  This function is
 	/// called multiple times during a single redraw operation, once for each layer.
 	/// \param painter the painter to use
@@ -75,21 +73,6 @@ private:
 	static int nextObjID;
 };
 
-/// Abstract base class for PCB object visitor
-class PCBObjectVisitor
-{
-public:
-	virtual void visit(Area*) = 0;
-	virtual void visit(Line*) = 0;
-	virtual void visit(Net*) = 0;
-	virtual void visit(PartPin*) = 0;
-	virtual void visit(Pin*) = 0;
-	virtual void visit(Part*) = 0;
-	virtual void visit(Text*) = 0;
-	virtual void visit(Vertex*) = 0;
-	virtual void visit(Segment*) = 0;
-};
-
 /// Abstract base class for PCBObject mementos
 class PCBObjStateInternal
 {
@@ -115,7 +98,7 @@ protected:
 class PCBObjEditCmd : public QUndoCommand
 {
 public:
-	PCBObjEditCmd(QUndoCommand* parent, PCBObject *obj,
+	PCBObjEditCmd(QUndoCommand* parent, QSharedPointer<PCBObject> obj,
 				  PCBObjState prevState)
 		: QUndoCommand(parent), mObj(obj), mPrevState(prevState),
 		  mNewState(obj->getState()) {}
@@ -123,7 +106,7 @@ public:
 	virtual void undo() { mObj->loadState(mPrevState); }
 	virtual void redo() { mObj->loadState(mNewState); }
 private:
-	PCBObject* mObj;
+	QSharedPointer<PCBObject> mObj;
 	PCBObjState mPrevState;
 	PCBObjState mNewState;
 };

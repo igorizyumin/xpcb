@@ -150,7 +150,7 @@ class NewTraceEditor(xpcb.AbstractEditor):
 				event.accept()
 				return
 			# add first segment, update start vtx,, move second->first, create new seg/vtx
-			cmd = sip.cast(self.ctrl.doc(), xpcb.PCBDoc).traceList().addSegmentCmd(self.seg1, self.vtxStart, self.vtxMid)
+			cmd = self.ctrl.doc().traceList().addSegmentCmd(self.seg1, self.vtxStart, self.vtxMid)
 			self.seg1 = self.seg2
 			self.vtxStart = self.vtxMid
 			self.vtxMid = self.vtxEnd
@@ -284,7 +284,7 @@ class SegmentEditor(xpcb.AbstractEditor):
 				dir1 = seg1.v1().pos() - seg1.v2().pos()
 				dir2 = seg2.v1().pos() - seg2.v2().pos()
 				return isParallel(dir1, dir2)
-			tl = sip.cast(self.ctrl.doc(), xpcb.PCBDoc).traceList()
+			tl = self.ctrl.doc().traceList()
 			v1s = seg.v1().segments()
 			v1s.remove(seg)
 			v2s = seg.v2().segments()
@@ -329,7 +329,7 @@ class SegmentEditor(xpcb.AbstractEditor):
 			self.ctrl.unhideObj(self.seg2)
 		# execute command and reset state
 		self.ctrl.doc().doCommand(parentcmd)
-		tl = sip.cast(self.ctrl.doc(), xpcb.PCBDoc).traceList()
+		tl = self.ctrl.doc().traceList()
 		if (self.segment not in tl.segments()):
 			self.editorFinished.emit()
 			return

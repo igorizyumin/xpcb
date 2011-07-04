@@ -19,13 +19,12 @@
 #define EDITPINDIALOG_H
 
 #include "ui_EditPinDialog.h"
+#include "Shape.h"
 
-class Pin;
 class NewPinCmd;
 class PinEditCmd;
 class Document;
 class Padstack;
-class Footprint;
 
 class EditPinDialog : public QDialog, private Ui::EditPinDialog
 {
@@ -34,14 +33,14 @@ class EditPinDialog : public QDialog, private Ui::EditPinDialog
 public:
 	explicit EditPinDialog(QWidget *parent, Document* doc);
 
-	void init(Pin* p = NULL);
+	void init(QSharedPointer<Pin> p = QSharedPointer<Pin>());
 
-	QList<Pin*> makePins(Footprint* fp);
+	QList<QSharedPointer<Pin> > makePins(QSharedPointer<Footprint> fp);
 	bool dragToPos() const { return dragRadio->isChecked(); }
 	QPoint pos() const { return QPoint(toPcb(xPosBox->value()), toPcb(yPosBox->value())); }
 	int angle() const { return angleBox->currentIndex() * 90; }
 	QString name() const { return pinName->text().trimmed(); }
-	Padstack* padstack() const;
+	QSharedPointer<Padstack> padstack() const;
 private slots:
 	void on_unitsBox_currentIndexChanged(const QString &s);
 	void on_manageBtn_clicked();
@@ -56,7 +55,7 @@ private:
 	int toPcb(double unit) const;
 
 	bool mInMM;
-	Pin* mPin;
+	QSharedPointer<Pin> mPin;
 	Document* mDoc;
 };
 

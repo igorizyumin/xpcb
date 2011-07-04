@@ -101,12 +101,12 @@ void Text::draw(QPainter *painter, const Layer& layer) const
 	painter->restore();
 }
 
-Text* Text::newFromXML(QXmlStreamReader &reader)
+QSharedPointer<Text> Text::newFromXML(QXmlStreamReader &reader)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "text");
 
 	QXmlStreamAttributes attr = reader.attributes();
-	Text *t = new Text();
+	QSharedPointer<Text> t(new Text());
 	t->mLayer = Layer(attr.value("layer").toString().toInt());
 	t->mPos = QPoint(
 			attr.value("x").toString().toInt(),
@@ -161,8 +161,8 @@ bool Text::loadState(PCBObjState &state)
 /////////////////////////////////////////////////////////////////////////////
 // EDITOR
 
-TextEditor::TextEditor(Controller *ctrl, Text *text)
-		: AbstractEditor(ctrl), mState(SELECTED), mText(text), mDialog(NULL), mAngleDelta(0),
+TextEditor::TextEditor(Controller *ctrl, QSharedPointer<Text> text)
+		: AbstractEditor(ctrl), mState(SELECTED), mText(text), mAngleDelta(0),
 		mRotateAction(2, "Rotate Text"),
 		mEditAction(0, "Edit Text"),
 		mMoveAction(3, "Move Text"),
@@ -185,8 +185,6 @@ void TextEditor::init()
 
 TextEditor::~TextEditor()
 {
-	if (mDialog)
-		delete mDialog;
 }
 
 QList<const CtrlAction*> TextEditor::actions() const
@@ -235,7 +233,10 @@ void TextEditor::mouseReleaseEvent(QMouseEvent *event)
 	{
 		event->accept();
 		mState = SELECTED;
-		TextMoveCmd* cmd = new TextMoveCmd(NULL, mText, mPos, mAngleDelta);
+		PCBObjState s = mText->getState();
+		mText->setPos(mPos);
+		mText->setAngle((mText->angle() + mAngleDelta) % 360);
+		PCBObjEditCmd* cmd = new PCBObjEditCmd(NULL, mText, s);
 		ctrl()->doc()->doCommand(cmd);
 		emit actionsChanged();
 		emit overlayChanged();
@@ -264,8 +265,7 @@ void TextEditor::keyPressEvent(QKeyEvent *event)
 	{
 		if (mState == ADD_MOVE)
 		{
-			delete mText;
-			mText = NULL;
+			mText.clear();
 			emit editorFinished();
 		}
 		else
@@ -313,16 +313,16 @@ void TextEditor::actionRotate()
 
 void TextEditor::newText()
 {
-	if (!mDialog)
-		mDialog = new EditTextDialog(ctrl()->view());
+	if (mDialog.isNull())
+		mDialog = QSharedPointer<EditTextDialog>(new EditTextDialog(ctrl()->view()));
 	mDialog->init();
 	if (mDialog->exec() == QDialog::Rejected || mDialog->text().isEmpty())
 	{
 		emit editorFinished();
 		return;
 	}
-	mText = new Text(mDialog->pos(), mDialog->angle(), mDialog->isMirrored(), mDialog->isNegative(),
-					 mDialog->layer(), mDialog->textHeight(), mDialog->textWidth(), mDialog->text());
+	mText = QSharedPointer<Text>(new Text(mDialog->pos(), mDialog->angle(), mDialog->isMirrored(), mDialog->isNegative(),
+					 mDialog->layer(), mDialog->textHeight(), mDialog->textWidth(), mDialog->text()));
 	if (!mDialog->isWidthSet())
 		mText->setStrokeWidth(mText->fontSize()*0.1);
 	if (!mDialog->isPosSet())
@@ -341,8 +341,8 @@ void TextEditor::newText()
 
 void TextEditor::actionEdit()
 {
-	if (!mDialog)
-		mDialog = new EditTextDialog(ctrl()->view());
+	if (mDialog.isNull())
+		mDialog = QSharedPointer<EditTextDialog>(new EditTextDialog(ctrl()->view()));
 	mDialog->init(mText);
 	if (mDialog->exec() == QDialog::Accepted)
 	{
@@ -380,9 +380,16 @@ void TextEditor::finishEdit()
 	int width = mDialog->textWidth();
 	if (!mDialog->isWidthSet())
 		width = 0.1 * mDialog->textHeight();
-	TextEditCmd *cmd = new TextEditCmd(NULL, mText, mPos, mDialog->layer(),
-									   (mText->angle() + mAngleDelta) % 360, mDialog->isMirrored(), mDialog->isNegative(),
-									   mDialog->textHeight(), width, mDialog->text());
+	PCBObjState s = mText->getState();
+	mText->setPos(mPos);
+	mText->setLayer(mDialog->layer());
+	mText->setAngle((mText->angle() + mAngleDelta) % 360);
+	mText->setMirrored(mDialog->isMirrored());
+	mText->setNegative(mDialog->isNegative());
+	mText->setFontSize(mDialog->textHeight());
+	mText->setStrokeWidth(width);
+	mText->setText(mDialog->text());
+	PCBObjEditCmd *cmd = new PCBObjEditCmd(NULL, mText, s);
 	ctrl()->doc()->doCommand(cmd);
 	emit overlayChanged();
 }
@@ -415,35 +422,11 @@ void TextEditor::drawOverlay(QPainter *painter)
 
 //////////////////////////// UNDO COMMANDS ///////////////////////////////////////
 
-TextMoveCmd::TextMoveCmd(QUndoCommand *parent, Text *obj, QPoint newPos, int angleDelta)
-	: QUndoCommand(parent), mText(obj), mNewPos(newPos), mPrevPos(obj->pos()),
-	mNewAngle((obj->angle() + angleDelta) % 360), mPrevAngle(obj->angle())
-{
-	setText("move text");
-}
 
-void TextMoveCmd::undo()
-{
-	mText->setPos(mPrevPos);
-	mText->setAngle(mPrevAngle);
-}
-
-void TextMoveCmd::redo()
-{
-	mText->setPos(mNewPos);
-	mText->setAngle(mNewAngle);
-}
-
-TextNewCmd::TextNewCmd(QUndoCommand *parent, Text *obj, Document *doc)
+TextNewCmd::TextNewCmd(QUndoCommand *parent, QSharedPointer<Text> obj, Document *doc)
 	:QUndoCommand(parent), mText(obj), mDoc(doc), mInDoc(false)
 {
 	setText("add text");
-}
-
-TextNewCmd::~TextNewCmd()
-{
-	if(!mInDoc)
-		delete mText;
 }
 
 void TextNewCmd::redo()
@@ -458,16 +441,10 @@ void TextNewCmd::undo()
 	mDoc->removeText(mText);
 }
 
-TextDeleteCmd::TextDeleteCmd(QUndoCommand *parent, Text *obj, Document *doc)
+TextDeleteCmd::TextDeleteCmd(QUndoCommand *parent, QSharedPointer<Text> obj, Document *doc)
 	:QUndoCommand(parent), mText(obj), mDoc(doc), mInDoc(true)
 {
 	setText("delete text");
-}
-
-TextDeleteCmd::~TextDeleteCmd()
-{
-	if(!mInDoc)
-		delete mText;
 }
 
 void TextDeleteCmd::redo()
@@ -480,41 +457,4 @@ void TextDeleteCmd::undo()
 {
 	mInDoc = true;
 	mDoc->addText(mText);
-}
-
-TextEditCmd::TextEditCmd(QUndoCommand *parent, Text* obj, QPoint newPos, const Layer& newLayer,
-			int newAngle, bool isMirrored, bool isNegative, int newSize,
-			int newWidth, QString newText )
-				: QUndoCommand(parent), mText(obj), mOldPos(obj->pos()), mOldLayer(obj->layer()),
-				mOldAngle(obj->angle()), mOldIsMirrored(obj->isMirrored()),
-				mOldIsNegative(obj->isNegative()), mOldFontSize(obj->fontSize()),
-				mOldStrokeWidth(obj->strokeWidth()), mOldText(obj->text()),
-				mNewPos(newPos), mNewLayer(newLayer), mNewAngle(newAngle), mNewIsMirrored(isMirrored),
-				mNewIsNegative(isNegative), mNewFontSize(newSize), mNewStrokeWidth(newWidth), mNewText(newText)
-{
-	setText("edit text");
-}
-
-void TextEditCmd::undo()
-{
-	mText->setPos(mOldPos);
-	mText->setLayer(mOldLayer);
-	mText->setAngle(mOldAngle);
-	mText->setMirrored(mOldIsMirrored);
-	mText->setNegative(mOldIsNegative);
-	mText->setFontSize(mOldFontSize);
-	mText->setStrokeWidth(mOldStrokeWidth);
-	mText->setText(mOldText);
-}
-
-void TextEditCmd::redo()
-{
-	mText->setPos(mNewPos);
-	mText->setLayer(mNewLayer);
-	mText->setAngle(mNewAngle);
-	mText->setMirrored(mNewIsMirrored);
-	mText->setNegative(mNewIsNegative);
-	mText->setFontSize(mNewFontSize);
-	mText->setStrokeWidth(mNewStrokeWidth);
-	mText->setText(mNewText);
 }

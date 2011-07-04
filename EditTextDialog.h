@@ -21,6 +21,7 @@
 #include <QDialog>
 #include "ui_EditTextDialog.h"
 #include "global.h"
+#include "Text.h"
 
 class Text;
 
@@ -30,7 +31,7 @@ class EditTextDialog : public QDialog, private Ui::EditTextDialog
 
 public:
 	explicit EditTextDialog(QWidget *parent = 0, int numLayers = 2);
-	void init(Text* t = NULL);
+	void init(QSharedPointer<Text> t = QSharedPointer<Text>());
 	QPoint pos() const { return QPoint(toPCB(xPos->value()), toPCB(yPos->value())); }
 	int angle() const { return angleBox->currentIndex() * 90; }
 	bool isMirrored() const { return mirrorImageBox->isChecked(); }

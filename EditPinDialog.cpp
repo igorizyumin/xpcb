@@ -21,7 +21,7 @@
 #include "Shape.h"
 #include <QMessageBox>
 
-Q_DECLARE_METATYPE(Padstack*);
+Q_DECLARE_METATYPE(QSharedPointer<Padstack>);
 
 EditPinDialog::EditPinDialog(QWidget *parent, Document *doc) :
 	QDialog(parent), mInMM(false), mPin(NULL), mDoc(doc)
@@ -30,7 +30,7 @@ EditPinDialog::EditPinDialog(QWidget *parent, Document *doc) :
 	updatePsList();
 }
 
-void EditPinDialog::init(Pin *p)
+void EditPinDialog::init(QSharedPointer<Pin> p)
 {
 	mPin = p;
 	if (mPin)
@@ -38,7 +38,7 @@ void EditPinDialog::init(Pin *p)
 		// name
 		pinName->setText(mPin->name());
 		// padstack
-		Padstack* ps = mPin->padstack();
+		QSharedPointer<Padstack> ps = mPin->padstack();
 		psList->setCurrentIndex(psList->findData(QVariant::fromValue(ps)));
 		// position
 		this->setPosRadio->setChecked(true);
@@ -82,7 +82,7 @@ void EditPinDialog::updateUnits()
 void EditPinDialog::updatePsList()
 {
 	psList->clear();
-	foreach(Padstack* p, mDoc->padstacks())
+	foreach(QSharedPointer<Padstack> p, mDoc->padstacks())
 	{
 		psList->addItem(p->name(), QVariant::fromValue(p));
 	}
@@ -95,13 +95,13 @@ void EditPinDialog::on_manageBtn_clicked()
 	updatePsList();
 }
 
-QList<Pin*> EditPinDialog::makePins(Footprint* fp)
+QList<QSharedPointer<Pin> > EditPinDialog::makePins(QSharedPointer<Footprint> fp)
 {
 	// initial position
 	QPoint firstPos(0, 0);
 	int firstAngle = 0;
 	// get padstack from list
-	Padstack* ps = padstack();
+	QSharedPointer<Padstack> ps = padstack();
 	Q_ASSERT(ps);
 	// set initial position to user value if set
 	if (!dragToPos())
@@ -111,7 +111,7 @@ QList<Pin*> EditPinDialog::makePins(Footprint* fp)
 	}
 
 	// make first pin
-	Pin* first = new Pin(fp);
+	QSharedPointer<Pin> first(new Pin(fp.data()));
 	QString name = this->name();
 	first->setName(name);
 	first->setPadstack(ps);
@@ -119,7 +119,7 @@ QList<Pin*> EditPinDialog::makePins(Footprint* fp)
 	first->setAngle(firstAngle);
 
 	// return just this pin if box is not checked
-	QList<Pin*> list;
+	QList<QSharedPointer<Pin> > list;
 	list.append(first);
 	if (!addRowCheck->isChecked())
 		return list;
@@ -145,7 +145,7 @@ QList<Pin*> EditPinDialog::makePins(Footprint* fp)
 	// add other pins
 	for(int i = 1; i < numPinsBox->value(); i++)
 	{
-		Pin* p = new Pin(fp);
+		QSharedPointer<Pin> p(new Pin(fp.data()));
 		p->setName(baseName + QString::number(startNum + i*incrementBox->value()));
 		p->setPadstack(ps);
 		p->setAngle(firstAngle);
@@ -168,9 +168,9 @@ double EditPinDialog::toUnits(int pcbu) const
 	else return XPcb::PCB2MIL(pcbu);
 }
 
-Padstack* EditPinDialog::padstack() const
+QSharedPointer<Padstack> EditPinDialog::padstack() const
 {
-	return psList->itemData(psList->currentIndex()).value<Padstack*>();
+	return psList->itemData(psList->currentIndex()).value<QSharedPointer<Padstack> >();
 }
 
 void EditPinDialog::accept()

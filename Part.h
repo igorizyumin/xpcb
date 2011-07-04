@@ -18,26 +18,25 @@ class Part;
 class PartPin : public PCBObject
 {
 public:
-	PartPin(Part* parent, const Pin* pin) : mPin(pin), mPart(parent), mNet(NULL), mVertex(NULL) {}
+	PartPin(Part* parent, QSharedPointer<const Pin> pin) : mPin(pin), mPart(parent) {}
 	~PartPin();
 
 	Pad getPadOnLayer(const Layer& layer) const;
 
-	void setNet(Net* newnet);
-	Net* net() const {return mNet; }
+	void setNet(QSharedPointer<Net> newnet) { mNet = newnet.toWeakRef(); }
+	QSharedPointer<Net> net() const { return mNet.toStrongRef(); }
 
-	void setVertex(Vertex* vertex);
-	Vertex* vertex() const { return mVertex; }
+	void setVertex(QSharedPointer<Vertex> vertex);
+	QSharedPointer<Vertex> vertex() const { return mVertex; }
 	Part* part() const { return mPart; }
 	QString name() const {return mPin->name(); }
-	const Pin* fpPin() const { return mPin; }
+	QSharedPointer<const Pin> fpPin() const { return mPin; }
 
 	QPoint pos() const;
 	bool isSmt() const;
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
 
@@ -55,23 +54,23 @@ private:
 			vertex(p.vertex())
 		{}
 
-		const Pin* pin;
+		QSharedPointer<const Pin> pin;
 		Part* part;
-		Net* net;
-		Vertex* vertex;
+		QWeakPointer<Net> net;
+		QWeakPointer<Vertex> vertex;
 	};
 
 	/// Maps a PCB layer to a pin layer (i.e. top copper -> start for parts on top side)
 	Layer mapLayer(const Layer& layer) const;
 
 	/// Pointer to footprint pin (contains position, etc.)
-	const Pin * mPin;
+	QSharedPointer<const Pin> mPin;
 	/// Pointer to parent part.
 	Part * mPart;
 	/// Pointer to assigned net.  NULL if no assigned net.
-	Net * mNet;
+	QWeakPointer<Net> mNet;
 	/// Pointer to attached vertex. May be NULL.
-	Vertex* mVertex;
+	QWeakPointer<Vertex> mVertex;
 };
 
 /// A part is an instance of a Footprint on a printed circuit board.  Parts
@@ -87,15 +86,14 @@ public:
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
 
 	QString refdes() const { return mRefdes->text(); }
 	QString value() const { return mValue->text(); }
-	Text* refdesText() const { return mRefdes; }
+	QSharedPointer<Text> refdesText() const { return mRefdes; }
 	bool refVisible() const { return mRefVisible; }
-	Text* valueText() const { return mValue; }
+	QSharedPointer<Text> valueText() const { return mValue; }
 	bool valueVisible() const { return mValueVisible; }
 	QPoint pos() const { return mPos; }
 	int angle() const { return mAngle; }
@@ -113,10 +111,10 @@ public:
 	const QUuid& fpUuid() const { return mFpUuid; }
 	void setFootprint(QUuid uuid);
 
-	QList<PartPin*> pins() const { return mPins; }
-	PartPin* getPin(const QString &name);
+	QList<QSharedPointer<PartPin> > pins() const { return mPins; }
+	QSharedPointer<PartPin> pin(const QString &name);
 
-	static Part* newFromXML(QXmlStreamReader &reader, PCBDoc* doc);
+	static QSharedPointer<Part> newFromXML(QXmlStreamReader &reader, PCBDoc* doc);
 	void toXML(QXmlStreamWriter &writer) const;
 
 	QTransform transform() const { return mTransform; }
@@ -146,7 +144,7 @@ private:
 		bool valVis;
 		QUuid uuid;
 		QSharedPointer<Footprint> fp;
-		QList<PartPin*> pins;
+		QList<QSharedPointer<PartPin> > pins;
 		PCBDoc* doc;
 	};
 
@@ -167,17 +165,17 @@ private:
 	/// Locked parts cannot be moved.
 	bool mLocked;
 	/// Reference designator text
-	Text* mRefdes;
+	QSharedPointer<Text> mRefdes;
 	bool mRefVisible;
 	/// Value text
-	Text* mValue;
+	QSharedPointer<Text> mValue;
 	bool mValueVisible;
 	/// Pointer to the footprint of the part
 	QSharedPointer<Footprint> mFp;
 	/// UUID of footprint
 	QUuid mFpUuid;
 	/// List of part pins.
-	QList<PartPin*> mPins;
+	QList<QSharedPointer<PartPin> > mPins;
 	/// Parent document
 	PCBDoc* mDoc;
 };

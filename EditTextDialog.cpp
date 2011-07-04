@@ -25,7 +25,7 @@ EditTextDialog::EditTextDialog(QWidget *parent, int numLayers) :
 	populateLayers(numLayers);
 }
 
-void EditTextDialog::init(Text *t)
+void EditTextDialog::init(QSharedPointer<Text> t)
 {
 	if (t)
 	{

@@ -20,16 +20,17 @@
 
 #include <QObject>
 #include "global.h"
+#include <QPointer>
 #include <QPainter>
 #include <QMouseEvent>
 #include <QUndoCommand>
+#include "PCBView.h"
+#include "Editor.h"
 
-class PCBView;
 class Document;
 class PCBDoc;
 class FPDoc;
 class PCBObject;
-class AbstractEditor;
 class LayerWidget;
 class SelFilterWidget;
 class ActionBar;
@@ -77,11 +78,11 @@ public:
 
 	void draw(QPainter* painter, QRect &rect, const Layer &layer);
 
-	bool docIsOpen() {return doc() != NULL;}
+	bool docIsOpen() {return !doc();}
 
-	void selectObj(PCBObject* obj);
-	void hideObj(PCBObject* obj);
-	void unhideObj(PCBObject* obj);
+	void selectObj(QSharedPointer<PCBObject> obj);
+	void hideObj(QSharedPointer<PCBObject> obj);
+	void unhideObj(QSharedPointer<PCBObject> obj);
 
 	virtual Document* doc() = 0;
 	PCBView* view() {return mView; }
@@ -92,8 +93,8 @@ public:
 	bool isLayerVisible(const Layer& l) const;
 	const Layer& activeLayer() const;
 
-	void registerAction(CtrlAction* action) { mActions.append(action); updateActions(); }
-	void installEditor(AbstractEditor* editor);
+	void registerAction(const CtrlAction* action) { mActions.append(action); updateActions(); }
+	void installEditor(QSharedPointer<AbstractEditor> editor);
 
 public slots:
 	void onPlaceGridChanged(int grid) { mPlaceGrid = grid; }
@@ -114,18 +115,18 @@ protected:
 	void updateActions();
 
 	PCBView* mView;
-	AbstractEditor* mEditor;
+	QSharedPointer<AbstractEditor> mEditor;
 	LayerWidget* mLayerWidget;
 	ActionBar* mActionBar;
 
 	/// Selected objects
-	QList<PCBObject*> mSelectedObjs;
+	QList<QSharedPointer<PCBObject> > mSelectedObjs;
 
 	/// Hidden objects
-	QList<PCBObject*> mHiddenObjs;
+	QList<QSharedPointer<PCBObject> > mHiddenObjs;
 
 	/// List of registered actions
-	QList<const CtrlAction*> mActions;
+	QList<const CtrlAction* > mActions;
 
 	int mPlaceGrid;
 	int mRouteGrid;

@@ -8,7 +8,7 @@
 #include "Polygon.h"
 
 Area::Area(const PCBDoc *doc) :
-		mDoc(doc), mNet(NULL), mConnectSMT(true),
+		mDoc(doc), mConnectSMT(true),
 		mPoly(NULL), mHatchStyle(NO_HATCH)
 {
 }
@@ -30,15 +30,16 @@ QRect Area::bbox() const
 
 void Area::findConnections()
 {
-	if (!this->mNet || !this->mDoc)
+	QSharedPointer<Net> net = mNet.toStrongRef();
+	if (net.isNull() || !this->mDoc)
 		return;
 
 	this->mConnPins.clear();
 
 	Layer layer = this->layer();
-	QSet<PartPin*> pins = mNet->getPins();
+	QList<QSharedPointer<PartPin> > pins = net->pins();
 
-	foreach(PartPin* pin, pins)
+	foreach(QSharedPointer<PartPin> pin, pins)
 	{
 		// see if pin is on the right layer
 		Pad pad = pin->getPadOnLayer(layer);
@@ -55,7 +56,7 @@ void Area::findConnections()
 
 		// add to list if pad is inside copper area
 		if( mPoly.testPointInside(pin->pos()) )
-			this->mConnPins.insert(pin);
+			this->mConnPins.append(pin.toWeakRef());
 	}
 
 	// find all vertices within copper area
@@ -68,13 +69,13 @@ bool Area::pointInside(const QPoint &p) const
 	return mPoly.testPointInside(p);
 }
 
-Area* Area::newFromXML(QXmlStreamReader &reader, const PCBDoc &doc)
+QSharedPointer<Area> Area::newFromXML(QXmlStreamReader &reader, const PCBDoc &doc)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "area");
 
 	QXmlStreamAttributes attr = reader.attributes();
-	Area* a = new Area(&doc);
-	a->mNet = doc.getNet(attr.value("net").toString());
+	QSharedPointer<Area> a(new Area(&doc));
+	a->mNet = doc.net(attr.value("net").toString());
 	a->mLayer = Layer(attr.value("layer").toString().toInt());
 	QStringRef t = attr.value("hatch");
 	if (t == "none")
@@ -93,7 +94,9 @@ Area* Area::newFromXML(QXmlStreamReader &reader, const PCBDoc &doc)
 void Area::toXML(QXmlStreamWriter &writer)
 {
 	writer.writeStartElement("area");
-	writer.writeAttribute("net", mNet->name());
+	QSharedPointer<Net> net = mNet.toStrongRef();
+	if (!net.isNull())
+		writer.writeAttribute("net", net->name());
 	writer.writeAttribute("layer", QString::number(mLayer.toInt()));
 	switch(mHatchStyle)
 	{

@@ -20,9 +20,13 @@
 
 #include <QObject>
 #include <QAction>
+#include <QMouseEvent>
 #include "PCBObject.h"
-#include "Controller.h"
 
+class Controller;
+class FPController;
+class PCBController;
+class CtrlAction;
 class PCBDoc;
 
 class AbstractEditor : public QObject
@@ -56,43 +60,33 @@ private:
 class AbstractEditorFactory
 {
 public:
-	virtual AbstractEditor* makeEditor(Controller* ctrl, PCBObject *obj) = 0;
+	virtual QSharedPointer<AbstractEditor> makeEditor(Controller* ctrl, QSharedPointer<PCBObject> obj) = 0;
 };
 
-class EditorFactory : public PCBObjectVisitor
+class EditorFactory
 {
 public:
 	enum ObjType {ObjArea, ObjLine, ObjNet, ObjPartPin, ObjPin, ObjPart, ObjFootprint, ObjText, ObjVertex, ObjSegment, ObjPadstack};
 	static EditorFactory& instance();
 
-	AbstractEditor* newEditor(PCBObject* obj, Controller *ctrl);
-	AbstractEditor* newTextEditor(Controller *ctrl);
-	AbstractEditor* newPinEditor(FPController* ctrl);
-	AbstractEditor* newPartEditor(PCBController* ctrl);
+	QSharedPointer<AbstractEditor> newEditor(QSharedPointer<PCBObject> obj, Controller *ctrl);
+	QSharedPointer<AbstractEditor> newTextEditor(Controller *ctrl);
+	QSharedPointer<AbstractEditor> newPinEditor(FPController* ctrl);
+	QSharedPointer<AbstractEditor> newPartEditor(PCBController* ctrl);
 
-	static void registerFactory(ObjType type, AbstractEditorFactory* factory) { instance().mFactories[type] = factory; }
-
-	virtual void visit(Area* a);
-	virtual void visit(Line* a);
-	virtual void visit(Net* a);
-	virtual void visit(PartPin* a);
-	virtual void visit(Pin* a);
-	virtual void visit(Part* a);
-	virtual void visit(Text* a);
-	virtual void visit(Vertex* a);
-	virtual void visit(Segment* a);
+	static void registerFactory(ObjType type, QSharedPointer<AbstractEditorFactory> factory) { instance().mFactories[type] = factory; }
 
 private:
 	EditorFactory();
 	EditorFactory(EditorFactory &other);
 
 	static EditorFactory* mInst;
-	AbstractEditor* mEditor;
+	QSharedPointer<AbstractEditor> mEditor;
 	// parameters for visit function
 	Controller *mCtrl;
-	PCBObject *mObj;
+	QSharedPointer<PCBObject> mObj;
 
-	QHash<ObjType, AbstractEditorFactory*> mFactories;
+	QHash<ObjType, QSharedPointer<AbstractEditorFactory> > mFactories;
 };
 
 #endif // EDITOR_H

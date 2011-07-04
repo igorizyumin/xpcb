@@ -217,10 +217,10 @@ bool Padstack::operator==(const Padstack &p) const
 			); 
 }
 
-Padstack* Padstack::newFromXML(QXmlStreamReader &reader)
+QSharedPointer<Padstack> Padstack::newFromXML(QXmlStreamReader &reader)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "padstack");
-	Padstack *p = new Padstack();
+	QSharedPointer<Padstack> p(new Padstack());
 	if (reader.attributes().hasAttribute("name"))
 		p->mName = reader.attributes().value("name").toString();
 	p->hole_size = reader.attributes().value("holesize").toString().toInt();
@@ -344,12 +344,12 @@ QRect Padstack::bbox() const
 
 /////////////////////// PIN /////////////////////////
 
-Pin* Pin::newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> & padstacks, Footprint *fp)
+QSharedPointer<Pin> Pin::newFromXML(QXmlStreamReader &reader, const QHash<int, QSharedPointer<Padstack> > & padstacks, Footprint *fp)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "pin");
 	QXmlStreamAttributes attr = reader.attributes();
 
-	Pin* p = new Pin(fp);
+	QSharedPointer<Pin> p(new Pin(fp));
 	p->mName = attr.value("name").toString();
 	p->mPos = QPoint(attr.value("x").toString().toInt(), attr.value("y").toString().toInt());
 	p->mAngle = attr.value("rot").toString().toInt();
@@ -380,11 +380,10 @@ void Pin::toXML(QXmlStreamWriter &writer) const
 
 bool Pin::testHit(QPoint pt, const Layer& layer) const
 {
-	Padstack *ps = padstack();
 	// check if we hit a thru-hole
 	QPoint delta( pt - pos() );
 	double dist = sqrt( delta.x()*delta.x() + delta.y()*delta.y() );
-	if( dist < ps->holeSize()/2 )
+	if( dist < padstack()->holeSize()/2 )
 		return true;
 
 	Pad pad = getPadOnLayer(layer);
@@ -396,14 +395,12 @@ bool Pin::testHit(QPoint pt, const Layer& layer) const
 
 Pad Pin::getPadOnLayer(const Layer& layer) const
 {
-	Padstack *ps = padstack();
-
 	if (layer == Layer::LAY_START)
-		return ps->startPad();
+		return padstack()->startPad();
 	else if (layer == Layer::LAY_END)
-		return ps->endPad();
+		return padstack()->endPad();
 	else if (layer == Layer::LAY_INNER)
-		return ps->innerPad();
+		return padstack()->innerPad();
 	return Pad();
 }
 
@@ -449,46 +446,52 @@ bool Pin::loadState(PCBObjState &state)
 /////////////////////// FOOTPRINT /////////////////////////
 
 Footprint::Footprint()
-	: mName("EMPTY_SHAPE"), mUnits(XPcb::MIL), mCustomCentroid(false), mUuid(QUuid::createUuid())
+	: mName("EMPTY_SHAPE"), mUnits(XPcb::MIL),
+	  mRefText(QSharedPointer<Text>(new Text())),
+	  mValueText(QSharedPointer<Text>(new Text())),
+	  mCustomCentroid(false), mUuid(QUuid::createUuid())
 {
-	mValueText.setText("VALUE");
-	mValueText.setLayer(Layer::LAY_SILK_TOP);
-	mValueText.setPos(QPoint(0, XPcb::MIL2PCB(-120)));
-	mRefText.setText("REF");
-	mRefText.setLayer(Layer::LAY_SILK_TOP);
+	mValueText->setText("VALUE");
+	mValueText->setLayer(Layer::LAY_SILK_TOP);
+	mValueText->setPos(QPoint(0, XPcb::MIL2PCB(-120)));
+	mRefText->setText("REF");
+	mRefText->setLayer(Layer::LAY_SILK_TOP);
 	Log::instance().message("FP constructed");
 }
 
 Footprint::Footprint(const Footprint &other)
 	: mName(other.mName), mAuthor(other.mAuthor),
 	  mSource(other.mSource), mDesc(other.mDesc),
-	  mUnits(other.mUnits), mRefText(other.mRefText),
-	  mValueText(other.mValueText), mCentroid(other.mCentroid),
-	  mCustomCentroid(other.mCustomCentroid), mUuid(other.mUuid)
+	  mUnits(other.mUnits),
+	  mRefText(QSharedPointer<Text>(new Text(*other.mRefText))),
+	  mValueText(QSharedPointer<Text>(new Text(*other.mValueText))),
+	  mCentroid(other.mCentroid),
+	  mCustomCentroid(other.mCustomCentroid),
+	  mUuid(other.mUuid)
 {
-	QHash<Padstack*, Padstack*> psmap;
-	foreach(Padstack* ps, other.mPadstacks)
+	QHash<QSharedPointer<Padstack>, QSharedPointer<Padstack> > psmap;
+	foreach(QSharedPointer<Padstack> ps, other.mPadstacks)
 	{
-		Padstack* newps = new Padstack(*ps);
+		QSharedPointer<Padstack> newps(new Padstack(*ps));
 		psmap.insert(ps, newps);
 		mPadstacks.append(newps);
 	}
-	foreach(Pin* p, other.mPins)
+	foreach(QSharedPointer<Pin> p, other.mPins)
 	{
-		Pin* np = new Pin(this);
+		QSharedPointer<Pin> np(new Pin(this));
 		np->setPos(p->pos());
 		np->setName(p->name());
 		np->setAngle(p->angle());
 		np->setPadstack(psmap.value(p->padstack()));
 		mPins.append(np);
 	}
-	foreach(Line* p, other.mOutlineLines)
+	foreach(QSharedPointer<Line> p, other.mOutlineLines)
 	{
-		mOutlineLines.append(new Line(*p));
+		mOutlineLines.append(QSharedPointer<Line>(new Line(*p)));
 	}
-	foreach(Text* p, other.mTexts)
+	foreach(QSharedPointer<Text> p, other.mTexts)
 	{
-		mTexts.append(new Text(*p));
+		mTexts.append(QSharedPointer<Text>(new Text(*p)));
 	}
 	Log::instance().message("FP copy constructor");
 
@@ -498,16 +501,7 @@ Footprint::Footprint(const Footprint &other)
 //
 Footprint::~Footprint()
 {
-	foreach(Text* t, mTexts)
-		delete t;
-	foreach(Pin* p, mPins)
-		delete p;
-	foreach(Line* l, mOutlineLines)
-		delete l;
-	foreach(Padstack* ps, mPadstacks)
-		delete ps;
 	Log::instance().message("FP destroyed");
-
 }
 
 void Footprint::draw(QPainter *painter, FP_DRAW_LAYER layer) const
@@ -515,19 +509,19 @@ void Footprint::draw(QPainter *painter, FP_DRAW_LAYER layer) const
 	// draw silkscreen
 	// pins are handled separately by PartPin, so this will only be called to draw the silkscreen (for now)
 	Layer pcblayer = (layer == Footprint::LAY_START) ? Layer(Layer::LAY_SILK_TOP) : Layer(Layer::LAY_SILK_BOTTOM);
-	foreach(Line* l, mOutlineLines)
+	foreach(QSharedPointer<Line> l, mOutlineLines)
 		l->draw(painter, pcblayer);
-	foreach(Text* t, mTexts)
+	foreach(QSharedPointer<Text> t, mTexts)
 		t->draw(painter, pcblayer);
 }
 
-Footprint* Footprint::newFromXML(QXmlStreamReader &reader)
+QSharedPointer<Footprint> Footprint::newFromXML(QXmlStreamReader &reader)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "footprint");
 
-	QHash<int, Padstack*> psHash;
+	QHash<int, QSharedPointer<Padstack> > psHash;
 
-	Footprint *fp = new Footprint();
+	QSharedPointer<Footprint> fp(new Footprint());
 	while(reader.readNextStartElement())
 	{
 		QStringRef el = reader.name();
@@ -582,7 +576,7 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader)
 			while(reader.readNextStartElement())
 			{
 				int psid = reader.attributes().value("id").toString().toInt();
-				Padstack* ps = Padstack::newFromXML(reader);
+				QSharedPointer<Padstack> ps = Padstack::newFromXML(reader);
 				psHash.insert(psid, ps);
 			}
 		}
@@ -590,7 +584,7 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader)
 		{
 			while(reader.readNextStartElement())
 			{
-				Pin* pin = Pin::newFromXML(reader, psHash, fp);
+				QSharedPointer<Pin> pin = Pin::newFromXML(reader, psHash, fp.data());
 				fp->mPins.append(pin);
 			}
 		}
@@ -601,11 +595,11 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader)
 		else if (el == "refText")
 		{
 			QXmlStreamAttributes attr = reader.attributes();
-			fp->mRefText.setPos(QPoint(attr.value("x").toString().toInt(),
+			fp->mRefText->setPos(QPoint(attr.value("x").toString().toInt(),
 									   attr.value("y").toString().toInt()));
-			fp->mRefText.setAngle(attr.value("rot").toString().toInt());
-			fp->mRefText.setFontSize(attr.value("textSize").toString().toInt());
-			fp->mRefText.setStrokeWidth(attr.value("lineWidth").toString().toInt());
+			fp->mRefText->setAngle(attr.value("rot").toString().toInt());
+			fp->mRefText->setFontSize(attr.value("textSize").toString().toInt());
+			fp->mRefText->setStrokeWidth(attr.value("lineWidth").toString().toInt());
 			do
 					reader.readNext();
 			while(!reader.isEndElement());
@@ -613,11 +607,11 @@ Footprint* Footprint::newFromXML(QXmlStreamReader &reader)
 		else if (el == "valueText")
 		{
 			QXmlStreamAttributes attr = reader.attributes();
-			fp->mValueText.setPos(QPoint(attr.value("x").toString().toInt(),
+			fp->mValueText->setPos(QPoint(attr.value("x").toString().toInt(),
 									   attr.value("y").toString().toInt()));
-			fp->mValueText.setAngle(attr.value("rot").toString().toInt());
-			fp->mValueText.setFontSize(attr.value("textSize").toString().toInt());
-			fp->mValueText.setStrokeWidth(attr.value("lineWidth").toString().toInt());
+			fp->mValueText->setAngle(attr.value("rot").toString().toInt());
+			fp->mValueText->setFontSize(attr.value("textSize").toString().toInt());
+			fp->mValueText->setStrokeWidth(attr.value("lineWidth").toString().toInt());
 			do
 					reader.readNext();
 			while(!reader.isEndElement());
@@ -644,44 +638,44 @@ void Footprint::toXML(QXmlStreamWriter &writer) const
 	writer.writeAttribute("custom", mCustomCentroid ? "1" : "0");
 	writer.writeEndElement();
 
-	foreach(Line* l, mOutlineLines)
+	foreach(QSharedPointer<Line> l, mOutlineLines)
 		l->toXML(writer);
-	foreach(Text* t, mTexts)
+	foreach(QSharedPointer<Text> t, mTexts)
 		t->toXML(writer);
 
 	writer.writeStartElement("padstacks");
-	foreach(Padstack* ps, mPadstacks)
+	foreach(QSharedPointer<Padstack> ps, mPadstacks)
 		ps->toXML(writer);
 	writer.writeEndElement();
 
 	writer.writeStartElement("pins");
-	foreach(Pin* p, mPins)
+	foreach(QSharedPointer<Pin> p, mPins)
 		p->toXML(writer);
 	writer.writeEndElement();
 
 	writer.writeStartElement("refText");
-	writer.writeAttribute("x", QString::number(mRefText.pos().x()));
-	writer.writeAttribute("y", QString::number(mRefText.pos().y()));
-	writer.writeAttribute("rot", QString::number(mRefText.angle()));
-	writer.writeAttribute("textSize", QString::number(mRefText.fontSize()));
-	writer.writeAttribute("lineWidth", QString::number(mRefText.strokeWidth()));
+	writer.writeAttribute("x", QString::number(mRefText->pos().x()));
+	writer.writeAttribute("y", QString::number(mRefText->pos().y()));
+	writer.writeAttribute("rot", QString::number(mRefText->angle()));
+	writer.writeAttribute("textSize", QString::number(mRefText->fontSize()));
+	writer.writeAttribute("lineWidth", QString::number(mRefText->strokeWidth()));
 	writer.writeEndElement();
 
 	writer.writeStartElement("valueText");
-	writer.writeAttribute("x", QString::number(mValueText.pos().x()));
-	writer.writeAttribute("y", QString::number(mValueText.pos().y()));
-	writer.writeAttribute("rot", QString::number(mValueText.angle()));
-	writer.writeAttribute("textSize", QString::number(mValueText.fontSize()));
-	writer.writeAttribute("lineWidth", QString::number(mValueText.strokeWidth()));
+	writer.writeAttribute("x", QString::number(mValueText->pos().x()));
+	writer.writeAttribute("y", QString::number(mValueText->pos().y()));
+	writer.writeAttribute("rot", QString::number(mValueText->angle()));
+	writer.writeAttribute("textSize", QString::number(mValueText->fontSize()));
+	writer.writeAttribute("lineWidth", QString::number(mValueText->strokeWidth()));
 	writer.writeEndElement();
 
 	writer.writeEndElement(); // footprint
 }
 
-void Footprint::removePadstack(Padstack *ps)
+void Footprint::removePadstack(QSharedPointer<Padstack> ps)
 {
 	// check if it is in use
-	foreach(Pin* p, mPins)
+	foreach(QSharedPointer<Pin> p, mPins)
 	{
 		if (p->padstack() == ps)
 			return;
@@ -695,14 +689,14 @@ int Footprint::numPins() const
 	return mPins.size();
 }
 
-const Pin* Footprint::getPin( const QString & name ) const
+QSharedPointer<Pin> Footprint::pin( const QString & name ) const
 {	
-	foreach(Pin* p, mPins)
+	foreach(QSharedPointer<Pin> p, mPins)
 	{
 		if (p->name() == name)
 			return p;
 	}
-	return NULL;
+	return QSharedPointer<Pin>();
 }
 
 // Get default centroid
@@ -719,7 +713,7 @@ QPoint Footprint::getDefaultCentroid()
 QRect Footprint::getPinBounds() const
 {
 	QRect r;
-	foreach(Pin* p, mPins)
+	foreach(QSharedPointer<Pin> p, mPins)
 	{
 		r |= p->bbox();
 	}
@@ -774,11 +768,11 @@ QRect Footprint::GetPadBounds( int i )
 QRect Footprint::bbox() const
 {
 	QRect r = getPinBounds();
-	foreach(Line* l, mOutlineLines)
+	foreach(QSharedPointer<Line> l, mOutlineLines)
 	{
 		r |= l->bbox();
 	}
-	foreach(Text* t, mTexts)
+	foreach(QSharedPointer<Text> t, mTexts)
 	{
 		r |= t->bbox();
 	}

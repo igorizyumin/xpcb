@@ -86,7 +86,7 @@ protected:
 
 private:
 	PCBDoc* mDoc;
-	PCBController *mCtrl;
+	PCBController* mCtrl;
 
 };
 
@@ -107,7 +107,7 @@ protected:
 
 private:
 	FPDoc* mDoc;
-	FPController *mCtrl;
+	FPController* mCtrl;
 };
 
 #endif // MAINWINDOW_H

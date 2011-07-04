@@ -18,7 +18,7 @@
 #include "ManagePadstacksDialog.h"
 #include "EditPadstackDialog.h"
 
-Q_DECLARE_METATYPE(Padstack*);
+Q_DECLARE_METATYPE(QSharedPointer<Padstack>);
 
 ManagePadstacksDialog::ManagePadstacksDialog(QWidget *parent, Document *doc)
 	: QDialog(parent), mDoc(doc)
@@ -40,7 +40,7 @@ void ManagePadstacksDialog::on_newButton_clicked()
 
 void ManagePadstacksDialog::on_editButton_clicked()
 {
-	Padstack* curr = currItem();
+	QSharedPointer<Padstack> curr = currItem();
 	if (!curr)
 		return;
 	EditPadstackDialog dialog(this);
@@ -55,8 +55,8 @@ void ManagePadstacksDialog::on_editButton_clicked()
 void ManagePadstacksDialog::updateItems()
 {
 	psList->clear();
-	QList<Padstack*> l = mDoc->padstacks();
-	foreach(Padstack* ps, l)
+	QList<QSharedPointer<Padstack> > l = mDoc->padstacks();
+	foreach(QSharedPointer<Padstack> ps, l)
 	{
 		QListWidgetItem *item = new QListWidgetItem(ps->name(), this->psList);
 		item->setData(Qt::UserRole, QVariant::fromValue(ps));
@@ -65,11 +65,11 @@ void ManagePadstacksDialog::updateItems()
 	on_psList_itemSelectionChanged();
 }
 
-Padstack* ManagePadstacksDialog::currItem()
+QSharedPointer<Padstack> ManagePadstacksDialog::currItem()
 {
 	if (psList->currentItem() == NULL)
-		return NULL;
-	return psList->currentItem()->data(Qt::UserRole).value<Padstack*>();
+		return QSharedPointer<Padstack>();
+	return psList->currentItem()->data(Qt::UserRole).value<QSharedPointer<Padstack> >();
 }
 
 void ManagePadstacksDialog::on_psList_itemSelectionChanged()
@@ -91,29 +91,22 @@ void ManagePadstacksDialog::on_psList_itemSelectionChanged()
 ///////////////////////// UNDO / REDO ///////////////////////////////////
 
 NewPadstackCmd::NewPadstackCmd(QUndoCommand *parent, Document *doc, Padstack ps)
-	: QUndoCommand(parent), mPs(new Padstack(ps)), mDoc(doc), mInDoc(false)
+	: QUndoCommand(parent), mPs(QSharedPointer<Padstack>(new Padstack(ps))), mDoc(doc)
 {
-}
-
-NewPadstackCmd::~NewPadstackCmd()
-{
-	if (!mInDoc)
-		delete mPs;
 }
 
 void NewPadstackCmd::redo()
 {
 	mDoc->addPadstack(mPs);
-	mInDoc = true;
 }
 
 void NewPadstackCmd::undo()
 {
 	mDoc->removePadstack(mPs);
-	mInDoc = false;
 }
 
-EditPadstackCmd::EditPadstackCmd(QUndoCommand *parent, Padstack* ps, Padstack newPs)
+EditPadstackCmd::EditPadstackCmd(QUndoCommand *parent, QSharedPointer<Padstack> ps,
+								 Padstack newPs)
 	: QUndoCommand(parent), mPrev(*ps), mNew(newPs), mPs(ps)
 {
 }

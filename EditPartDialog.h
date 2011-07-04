@@ -21,6 +21,7 @@
 #include "ui_EditPartDialog.h"
 #include "global.h"
 #include "Part.h"
+#include "Net.h"
 
 class EditPartDialog : public QDialog, private Ui::EditPartDialog
 {
@@ -29,7 +30,7 @@ class EditPartDialog : public QDialog, private Ui::EditPartDialog
 public:
 	explicit EditPartDialog(QWidget *parent, PCBDoc* doc);
 
-	void init(Part* p = NULL);
+	void init(QSharedPointer<Part> p = QSharedPointer<Part>());
 
 	QPoint pos() const { return QPoint(toPCB(xPos->value()), toPCB(yPos->value())); }
 	int angle() const { return angleBox->currentIndex() * 90; }
@@ -56,7 +57,7 @@ private:
 	bool mInMM;
 	bool mFpChanged;
 	QUuid mCurrFpUuid;
-	Part* mPart;
+	QSharedPointer<Part> mPart;
 	PCBDoc* mDoc;
 };
 

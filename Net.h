@@ -25,20 +25,19 @@ public:
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v) { v->visit(this); }
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
 
 	QString name() const {return mName;}
-	void addPin( PartPin * pin);
-	void removePin( PartPin * pin);
-	QSet<PartPin*> getPins() const { return mPins; }
-	Padstack* getViaPs() const { return mViaPS; }
+	void addPin( QSharedPointer<PartPin> pin);
+	void removePin( QSharedPointer<PartPin> pin);
+	QList<QSharedPointer<PartPin> > pins() const;
+	QSharedPointer<Padstack> viaPs() const { return mViaPS; }
 	bool visible() const { return mIsVisible; }
 	void setVisible(bool v) { mIsVisible = v; }
 
-	static Net* newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
-						   const QHash<int, Padstack*> &padstacks);
+	static QSharedPointer<Net> newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
+						   const QHash<int, QSharedPointer<Padstack> > &padstacks);
 	void toXML(QXmlStreamWriter &writer) const;
 private:
 	class NetState : public PCBObjStateInternal
@@ -48,19 +47,24 @@ private:
 	private:
 		friend class Net;
 		NetState(const Net &p)
-			: vis(p.visible()), name(p.name()), pins(p.getPins())
-		{}
+			: vis(p.visible()), name(p.name())
+		{
+			foreach(QSharedPointer<PartPin> pp, p.pins())
+			{
+				pins.append(pp.toWeakRef());
+			}
+		}
 
 		bool vis;
 		QString name;
-		QSet<PartPin*> pins;
+		QList<QWeakPointer<PartPin> > pins;
 	};
 
 	bool mIsVisible;
 	PCBDoc * mDoc;	// PCB document
 	QString mName;		// net name
-	QSet<PartPin*> mPins;	// pointers to part pins that are in this net
-	Padstack* mViaPS; // via padstack for this net
+	QList<QWeakPointer<PartPin> > mPins;	// pointers to part pins that are in this net
+	QSharedPointer<Padstack> mViaPS; // via padstack for this net
 };
 
 

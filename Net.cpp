@@ -8,13 +8,13 @@ Net::Net( PCBDoc *doc, const QString &name ) :
 {
 }
 
-Net* Net::newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
-					 const QHash<int, Padstack*> &padstacks)
+QSharedPointer<Net> Net::newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
+					 const QHash<int, QSharedPointer<Padstack> > &padstacks)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "net");
 
 	QXmlStreamAttributes attr = reader.attributes();
-	Net* n = new Net(doc, attr.value("name").toString());
+	QSharedPointer<Net> n( new Net(doc, attr.value("name").toString()) );
 	if (attr.hasAttribute("visible"))
 	{
 		bool visible = attr.value("visible").toString() == "1";
@@ -39,11 +39,11 @@ Net* Net::newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
 		attr = reader.attributes();
 		QString refdes = attr.value("partref").toString();
 		QString pinname = attr.value("pinname").toString();
-		Part* part = doc->getPart(refdes);
-		Q_ASSERT(part != NULL);
-		PartPin* pin = part->getPin(pinname);
-		Q_ASSERT(pin != NULL);
-		n->mPins.insert(pin);
+		QSharedPointer<Part> part = doc->part(refdes);
+		Q_ASSERT(!part.isNull());
+		QSharedPointer<PartPin> pin = part->pin(pinname);
+		Q_ASSERT(!pin.isNull());
+		n->mPins.append(pin);
 
 		do
 				reader.readNext();
@@ -59,8 +59,10 @@ void Net::toXML(QXmlStreamWriter &writer) const
 	writer.writeAttribute("name", mName);
 	writer.writeAttribute("visible", mIsVisible ? "1" : "0");
 	writer.writeAttribute("defViaPadstack", QString::number(mViaPS->getid()));
-	foreach(PartPin* p, mPins)
+	foreach(QWeakPointer<PartPin> pw, mPins)
 	{
+		QSharedPointer<PartPin> p = pw.toStrongRef();
+		if (p.isNull()) continue;
 		writer.writeStartElement("pinRef");
 		writer.writeAttribute("partref", p->part()->refdes());
 		writer.writeAttribute("pinname", p->name());
@@ -71,27 +73,30 @@ void Net::toXML(QXmlStreamWriter &writer) const
 
 Net::~Net()
 {
-	// disconnect pins from net
-	foreach(PartPin* p, mPins)
-	{
-		p->setNet(NULL);
-	}
 }
 
 // Add new pin to net
 //
-void Net::addPin( PartPin* newpin )
+void Net::addPin( QSharedPointer<PartPin> newpin )
 {
-	mPins.insert(newpin);
-	newpin->setNet(this);
+	mPins.append(newpin.toWeakRef());
 }
 
-void Net::removePin(PartPin* p)
+void Net::removePin(QSharedPointer<PartPin> p)
 {
-	// Disconnect from net
-	p->setNet(NULL);
-	// Remove from net
-	mPins.remove(p);
+	mPins.removeOne(p.toWeakRef());
+}
+
+QList<QSharedPointer<PartPin> > Net::pins() const
+{
+	QList<QSharedPointer<PartPin> > out;
+	foreach(QWeakPointer<PartPin> pp, mPins)
+	{
+		if (pp.toStrongRef().isNull())
+			continue;
+		out.append(pp.toStrongRef());
+	}
+	return out;
 }
 
 void Net::draw(QPainter */*painter*/, const Layer& /*layer*/) const

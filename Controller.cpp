@@ -25,7 +25,7 @@
 #include "FPPropDialog.h"
 
 Controller::Controller(QObject *parent) :
-	QObject(parent), mView(NULL), mEditor(NULL), mLayerWidget(NULL), mActionBar(NULL),
+	QObject(parent),
 	mPlaceGrid(XPcb::IN2PCB(0.05)), mRouteGrid(XPcb::IN2PCB(0.001))
 {
 }
@@ -68,8 +68,8 @@ void Controller::draw(QPainter* painter, QRect &rect, const Layer& layer)
 	}
 	else
 	{
-		QList<PCBObject*> objs = doc()->findObjs(rect);
-		foreach(PCBObject* obj, objs)
+		QList<QSharedPointer<PCBObject> > objs = doc()->findObjs(rect);
+		foreach(QSharedPointer<PCBObject> obj, objs)
 		{
 			if (!mLayerWidget->isLayerVisible(Layer::LAY_SELECTION) ||
 				!mHiddenObjs.contains(obj))
@@ -119,11 +119,11 @@ void Controller::mouseReleaseEvent(QMouseEvent *event)
 		return;
 	}
 	QPoint pos = mView->transform().inverted().map(event->pos());
-	QList<PCBObject*> objs = doc()->findObjs(pos);
-	QMutableListIterator<PCBObject*> i(objs);
+	QList<QSharedPointer<PCBObject> > objs = doc()->findObjs(pos);
+	QMutableListIterator<QSharedPointer<PCBObject> > i(objs);
 	while(i.hasNext())
 	{
-		PCBObject* obj = i.next();
+		QSharedPointer<PCBObject> obj = i.next();
 		bool hit = false;
 		// traverse list of layers in reverse draw order (topmost layer first)
 		QList<Layer> layerList = doc()->layerList(PCBDoc::DrawPriorityOrder);
@@ -159,7 +159,7 @@ void Controller::mouseReleaseEvent(QMouseEvent *event)
 	}
 	else // one obj currently selected
 	{
-		PCBObject* currObj = mSelectedObjs.first();
+		QSharedPointer<PCBObject> currObj = mSelectedObjs.first();
 		mSelectedObjs.clear();
 		// if only one object is under cursor, switch to the new one (if it's another one)
 		if (objs.size() == 1)
@@ -184,12 +184,7 @@ void Controller::mouseReleaseEvent(QMouseEvent *event)
 
 void Controller::updateEditor()
 {
-	if (mEditor)
-	{
-		delete mEditor;
-		mEditor = NULL;
-
-	}
+	mEditor.clear();
 	mHiddenObjs.clear();
 	if (mSelectedObjs.size() == 1)
 	{
@@ -199,33 +194,33 @@ void Controller::updateEditor()
 		updateActions();
 }
 
-void Controller::installEditor(AbstractEditor* editor)
+void Controller::installEditor(QSharedPointer<AbstractEditor> editor)
 {
-	Q_ASSERT(mEditor == NULL);
+	Q_ASSERT(!mEditor);
 	if (!editor) return;
 
 	mEditor = editor;
 
-	mView->installEventFilter(mEditor);
-	connect(mEditor, SIGNAL(overlayChanged()), this, SLOT(onEditorOverlayChanged()));
-	connect(mEditor, SIGNAL(editorFinished()), this, SLOT(onEditorFinished()));
-	connect(mEditor, SIGNAL(actionsChanged()), this, SLOT(onEditorActionsChanged()));
+	mView->installEventFilter(mEditor.data());
+	connect(mEditor.data(), SIGNAL(overlayChanged()), this, SLOT(onEditorOverlayChanged()));
+	connect(mEditor.data(), SIGNAL(editorFinished()), this, SLOT(onEditorFinished()));
+	connect(mEditor.data(), SIGNAL(actionsChanged()), this, SLOT(onEditorActionsChanged()));
 	updateActions();
 	mEditor->init();
 }
 
-void Controller::selectObj(PCBObject *obj)
+void Controller::selectObj(QSharedPointer<PCBObject> obj)
 {
 	mSelectedObjs.append(obj);
 	mView->update();
 }
 
-void Controller::hideObj(PCBObject *obj)
+void Controller::hideObj(QSharedPointer<PCBObject> obj)
 {
 	mHiddenObjs.append(obj);
 }
 
-void Controller::unhideObj(PCBObject *obj)
+void Controller::unhideObj(QSharedPointer<PCBObject> obj)
 {
 	mHiddenObjs.removeAll(obj);
 }
@@ -323,8 +318,7 @@ void PCBController::registerDoc(PCBDoc* doc)
 		mDoc = NULL;
 		mSelectedObjs.clear();
 		mHiddenObjs.clear();
-		delete mEditor;
-		mEditor = NULL;
+		mEditor.clear();
 		onDocumentChanged();
 	}
 	updateEditor();
@@ -382,8 +376,7 @@ void FPController::registerDoc(FPDoc* doc)
 		mDoc = NULL;
 		mSelectedObjs.clear();
 		mHiddenObjs.clear();
-		delete mEditor;
-		mEditor = NULL;
+		mEditor.clear();
 		onDocumentChanged();
 	}
 	updateEditor();
@@ -411,10 +404,10 @@ void FPController::onAddTextAction()
 void FPController::onEditPropsAction()
 {
 	FPPropDialog d(this->view());
-	d.init(mDoc->footprint());
+	d.init(mDoc->footprint().data());
 	int result = d.exec();
 	if (result == QDialog::Accepted)
 	{
-		d.updateFp(mDoc->footprint());
+		d.updateFp(mDoc->footprint().data());
 	}
 }

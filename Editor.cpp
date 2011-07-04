@@ -77,78 +77,67 @@ EditorFactory& EditorFactory::instance()
 	return *EditorFactory::mInst;
 }
 
-AbstractEditor* EditorFactory::newEditor(PCBObject *obj, Controller *ctrl)
+QSharedPointer<AbstractEditor> EditorFactory::newEditor(QSharedPointer<PCBObject> obj, Controller *ctrl)
 {
-	mEditor = NULL;
-	mObj = obj;
-	mCtrl = ctrl;
-	obj->accept(this);
-	return mEditor;
+	if (QSharedPointer<Area> a = obj.dynamicCast<Area>())
+	{
+		if (mFactories.contains(ObjArea))
+			return mFactories.value(ObjArea)->makeEditor(ctrl, a);
+	}
+	else if (QSharedPointer<Line> l = obj.dynamicCast<Line>())
+	{
+		if (mFactories.contains(ObjLine))
+			return mFactories.value(ObjLine)->makeEditor(ctrl, l);
+	}
+	else if (QSharedPointer<Net> n = obj.dynamicCast<Net>())
+	{
+		if (mFactories.contains(ObjNet))
+			return mFactories.value(ObjNet)->makeEditor(ctrl, n);
+	}
+	else if (QSharedPointer<PartPin> pp = obj.dynamicCast<PartPin>())
+	{
+		if (mFactories.contains(ObjPartPin))
+			return mFactories.value(ObjPartPin)->makeEditor(ctrl, pp);
+	}
+	else if (QSharedPointer<Pin> p = obj.dynamicCast<Pin>())
+	{
+		return QSharedPointer<AbstractEditor>(new PinEditor(dynamic_cast<FPController*>(ctrl), p));
+	}
+	else if (QSharedPointer<Part> p = obj.dynamicCast<Part>())
+	{
+		return QSharedPointer<AbstractEditor>(new PartEditor(dynamic_cast<PCBController*>(ctrl), p));
+	}
+	else if (QSharedPointer<Text> t = obj.dynamicCast<Text>())
+	{
+		return QSharedPointer<AbstractEditor>(new TextEditor(ctrl, t));
+	}
+	else if (QSharedPointer<Vertex> v = obj.dynamicCast<Vertex>())
+	{
+		if (mFactories.contains(ObjVertex))
+			return mFactories.value(ObjVertex)->makeEditor(ctrl, v);
+	}
+	else if (QSharedPointer<Segment> s = obj.dynamicCast<Segment>())
+	{
+		if (mFactories.contains(ObjSegment))
+			return mFactories.value(ObjSegment)->makeEditor(ctrl, s);
+	}
+
+	return QSharedPointer<AbstractEditor>();
 }
 
-AbstractEditor* EditorFactory::newTextEditor(Controller *ctrl)
+QSharedPointer<AbstractEditor> EditorFactory::newTextEditor(Controller *ctrl)
 {
-	return new TextEditor(ctrl, NULL);
+	return QSharedPointer<AbstractEditor>(new TextEditor(ctrl));
 }
 
-AbstractEditor* EditorFactory::newPinEditor(FPController *ctrl)
+QSharedPointer<AbstractEditor> EditorFactory::newPinEditor(FPController *ctrl)
 {
-	return new PinEditor(ctrl, NULL);
+	return QSharedPointer<AbstractEditor>(new PinEditor(ctrl));
 }
 
-AbstractEditor* EditorFactory::newPartEditor(PCBController *ctrl)
+QSharedPointer<AbstractEditor> EditorFactory::newPartEditor(PCBController *ctrl)
 {
-	return new PartEditor(ctrl, NULL);
+	return QSharedPointer<AbstractEditor>(new PartEditor(ctrl));
 }
 
-void EditorFactory::visit(Area* a)
-{
-	if (mFactories.contains(ObjArea))
-		mEditor = mFactories.value(ObjArea)->makeEditor(mCtrl, a);
-}
-
-void EditorFactory::visit(Line* l)
-{
-	if (mFactories.contains(ObjLine))
-		mEditor = mFactories.value(ObjLine)->makeEditor(mCtrl, l);
-}
-
-void EditorFactory::visit(Net* n)
-{
-	if (mFactories.contains(ObjNet))
-		mEditor = mFactories.value(ObjNet)->makeEditor(mCtrl, n);
-}
-
-void EditorFactory::visit(PartPin* p)
-{
-	if (mFactories.contains(ObjPartPin))
-		mEditor = mFactories.value(ObjPartPin)->makeEditor(mCtrl, p);
-}
-
-void EditorFactory::visit(Pin* pin)
-{
-	mEditor = new PinEditor(dynamic_cast<FPController*>(mCtrl), pin);
-}
-
-void EditorFactory::visit(Part* p)
-{
-	mEditor = new PartEditor(dynamic_cast<PCBController*>(mCtrl), p);
-}
-
-void EditorFactory::visit(Text *t)
-{
-	mEditor = new TextEditor(mCtrl, t);
-}
-
-void EditorFactory::visit(Vertex* v)
-{
-	if (mFactories.contains(ObjVertex))
-		mEditor = mFactories.value(ObjVertex)->makeEditor(mCtrl, v);
-}
-
-void EditorFactory::visit(Segment* s)
-{
-	if (mFactories.contains(ObjSegment))
-		mEditor = mFactories.value(ObjSegment)->makeEditor(mCtrl, s);
-}
 
