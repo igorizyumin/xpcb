@@ -3,28 +3,29 @@ class PartPin : PCBObject
 {
 %TypeHeaderCode
 #include "Part.h"
+#include "Net.h"
+#include "Trace.h"
 %End
 public:
-	PartPin(Part* parent, const Pin* pin);
+	PartPin(Part* parent, QSharedPointer<const Pin> pin);
 	~PartPin();
 
 	Pad getPadOnLayer(const Layer& layer) const;
 
-	void setNet(Net* newnet);
-	Net* net() const;
+	void setNet(QSharedPointer<Net> newnet);
+	QSharedPointer<Net> net() const;
 
-//	void setVertex(Vertex* vertex);
-//	Vertex* vertex() const;
+	void setVertex(QSharedPointer<Vertex> vertex);
+	QSharedPointer<Vertex> vertex() const;
 	Part* part() const;
 	QString name() const;
-	const Pin* fpPin() const;
+	QSharedPointer<Pin> fpPin() const;
 
 	QPoint pos() const;
 	bool isSmt() const;
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v);
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
 
@@ -35,6 +36,8 @@ class Part : PCBObject
 {
 %TypeHeaderCode
 #include "Part.h"
+#include "Net.h"
+#include "Trace.h"
 %End
 public:
 	enum SIDE { SIDE_TOP = 0, SIDE_BOTTOM };
@@ -44,15 +47,14 @@ public:
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v);
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
 
 	QString refdes() const; 
 	QString value() const;
-	Text* refdesText() const; 
+	QSharedPointer<Text> refdesText() const;
 	bool refVisible() const; 
-	Text* valueText() const; 
+	QSharedPointer<Text> valueText() const;
 	bool valueVisible() const; 
 	QPoint pos() const; 
 	int angle() const;
@@ -70,10 +72,10 @@ public:
 	const QUuid& fpUuid() const;
 	void setFootprint(QUuid uuid);
 
-	QList<PartPin*> pins() const; 
-	PartPin* getPin(const QString &name);
+	QList<QSharedPointer<PartPin> > pins() const;
+	QSharedPointer<PartPin> pin(const QString &name);
 
-	static Part* newFromXML(QXmlStreamReader &reader, PCBDoc* doc);
+	static QSharedPointer<Part> newFromXML(QXmlStreamReader &reader, PCBDoc* doc);
 	void toXML(QXmlStreamWriter &writer) const;
 
 	QTransform transform() const; 

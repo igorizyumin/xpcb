@@ -8,20 +8,22 @@ public:
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v); 
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState& state);
 
 	QPoint pos() const;
 	void setPos(QPoint pos);
 
-	void addSegment(Segment* seg);
-	void removeSegment(Segment* seg);
-	const QSet<Segment*> & segments() const;
+	void addSegment(QSharedPointer<Segment> seg);
+	void removeSegment(QSharedPointer<Segment> seg);
+	const QList<QSharedPointer<Segment> > segments() const;
 	bool onLayer(const Layer& layer) const;
 	bool isVia() const;
 
 	bool isForcedVia() const;
+
+	QSharedPointer<Padstack> padstack() const;
+	void clear();
 
 };
 
@@ -37,20 +39,21 @@ public:
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual bool testHit(QPoint p, const Layer &l) const;
-	virtual void accept(PCBObjectVisitor *v); 
 	virtual PCBObjState getState() const;
-	virtual bool loadState(PCBObjState& /*state*/);
+	virtual bool loadState(PCBObjState& state);
 
 	int width() const;
 	void setWidth(int w);
 	const Layer& layer();
 	void setLayer(const Layer& layer);
 
-	Vertex* v1() const;
-	Vertex* v2() const;
-	void setV1(Vertex* v /Transfer/);
-	void setV2(Vertex* v /Transfer/);
-	Vertex* otherVertex(Vertex* v) const;
+	QSharedPointer<Vertex> otherVertex(QSharedPointer<Vertex> v) const;
+	QSharedPointer<Vertex> v1() const;
+	QSharedPointer<Vertex> v2() const;
+	void setV1(QSharedPointer<Vertex> v);
+	void setV2(QSharedPointer<Vertex> v);
+
+	void clear();
 
 	bool operator==(const Segment& other) const;
 };
@@ -62,23 +65,24 @@ class TraceList
 %End
 public:
 	TraceList();
+	~TraceList();
 
-	void addSegment(Segment* s /Transfer/, Vertex* v1 /Transfer/, Vertex* v2 /Transfer/);
-	QUndoCommand* addSegmentCmd(Segment* s /Transfer/,  Vertex* v1 /Transfer/, Vertex* v2 /Transfer/, QUndoCommand *parent /TransferThis/ = NULL) /Factory/;
+	void addSegment(QSharedPointer<Segment> s, QSharedPointer<Vertex> v1, QSharedPointer<Vertex> v2);
+	QUndoCommand* addSegmentCmd(QSharedPointer<Segment> s, QSharedPointer<Vertex> v1, QSharedPointer<Vertex> v2, QUndoCommand* parent /TransferThis/ = NULL) /Factory/;
 
-	void removeSegment(Segment* s);
-	QUndoCommand* removeSegmentCmd(Segment* s /Transfer/, QUndoCommand *parent /TransferThis/ = NULL) /Factory/;
+	void removeSegment(QSharedPointer<Segment> s);
+	QUndoCommand* removeSegmentCmd(QSharedPointer<Segment> s, QUndoCommand* parent /TransferThis/ = NULL) /Factory/;
 
-	void swapVtx(Segment* s /Transfer/, Vertex* vOld /Transfer/, Vertex* vNew /Transfer/);
-	QUndoCommand* swapVtxCmd(Segment* s /Transfer/, Vertex* vOld /Transfer/, Vertex* vNew /Transfer/, QUndoCommand* parent /TransferThis/ = NULL) /Factory/;
+	void swapVtx(QSharedPointer<Segment> s, QSharedPointer<Vertex> vOld, QSharedPointer<Vertex> vNew);
+	QUndoCommand* swapVtxCmd(QSharedPointer<Segment> s, QSharedPointer<Vertex> vOld, QSharedPointer<Vertex> vNew, QUndoCommand* parent /TransferThis/ = NULL) /Factory/;
 
-	Segment* segment(Vertex* v1, Vertex* v2) const;
+	QSharedPointer<Segment> segment(QSharedPointer<Vertex> v1, QSharedPointer<Vertex> v2) const;
 
 	QSet<Vertex*> getConnectedVertices(Vertex* vtx) const;
 //	QSet<Vertex*> getVerticesInArea(const Area& poly) const;
 
-	QSet<Segment*> segments() const;
-	QSet<Vertex*> vertices() const;
+	QList<QSharedPointer<Segment> > segments() const;
+	QList<QSharedPointer<Vertex> > vertices() const;
 	void loadFromXml(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 };

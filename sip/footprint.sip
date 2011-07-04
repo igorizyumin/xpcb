@@ -53,7 +53,7 @@ public:
 	Padstack();
 	bool operator==(const Padstack &p) const;
 
-	static Padstack* newFromXML(QXmlStreamReader &reader);
+	static QSharedPointer<Padstack> newFromXML(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 
 	QString name() const; 
@@ -87,15 +87,14 @@ public:
 
 	int angle() const;
 	QPoint pos() const;
-	Padstack* padstack() const;
+	QSharedPointer<Padstack> padstack() const;
 	QString name() const;
 
 	void setName(QString name);
 	void setPos(QPoint pos);
 	void setAngle(int angle);
-	void setPadstack(Padstack* ps);
+	void setPadstack(QSharedPointer<Padstack> ps);
 
-	virtual void accept(PCBObjectVisitor *v);
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
 	virtual PCBObjState getState() const;
@@ -103,7 +102,6 @@ public:
 
 	virtual bool testHit(QPoint pt, const Layer& layer) const;
 
-//	static Pin* newFromXML(QXmlStreamReader &reader, const QHash<int, Padstack*> &padstacks, Footprint* fp);
 	void toXML(QXmlStreamWriter &writer) const;
 
 	Pad getPadOnLayer(const Layer& layer) const;
@@ -120,7 +118,7 @@ class Footprint
 %End
 public:
 	Footprint();
-	
+
 	~Footprint();
 	%MethodCode
 		// check if there is an outstanding shared pointer
@@ -150,36 +148,36 @@ public:
 	QString desc() const;
 	void setDesc(QString desc);
 
-	QList<Padstack*> padstacks();
-	void addPadstack(Padstack* ps);
-	void removePadstack(Padstack* ps);
+	QList<QSharedPointer<Padstack> > padstacks();
+	void addPadstack(QSharedPointer<Padstack> ps);
+	void removePadstack(QSharedPointer<Padstack> ps);
 
 	int numPins() const;
-	const Pin* getPin(const QString & pin) const;
-	const Pin* getPin(int i);
-	const QList<Pin*> pins();
-	void addPin(Pin* p);
-	void removePin(Pin* p);
+	QSharedPointer<Pin> pin(const QString & pin) const;
+	QSharedPointer<Pin> pin(int i);
+	const QList<QSharedPointer<Pin> > pins();
+	void addPin(QSharedPointer<Pin> p);
+	void removePin(QSharedPointer<Pin> p);
 
-	const QList<Text*> texts();
-	void addText(Text* t);
-	void removeText(Text* t);
+	const QList<QSharedPointer<Text> > texts();
+	void addText(QSharedPointer<Text> t);
+	void removeText(QSharedPointer<Text> t);
 
-	const QList<Line*> getLines();
+	const QList<QSharedPointer<Line> > lines();
 
-	void addLine(Line* l);
-	void removeLine(Line* l);
+	void addLine(QSharedPointer<Line> l);
+	void removeLine(QSharedPointer<Line> l);
 
 	QRect getPinBounds() const;
 
-	const Text& getRefText();
-	const Text& getValueText();
+	QSharedPointer<Text> refText();
+	QSharedPointer<Text> valueText();
 
 	QPoint centroid();
 	bool isCustomCentroid();
 	XPcb::UNIT units();
 
-//	static Footprint* newFromXML(QXmlStreamReader &reader);
+	static QSharedPointer<Footprint> newFromXML(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 
 	const QUuid& uuid() const;

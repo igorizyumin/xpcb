@@ -52,9 +52,9 @@ public:
 
 	bool docIsOpen();
 
-	void selectObj(PCBObject* obj);
-	void hideObj(PCBObject* obj);
-	void unhideObj(PCBObject* obj);
+	void selectObj(QSharedPointer<PCBObject> obj);
+	void hideObj(QSharedPointer<PCBObject> obj);
+	void unhideObj(QSharedPointer<PCBObject> obj);
 
 	virtual Document* doc() = 0;
 	PCBView* view();
@@ -66,7 +66,7 @@ public:
 	const Layer& activeLayer() const;
 	
 	void registerAction(CtrlAction* action);
-	void installEditor(AbstractEditor* editor /Transfer/);
+	void installEditor(QSharedPointer<AbstractEditor> editor);
 
 public slots:
 	void onPlaceGridChanged(int grid);

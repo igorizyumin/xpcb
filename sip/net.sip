@@ -10,20 +10,17 @@ public:
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v); 
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
 
 	QString name() const; 
-	void addPin( PartPin * pin);
-	void removePin( PartPin * pin);
-	QSet<PartPin*> getPins() const; 
-	Padstack* getViaPs() const;
+	void addPin( QSharedPointer<PartPin> pin);
+	void removePin( QSharedPointer<PartPin> pin);
+	QList<QSharedPointer<PartPin> > pins() const;
+	QSharedPointer<Padstack> viaPs() const;
 	bool visible() const;
 	void setVisible(bool v);
 
-//	static Net* newFromXML(QXmlStreamReader &reader, PCBDoc *doc,
-//						   const QHash<int, Padstack*> &padstacks);
 	void toXML(QXmlStreamWriter &writer) const;
 };
 

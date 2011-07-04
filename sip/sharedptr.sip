@@ -196,7 +196,7 @@ template<TYPE>
 		if (t.isNull())
 		{
 			Py_INCREF(Py_None);
-			PyList_SET_ITEM(l, i, Py_None);
+			tobj = Py_None;
 		}
 		else
 		{

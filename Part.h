@@ -18,7 +18,7 @@ class Part;
 class PartPin : public PCBObject
 {
 public:
-	PartPin(Part* parent, QSharedPointer<const Pin> pin) : mPin(pin), mPart(parent) {}
+	PartPin(Part* parent, QSharedPointer<Pin> pin) : mPin(pin), mPart(parent) {}
 	~PartPin();
 
 	Pad getPadOnLayer(const Layer& layer) const;
@@ -30,7 +30,7 @@ public:
 	QSharedPointer<Vertex> vertex() const { return mVertex; }
 	Part* part() const { return mPart; }
 	QString name() const {return mPin->name(); }
-	QSharedPointer<const Pin> fpPin() const { return mPin; }
+	QSharedPointer<Pin> fpPin() const { return mPin; }
 
 	QPoint pos() const;
 	bool isSmt() const;
@@ -54,7 +54,7 @@ private:
 			vertex(p.vertex())
 		{}
 
-		QSharedPointer<const Pin> pin;
+		QSharedPointer<Pin> pin;
 		Part* part;
 		QWeakPointer<Net> net;
 		QWeakPointer<Vertex> vertex;
@@ -64,7 +64,7 @@ private:
 	Layer mapLayer(const Layer& layer) const;
 
 	/// Pointer to footprint pin (contains position, etc.)
-	QSharedPointer<const Pin> mPin;
+	QSharedPointer<Pin> mPin;
 	/// Pointer to parent part.
 	Part * mPart;
 	/// Pointer to assigned net.  NULL if no assigned net.

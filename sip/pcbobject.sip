@@ -15,42 +15,18 @@ class PCBObject /Abstract/
 public:
 	PCBObject();
 
-	virtual void accept(PCBObjectVisitor *v) = 0;
-
 	virtual void draw(QPainter *painter, const Layer& layer) const = 0;
-
 	virtual QRect bbox() const = 0;
-
 	int getid() const;
-
 	virtual bool testHit(QPoint /* pt */, const Layer& /*l*/) const;
-
 	virtual QTransform transform() const;
 
 	virtual void parentChanged();
 
 	virtual PCBObjState getState() const = 0;
-	
 	virtual bool loadState(PCBObjState &state) = 0;
 
 	static int getNextID();
-};
-
-class PCBObjectVisitor /Abstract/
-{
-%TypeHeaderCode
-#include "PCBObject.h"
-%End
-public:
-//	virtual void visit(Area*) = 0;
-//	virtual void visit(Line*) = 0;
-//	virtual void visit(Net*) = 0;
-//	virtual void visit(PartPin*) = 0;
-//	virtual void visit(Pin*) = 0;
-//	virtual void visit(Part*) = 0;
-//	virtual void visit(Text*) = 0;
-//	virtual void visit(Vertex*) = 0;
-//	virtual void visit(Segment*) = 0;
 };
 
 class AbstractEditorFactory
@@ -59,10 +35,10 @@ class AbstractEditorFactory
 #include "Editor.h"
 %End
 public:
-	virtual AbstractEditor* makeEditor(Controller* ctrl, PCBObject *obj) = 0 /Factory/;
+	virtual QSharedPointer<AbstractEditor> makeEditor(Controller* ctrl, QSharedPointer<PCBObject> obj) = 0;
 };
 
-class EditorFactory : PCBObjectVisitor /Abstract/
+class EditorFactory /Abstract/
 {
 %TypeHeaderCode
 #include "Editor.h"
@@ -71,21 +47,12 @@ public:
 	enum ObjType {ObjArea, ObjLine, ObjNet, ObjPartPin, ObjPin, ObjPart, ObjFootprint, ObjText, ObjVertex, ObjSegment, ObjPadstack};
 	static EditorFactory& instance();
 
-	AbstractEditor* newEditor(PCBObject* obj, Controller *ctrl) /TransferBack/;
-//	AbstractEditor* newTextEditor(Controller *ctrl);
-//	AbstractEditor* newPinEditor(FPController* ctrl);
+	QSharedPointer<AbstractEditor> newEditor(QSharedPointer<PCBObject> obj, Controller *ctrl);
+	QSharedPointer<AbstractEditor> newTextEditor(Controller *ctrl);
+//	QSharedPointer<AbstractEditor> newPinEditor(FPController* ctrl);
+//	QSharedPointer<AbstractEditor> newPartEditor(PCBController* ctrl);
 
-	static void registerFactory(ObjType type, AbstractEditorFactory* factory /Transfer/);
-
-//	virtual void visit(Area* a);
-//	virtual void visit(Line* a);
-//	virtual void visit(Net* a);
-//	virtual void visit(PartPin* a);
-//	virtual void visit(Pin* a);
-//	virtual void visit(Part* a);
-//	virtual void visit(Text* a);
-//	virtual void visit(Vertex* a);
-//	virtual void visit(Segment* a);
+	static void registerFactory(ObjType type, QSharedPointer<AbstractEditorFactory> factory);
 
 private:
 	EditorFactory();
@@ -98,8 +65,8 @@ class PCBObjEditCmd : QUndoCommand
 #include "PCBObject.h"
 %End
 public:
-	PCBObjEditCmd(QUndoCommand* parent /TransferThis/, PCBObject *obj /Transfer/,
-				  PCBObjState prevState);
+	PCBObjEditCmd(QUndoCommand* parent, QSharedPointer<PCBObject> obj,
+			  PCBObjState prevState);
 
 	virtual void undo();
 	virtual void redo();
@@ -120,12 +87,11 @@ public:
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v);
 	virtual bool testHit(QPoint pt, const Layer& l) const;
 	virtual PCBObjState getState() const; 
 	virtual bool loadState(PCBObjState &state);
 
-	static Text* newFromXML(QXmlStreamReader &reader);
+	static QSharedPointer<Text> newFromXML(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 
 	QPoint pos() const;
@@ -173,7 +139,6 @@ public:
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual void accept(PCBObjectVisitor *v);
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
 	virtual bool testHit(QPoint p, const Layer &l) const;
@@ -189,7 +154,7 @@ public:
 	LineType type() const;
 	void setType(LineType t);
 
-	static Line* newFromXml(QXmlStreamReader &reader);
+	static QSharedPointer<Line> newFromXml(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
 
 	static void drawArc(QPainter* painter, QPoint start, QPoint end, LineType type);
