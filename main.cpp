@@ -1,24 +1,35 @@
-#!/usr/bin/python
+/*
+	This file is part of xpcb.
 
-import sys
-sys.path.append("sip")
-from PyQt4 import QtGui, QtCore, Qt
-from PyQt4.QtCore import QObject, pyqtSignal, QSettings
-from PyQt4.QtGui import QWidget, QDockWidget, QColor
-import xpcb
-import cmdLinePlugin
-import LineEditorPlugin
-import FPSelectorPlugin
-import NetlistLoaderPlugin
-import TraceEditorPlugin
-import sip
+	xpcb is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-def setDefaultValue(s, key, value):
-	if (not s.contains(key)):
-		s.setValue(key, value)
+	xpcb is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-def initSettings():
-	s = QSettings()
+	You should have received a copy of the GNU General Public License
+	along with xpcb.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include <QtGui/QApplication>
+#include "mainwindow.h"
+#include "ManagePadstacksDialog.h"
+#include "PCBDoc.h"
+#include <QSettings>
+
+inline void setDefaultValue(QSettings &s, QString key, QVariant value)
+{
+	// if (!s.contains(key)) s.setValue(key, value);
+	s.setValue(key, value);
+}
+
+void initSettings()
+{
+	QSettings s;
 	setDefaultValue(s, "colors/selection", QColor(255, 255, 255));
 	setDefaultValue(s, "colors/background", QColor(0, 0, 0));
 	setDefaultValue(s, "colors/visible grid", QColor(255, 255, 255));
@@ -46,8 +57,8 @@ def initSettings():
 	setDefaultValue(s, "colors/inner 12", QColor(5, 0, 220));
 	setDefaultValue(s, "colors/inner 13", QColor(0, 150, 220));
 	setDefaultValue(s, "colors/inner 14", QColor(220, 145, 0));
-#	setDefaultValue(s, "colors/inner 15", QColor(220, 83, 0));
-#	setDefaultValue(s, "colors/inner 16", QColor(220, 0, 140));
+	//      setDefaultValue(s, "colors/inner 15", QColor(220, 83, 0));
+	//      setDefaultValue(s, "colors/inner 16", QColor(220, 0, 140));
 	setDefaultValue(s, "colors/top paste", QColor(0, 150, 0));
 	setDefaultValue(s, "colors/bottom paste", QColor(150, 0, 0));
 	setDefaultValue(s, "colors/start pad", QColor(0, 210, 0));
@@ -56,26 +67,20 @@ def initSettings():
 	setDefaultValue(s, "colors/centroid", QColor(255, 255, 255));
 	setDefaultValue(s, "colors/adhesive", QColor(231, 231, 231));
 	setDefaultValue(s, "colors/unknown layer", QColor(255, 0, 0));
+}
 
+int main(int argc, char *argv[])
+{
+	QApplication a(argc, argv);
+	a.setApplicationName("xpcb");
+	a.setOrganizationDomain("xpcb.org");
+	a.setOrganizationName("xpcb.org");
 
+	// initialize the app settings with defaults, if they do not exist
+	initSettings();
 
-app = QtGui.QApplication(sys.argv)
-app.setApplicationName("xpcb")
-app.setOrganizationDomain("xpcb.org")
-app.setOrganizationName("xpcb.org")
-initSettings()
+	FPEditWindow w;
+	w.show();
 
-pl = cmdLinePlugin.PluginMain()
-p2 = LineEditorPlugin.PluginMain()
-p3 = FPSelectorPlugin.PluginMain()
-#p4 = NetlistLoaderPlugin.PluginMain()
-p5 = TraceEditorPlugin.PluginMain()
-w = xpcb.PCBEditWindow(None, [pl, p2, p3, p5])
-pl.initPlugin(w)
-p2.initPlugin(w)
-p3.initPlugin(w)
-#p4.initPlugin(w)
-p5.initPlugin(w)
-w.show()
-sys.exit(app.exec_())
-
+	return a.exec();
+}

@@ -19,6 +19,7 @@
 #include "Text.h"
 #include "PartEditor.h"
 #include "PinEditor.h"
+#include "LineEditor.h"
 #include "Controller.h"
 #include "Area.h"
 #include "Shape.h"
@@ -86,8 +87,7 @@ QSharedPointer<AbstractEditor> EditorFactory::newEditor(QSharedPointer<PCBObject
 	}
 	else if (QSharedPointer<Line> l = obj.dynamicCast<Line>())
 	{
-		if (mFactories.contains(ObjLine))
-			return mFactories.value(ObjLine)->makeEditor(ctrl, l);
+		return QSharedPointer<AbstractEditor>(new LineEditor(dynamic_cast<FPController*>(ctrl), l));
 	}
 	else if (QSharedPointer<Net> n = obj.dynamicCast<Net>())
 	{
@@ -140,4 +140,8 @@ QSharedPointer<AbstractEditor> EditorFactory::newPartEditor(PCBController *ctrl)
 	return QSharedPointer<AbstractEditor>(new PartEditor(ctrl));
 }
 
+QSharedPointer<AbstractEditor> EditorFactory::newLineEditor(FPController *ctrl)
+{
+	return QSharedPointer<AbstractEditor>(new LineEditor(ctrl));
+}
 

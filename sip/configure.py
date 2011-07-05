@@ -17,7 +17,7 @@ pyqt_sip_flags = config.pyqt_sip_flags
 
 # Run SIP to generate the code.  Note that we tell SIP where to find the qt
 # module's specification files using the -I flag.
-os.system(" ".join([config.sip_bin, "-r", "-c", ".", "-b", build_file, "-I", config.pyqt_sip_dir, pyqt_sip_flags, "xpcbmain.sip"]))
+os.system(" ".join([config.sip_bin, "-r", "-w", "-c", ".", "-b", build_file, "-I", config.pyqt_sip_dir, pyqt_sip_flags, "xpcbmain.sip"]))
 
 # We are going to install the SIP specification file for this module and
 # its configuration module.
@@ -33,7 +33,8 @@ installs.append(["helloconfig.py", config.default_mod_dir])
 makefile = pyqtconfig.QtGuiModuleMakefile(
     configuration=config,
     build_file=build_file,
-    installs=installs
+    installs=installs,
+	debug=1
 )
 
 # Add the library we are wrapping.  The name doesn't include any platform
@@ -42,7 +43,7 @@ makefile = pyqtconfig.QtGuiModuleMakefile(
 makefile.extra_libs = ["xpcb"]
 makefile.extra_lib_dirs = ["../", "../polyboolean"]
 makefile.extra_include_dirs = ["../", "../polyboolean"]
-
+makefile.extra_cxxflags = ["-g", "-ggdb"]
 # Generate the Makefile itself.
 makefile.generate()
 

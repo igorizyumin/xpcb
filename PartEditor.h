@@ -76,7 +76,6 @@ class PartNewCmd : public QUndoCommand
 {
 public:
 	PartNewCmd(QUndoCommand *parent, QSharedPointer<Part> obj, PCBDoc* doc);
-	virtual ~PartNewCmd();
 
 	virtual void undo();
 	virtual void redo();
@@ -90,7 +89,6 @@ class PartDeleteCmd : public QUndoCommand
 {
 public:
 	PartDeleteCmd(QUndoCommand *parent, QSharedPointer<Part> obj, PCBDoc* doc);
-	virtual ~PartDeleteCmd();
 
 	virtual void undo();
 	virtual void redo();

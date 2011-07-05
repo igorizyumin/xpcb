@@ -83,7 +83,7 @@ class FPPreview(QWidget):
 			self.update()
 			return
 		# update transform
-		self._bb = (self._doc.footprint().bbox() | self._doc.footprint().getRefText().bbox() | self._doc.footprint().getValueText().bbox()).normalized();
+		self._bb = (self._doc.footprint().bbox() | self._doc.footprint().refText().bbox() | self._doc.footprint().valueText().bbox()).normalized();
 		bb = QRectF(self._bb)
 		rect = QRectF(self.rect())
 		wscale = bb.width() / rect.width()

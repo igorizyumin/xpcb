@@ -78,7 +78,7 @@ public:
 
 	void draw(QPainter* painter, QRect &rect, const Layer &layer);
 
-	bool docIsOpen() {return !doc();}
+	bool docIsOpen() {return doc() != NULL;}
 
 	void selectObj(QSharedPointer<PCBObject> obj);
 	void hideObj(QSharedPointer<PCBObject> obj);
@@ -166,11 +166,13 @@ public:
 
 protected slots:
 	void onAddPinAction();
+	void onAddLineAction();
 	void onAddTextAction();
 	void onEditPropsAction();
 
 protected:
 	FPDoc* mDoc;
+	CtrlAction mAddLineAction;
 	CtrlAction mAddPinAction;
 	CtrlAction mAddTextAction;
 	CtrlAction mEditPropsAction;

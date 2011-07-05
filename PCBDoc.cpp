@@ -130,7 +130,7 @@ QList<Layer> FPDoc::layerList(LayerOrder order)
 
 QList<QSharedPointer<PCBObject> > FPDoc::findObjs(QPoint &pt)
 {
-	Q_ASSERT(!mFp.isNull());
+	Q_ASSERT(mFp && mFp->refText() && mFp->valueText());
 
 	QList<QSharedPointer<PCBObject> > out;
 
@@ -160,7 +160,8 @@ QList<QSharedPointer<PCBObject> > FPDoc::findObjs(QPoint &pt)
 
 QList<QSharedPointer<PCBObject> > FPDoc::findObjs(QRect &rect)
 {
-	Q_ASSERT(!mFp.isNull());
+	Q_ASSERT(mFp && mFp->refText() && mFp->valueText());
+
 	QList<QSharedPointer<PCBObject> > out;
 
 	QList<QSharedPointer<Pin> > pins = mFp->pins();
@@ -197,10 +198,6 @@ PCBDoc::PCBDoc()
 		  mDefaultPadstack(QSharedPointer<Padstack>(new Padstack()))
 {
 	mPadstacks.append(mDefaultPadstack);
-}
-
-PCBDoc::~PCBDoc()
-{
 }
 
 QSharedPointer<Footprint> PCBDoc::getFootprint(QUuid uuid)

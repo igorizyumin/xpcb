@@ -66,7 +66,7 @@ public:
 	const Layer& activeLayer() const;
 	
 	void registerAction(CtrlAction* action);
-	void installEditor(QSharedPointer<AbstractEditor> editor);
+	void installEditor(QSharedPointer<AbstractEditor> editor /Transfer/);
 
 public slots:
 	void onPlaceGridChanged(int grid);
@@ -216,6 +216,18 @@ class AbstractEditor : QObject
 %End
 public:
 	explicit AbstractEditor(Controller *ctrl);
+	~AbstractEditor();
+	%MethodCode
+		// check if there is an outstanding shared pointer
+		if (SharedPtrMgr::hasRef(sipCppV))
+		{
+			// decrement the reference count and get out
+			SharedPtrMgr::decRef(sipCppV);
+			return;
+		}
+		// otherwise let python deal with it
+	%End
+
 	virtual void init();
 	virtual void drawOverlay(QPainter* painter) = 0;
 	virtual QList<const CtrlAction*> actions() const;

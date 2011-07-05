@@ -87,6 +87,7 @@ public:
 	static QString name(Type c);
 	static QColor color(Type c);
 	bool operator==(const Layer& other) const { return mType == other.mType; }
+	bool operator==(const Type& other) const { return mType == other; }
 	bool operator!=(const Layer& other) const { return mType != other.mType; }
 private:
 	Type mType;

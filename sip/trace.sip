@@ -5,6 +5,17 @@ class Vertex : PCBObject
 %End
 public:
 	Vertex(QPoint pos = QPoint(0, 0), bool forcevia = false);
+	~Vertex();
+	%MethodCode
+		// check if there is an outstanding shared pointer
+		if (SharedPtrMgr::hasRef(sipCppV))
+		{
+			// decrement the reference count and get out
+			SharedPtrMgr::decRef(sipCppV);
+			return;
+		}
+		// otherwise let python deal with it
+	%End
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
@@ -35,6 +46,16 @@ class Segment : PCBObject
 public:
 	Segment(const Layer& layer, int w = 0);
 	~Segment();
+	%MethodCode
+		// check if there is an outstanding shared pointer
+		if (SharedPtrMgr::hasRef(sipCppV))
+		{
+			// decrement the reference count and get out
+			SharedPtrMgr::decRef(sipCppV);
+			return;
+		}
+		// otherwise let python deal with it
+	%End
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
@@ -50,8 +71,8 @@ public:
 	QSharedPointer<Vertex> otherVertex(QSharedPointer<Vertex> v) const;
 	QSharedPointer<Vertex> v1() const;
 	QSharedPointer<Vertex> v2() const;
-	void setV1(QSharedPointer<Vertex> v);
-	void setV2(QSharedPointer<Vertex> v);
+	void setV1(QSharedPointer<Vertex> v /Transfer/);
+	void setV2(QSharedPointer<Vertex> v /Transfer/);
 
 	void clear();
 
@@ -67,8 +88,8 @@ public:
 	TraceList();
 	~TraceList();
 
-	void addSegment(QSharedPointer<Segment> s, QSharedPointer<Vertex> v1, QSharedPointer<Vertex> v2);
-	QUndoCommand* addSegmentCmd(QSharedPointer<Segment> s, QSharedPointer<Vertex> v1, QSharedPointer<Vertex> v2, QUndoCommand* parent /TransferThis/ = NULL) /Factory/;
+	void addSegment(QSharedPointer<Segment> s /Transfer/, QSharedPointer<Vertex> v1 /Transfer/, QSharedPointer<Vertex> v2 /Transfer/);
+	QUndoCommand* addSegmentCmd(QSharedPointer<Segment> s /Transfer/, QSharedPointer<Vertex> v1 /Transfer/, QSharedPointer<Vertex> v2 /Transfer/, QUndoCommand* parent /TransferThis/ = NULL) /Factory/;
 
 	void removeSegment(QSharedPointer<Segment> s);
 	QUndoCommand* removeSegmentCmd(QSharedPointer<Segment> s, QUndoCommand* parent /TransferThis/ = NULL) /Factory/;

@@ -26,7 +26,7 @@ public:
 	void setNet(QSharedPointer<Net> newnet) { mNet = newnet.toWeakRef(); }
 	QSharedPointer<Net> net() const { return mNet.toStrongRef(); }
 
-	void setVertex(QSharedPointer<Vertex> vertex);
+	void setVertex(QSharedPointer<Vertex> vertex) { mVertex = vertex.toWeakRef(); }
 	QSharedPointer<Vertex> vertex() const { return mVertex; }
 	Part* part() const { return mPart; }
 	QString name() const {return mPin->name(); }

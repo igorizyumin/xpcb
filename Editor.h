@@ -73,6 +73,7 @@ public:
 	QSharedPointer<AbstractEditor> newTextEditor(Controller *ctrl);
 	QSharedPointer<AbstractEditor> newPinEditor(FPController* ctrl);
 	QSharedPointer<AbstractEditor> newPartEditor(PCBController* ctrl);
+	QSharedPointer<AbstractEditor> newLineEditor(FPController* ctrl);
 
 	static void registerFactory(ObjType type, QSharedPointer<AbstractEditorFactory> factory) { instance().mFactories[type] = factory; }
 

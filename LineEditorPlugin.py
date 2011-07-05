@@ -354,8 +354,12 @@ class EditLineCmd(QUndoCommand):
 		self.line.loadState(self.currState)
 
 class LineEditorFactory(xpcb.AbstractEditorFactory):
+	def __init__(self):
+		xpcb.AbstractEditorFactory.__init__(self)
+
 	def makeEditor(self, ctrl, obj):
-		return LineEditor(ctrl, sip.cast(obj, xpcb.Line))
+		sip.dump(obj)
+		return LineEditor(ctrl, obj)
 		
 class PluginMain(xpcb.Plugin):
 	def __init__(self):
@@ -376,4 +380,5 @@ class PluginMain(xpcb.Plugin):
 	def startEditor(self):
 		ed = LineEditor(self.win.ctrl())
 		self.win.ctrl().installEditor(ed)
+		sip.dump(ed)
 		

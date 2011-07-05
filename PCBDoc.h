@@ -9,6 +9,7 @@
 #include "Net.h"
 #include "Text.h"
 #include "Polygon.h"
+#include "Area.h"
 
 class Document : public QObject
 {
@@ -108,7 +109,6 @@ class PCBDoc : public Document
 	friend class XmlLoadTest;
 public:
     PCBDoc();
-	virtual ~PCBDoc();
 
 	// overrides
 	using Document::saveToFile;
@@ -163,7 +163,6 @@ class FPDoc : public Document
 
 public:
 	FPDoc();
-	virtual ~FPDoc();
 
 	using Document::saveToFile;
 	using Document::loadFromFile;

@@ -14,7 +14,7 @@ CONFIG(unittest) {
 	TARGET = xpcb
 }
 
-TEMPLATE = lib
+TEMPLATE = app
 
 
 SOURCES += PCBView.cpp \
@@ -49,7 +49,10 @@ SOURCES += PCBView.cpp \
     EditPinDialog.cpp \
     PinEditor.cpp \
     Plugin.cpp \
-    FPPropDialog.cpp
+    FPPropDialog.cpp \
+    main.cpp \
+    EditLineDialog.cpp \
+    LineEditor.cpp
 
 unittest {
 	QT += testlib
@@ -94,7 +97,9 @@ HEADERS  += PCBView.h \
     EditPinDialog.h \
     PinEditor.h \
     Plugin.h \
-    FPPropDialog.h
+    FPPropDialog.h \
+    EditLineDialog.h \
+    LineEditor.h
 
 FORMS    += GridToolbarWidget.ui \
     AboutDialog.ui \
@@ -106,7 +111,8 @@ FORMS    += GridToolbarWidget.ui \
     EditPadstackDialog.ui \
     ManagePadstacksDialog.ui \
     EditPinDialog.ui \
-    FPPropDialog.ui
+    FPPropDialog.ui \
+    EditLineDialog.ui
 
 RESOURCES += \
     qtfreepcb.qrc

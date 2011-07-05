@@ -51,6 +51,18 @@ class Padstack
 %End
 public:
 	Padstack();
+	~Padstack();
+	%MethodCode
+		// check if there is an outstanding shared pointer
+		if (SharedPtrMgr::hasRef(sipCppV))
+		{
+			// decrement the reference count and get out
+			SharedPtrMgr::decRef(sipCppV);
+			return;
+		}
+		// otherwise let python deal with it
+	%End
+
 	bool operator==(const Padstack &p) const;
 
 	static QSharedPointer<Padstack> newFromXML(QXmlStreamReader &reader);
@@ -84,6 +96,18 @@ class Pin : PCBObject
 public:
 
 	Pin(Footprint* fp); 
+	~Pin();
+	%MethodCode
+		// check if there is an outstanding shared pointer
+		if (SharedPtrMgr::hasRef(sipCppV))
+		{
+			// decrement the reference count and get out
+			SharedPtrMgr::decRef(sipCppV);
+			return;
+		}
+		// otherwise let python deal with it
+	%End
+
 
 	int angle() const;
 	QPoint pos() const;

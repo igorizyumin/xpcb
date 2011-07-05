@@ -324,5 +324,7 @@ bool Part::loadState(PCBObjState &state)
 	mFpUuid = s->uuid;
 	mPins = s->pins;
 	mDoc = s->doc;
+	mRefdes->parentChanged();
+	mValue->parentChanged();
 	return true;
 }

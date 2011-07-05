@@ -7,6 +7,16 @@ class Net : PCBObject
 public:
 	Net( PCBDoc *doc, const QString &name);
 	~Net();
+	%MethodCode
+		// check if there is an outstanding shared pointer
+		if (SharedPtrMgr::hasRef(sipCppV))
+		{
+			// decrement the reference count and get out
+			SharedPtrMgr::decRef(sipCppV);
+			return;
+		}
+		// otherwise let python deal with it
+	%End
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;

@@ -1,21 +1,4 @@
 
-class PySharedPtr
-{
-%TypeHeaderCode
-#include "PySharedPtr.h"
-%End
-public:
-	PySharedPtr(const PySharedPtr& other);
-	~PySharedPtr();
-
-	SIP_PYOBJECT obj();
-	%MethodCode
-		Py_INCREF(sipCpp->mObj);
-		sipRes = sipCpp->mObj;
-	%End
-
-};
-
 %ModuleHeaderCode
 #include <QSharedPointer>
 #include <QHash>
@@ -56,6 +39,7 @@ public:
 	{
 		Log::instance().message("decRef called");
 		if (ptrMap.contains(tv))
+		{
 			// delete the shared pointer when refcount hits 0
 			if (--ptrMap[tv].refCnt == 0)
 			{
@@ -63,20 +47,24 @@ public:
 				(*ptrMap[tv].deleteFunc)(ptrMap[tv].sharedPtrV);
 				ptrMap.remove(tv);
 			}
+			else
+				Log::instance().message(QString("num refs left: %1").arg(ptrMap[tv].refCnt));
+		}
 	}
 
 	static void addRef(void* tv, void* sharedPtrV, void (*deleteFunc)(void*))
 	{
 		if (!ptrMap.contains(tv))
 			ptrMap.insert(tv, PtrDescriptor(sharedPtrV, deleteFunc));
+		Log::instance().message(QString("addRef called, refCnt now: %1").arg(ptrMap[tv].refCnt));
 	}
 
 	static void* takeRef(void* tv)
 	{
 		if (!ptrMap.contains(tv)) return NULL;
-		ptrMap[tv].refCnt++;
-		return ptrMap[tv].sharedPtrV;
 		Log::instance().message("takeRef called");
+		Log::instance().message(QString("num refs now: %1").arg(ptrMap[tv].refCnt));
+		return ptrMap[tv].sharedPtrV;
 	}
 
 	static bool checkType(void* tv, void (*deleteFunc)(void*))
@@ -132,26 +120,50 @@ template<TYPE>
 	if (sipIsErr == NULL)
 	{
 		// check that the object is of the right type
-		if (!PyInstance_Check(sipPy))
+		if (!sipPy)
+		{
+			Log::instance().message("Null pointer");
 			return 0;
+		}
 		if (!sipCanConvertToType(sipPy, sipType_TYPE, 0))
+		{
+			Log::instance().message("Not the right type");
 			return 0;
-		void* ptr = sipConvertToVoidPtr(sipPy);
-		if (PyErr_Occurred())
-			return 0;
-		if (!SharedPtrMgr::hasRef(ptr))
-			return 0; // TODO allow python objs to be returned
-		if (!SharedPtrType<TYPE>::checkType(ptr))
-			return 0;
+		}
+		return 1;
 	}
 	// get the wrapper object
-	void* p = sipConvertToType(sipPy, sipType_TYPE, 0, 0, 0, sipIsErr);
+	int state;
+	// We never want to transfer objects to C++.  We simply add all objects to the hash and remove the
+	// QSharedPointer when the python object goes away.  The custom destructor prevents Python
+	// from actually deleting them (that should be done by the smartpointer).
+	void* p = sipConvertToType(sipPy, sipType_TYPE, Py_None, 0, &state, sipIsErr);
 	if (*sipIsErr)
+	{
+		sipReleaseType(p, sipType_TYPE, state);
 		return 0;
-	// make another reference and give it to C++
+	}
+	if (!SharedPtrMgr::hasRef(p))
+	{
+		// treat this like a regular pointer
+		QSharedPointer<TYPE> *ptr = new QSharedPointer<TYPE>(reinterpret_cast<TYPE*>(p));
+		// add it to the hash
+		SharedPtrType<TYPE>::addRef(*ptr);
+		*sipCppPtr = ptr;
+		return SIP_TEMPORARY;
+	}
+	if (!SharedPtrType<TYPE>::checkType(p))
+	{
+		sipReleaseType(p, sipType_TYPE, state);
+		Log::instance().message("Object type mismatch");
+		*sipIsErr = 1;
+		return 0;
+	}
+
+	// make another copy of the pointer and give it to C++
 	QSharedPointer<TYPE> *ptr = new QSharedPointer<TYPE>(SharedPtrType<TYPE>::takeRef(p));
 	*sipCppPtr = ptr;
-	return sipGetState(sipTransferObj);
+	return SIP_TEMPORARY;
 %End
 %ConvertFromTypeCode
 	// to python object
@@ -201,7 +213,7 @@ template<TYPE>
 		else
 		{
 			SharedPtrType<TYPE>::addRef(t);
-    	    if ((tobj = sipConvertFromType(reinterpret_cast<void*>(t.data()), sipType_TYPE, Py_None)) == NULL)
+    	    if ((tobj = sipConvertFromType(reinterpret_cast<void*>(t.data()), sipType_TYPE, sipTransferObj)) == NULL)
        		{
             	Py_DECREF(l);
             	return NULL;

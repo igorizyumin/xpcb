@@ -12,8 +12,40 @@ class PCBObject /Abstract/
 %TypeHeaderCode
 #include "PCBObject.h"
 %End
+%ConvertToSubClassCode
+	if (dynamic_cast<Line*>(sipCpp))
+		sipType = sipType_Line;
+	else if (dynamic_cast<Net*>(sipCpp))
+		sipType = sipType_Net;
+	else if (dynamic_cast<PartPin*>(sipCpp))
+		sipType = sipType_PartPin;
+	else if (dynamic_cast<Pin*>(sipCpp))
+		sipType = sipType_Pin;
+	else if (dynamic_cast<Part*>(sipCpp))
+		sipType = sipType_Part;
+	else if (dynamic_cast<Text*>(sipCpp))
+		sipType = sipType_Text;
+	else if (dynamic_cast<Vertex*>(sipCpp))
+		sipType = sipType_Vertex;
+	else if (dynamic_cast<Segment*>(sipCpp))
+		sipType = sipType_Segment;
+	else
+		sipType = NULL;
+%End
 public:
 	PCBObject();
+	~PCBObject();
+	%MethodCode
+		// check if there is an outstanding shared pointer
+		if (SharedPtrMgr::hasRef(sipCppV))
+		{
+			// decrement the reference count and get out
+			SharedPtrMgr::decRef(sipCppV);
+			return;
+		}
+		// otherwise let python deal with it
+	%End
+
 
 	virtual void draw(QPainter *painter, const Layer& layer) const = 0;
 	virtual QRect bbox() const = 0;
@@ -35,7 +67,19 @@ class AbstractEditorFactory
 #include "Editor.h"
 %End
 public:
-	virtual QSharedPointer<AbstractEditor> makeEditor(Controller* ctrl, QSharedPointer<PCBObject> obj) = 0;
+	~AbstractEditorFactory();
+	%MethodCode
+		// check if there is an outstanding shared pointer
+		if (SharedPtrMgr::hasRef(sipCppV))
+		{
+			// decrement the reference count and get out
+			SharedPtrMgr::decRef(sipCppV);
+			return;
+		}
+		// otherwise let python deal with it
+	%End
+
+	virtual QSharedPointer<AbstractEditor> makeEditor(Controller* ctrl, QSharedPointer<PCBObject> obj) = 0 /Factory/;
 };
 
 class EditorFactory /Abstract/
@@ -52,7 +96,7 @@ public:
 //	QSharedPointer<AbstractEditor> newPinEditor(FPController* ctrl);
 //	QSharedPointer<AbstractEditor> newPartEditor(PCBController* ctrl);
 
-	static void registerFactory(ObjType type, QSharedPointer<AbstractEditorFactory> factory);
+	static void registerFactory(ObjType type, QSharedPointer<AbstractEditorFactory> factory /Transfer/);
 
 private:
 	EditorFactory();
@@ -82,6 +126,17 @@ public:
 	Text(const QPoint &pos, int angle,
 		bool mirror, bool negative, const Layer& layer, int font_size,
 		int stroke_width, const QString &text );
+	~Text();
+	%MethodCode
+		// check if there is an outstanding shared pointer
+		if (SharedPtrMgr::hasRef(sipCppV))
+		{
+			// decrement the reference count and get out
+			SharedPtrMgr::decRef(sipCppV);
+			return;
+		}
+		// otherwise let python deal with it
+	%End
 
 	void setParent(PCBObject *parent);
 
@@ -136,6 +191,17 @@ public:
 	enum LineType { LINE, ARC_CW, ARC_CCW };
 
     Line();
+	~Line();
+	%MethodCode
+		// check if there is an outstanding shared pointer
+		if (SharedPtrMgr::hasRef(sipCppV))
+		{
+			// decrement the reference count and get out
+			SharedPtrMgr::decRef(sipCppV);
+			return;
+		}
+		// otherwise let python deal with it
+	%End
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;

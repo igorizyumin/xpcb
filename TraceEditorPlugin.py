@@ -63,6 +63,10 @@ class NewTraceEditor(xpcb.AbstractEditor):
 		self.seg2 = None
 		self.width = XPcb.MIL2PCB(10)
 		self.layer = Layer(Layer.LAY_TOP_COPPER)
+
+
+	def __del__(self):
+		print "deleted!"
 	
 	def drawOverlay(self, painter):
 		# draw 45 degree crosshair
@@ -151,14 +155,23 @@ class NewTraceEditor(xpcb.AbstractEditor):
 				return
 			# add first segment, update start vtx,, move second->first, create new seg/vtx
 			cmd = self.ctrl.doc().traceList().addSegmentCmd(self.seg1, self.vtxStart, self.vtxMid)
-			self.seg1 = self.seg2
-			self.vtxStart = self.vtxMid
-			self.vtxMid = self.vtxEnd
-			self.vtxEnd = xpcb.Vertex(self.pos)
-			self.seg2 = xpcb.Segment(self.layer, self.width)
-			self.seg2.setV1(self.vtxMid)
-			self.seg2.setV2(self.vtxEnd)
+			print "created cmd"
+			sip.dump(cmd)
+			sip.dump(self.seg1)
+			sip.dump(self.vtxStart)
+			sip.dump(self.vtxMid)
+	#		self.seg1 = self.seg2
+	#		self.vtxStart = self.vtxMid
+	#		self.vtxMid = self.vtxEnd
+	#		self.vtxEnd = xpcb.Vertex(self.pos)
+#			self.seg2 = xpcb.Segment(self.layer, self.width)
+	#		self.seg2.setV1(self.vtxMid)
+	#		self.seg2.setV2(self.vtxEnd)
+			sip.settracemask(0xffff)
 			self.ctrl.doc().doCommand(cmd)
+			sip.dump(cmd)
+			sip.dump(self.seg2)
+			self.editorFinished.emit()
 			self.toggleMode()
 		event.accept()
 
@@ -398,8 +411,11 @@ class SegmentEditor(xpcb.AbstractEditor):
 			self.editorFinished.emit()
 
 class SegmentEditorFactory(xpcb.AbstractEditorFactory):
+	def __init__(self):
+		xpcb.AbstractEditorFactory.__init__(self)
+
 	def makeEditor(self, ctrl, obj):
-		return SegmentEditor(ctrl, sip.cast(obj, xpcb.Segment))
+		return SegmentEditor(ctrl, obj)
 
 class PluginMain(xpcb.Plugin):
 	def __init__(self):

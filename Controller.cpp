@@ -348,13 +348,16 @@ void PCBController::onAddPartAction()
 
 FPController::FPController(QObject *parent)
 		: Controller(parent), mDoc(NULL),
-		mAddPinAction(3, "Add Pin"),
-		mAddTextAction(1, "Add Text"),
-		mEditPropsAction(0, "Edit Properties")
+		  mAddLineAction(2, "Add Line"),
+		  mAddPinAction(3, "Add Pin"),
+		  mAddTextAction(1, "Add Text"),
+		  mEditPropsAction(0, "Edit Properties")
 {
+	connect(&mAddLineAction, SIGNAL(execFired()), SLOT(onAddLineAction()));
 	connect(&mAddPinAction, SIGNAL(execFired()), SLOT(onAddPinAction()));
 	connect(&mAddTextAction, SIGNAL(execFired()), SLOT(onAddTextAction()));
 	connect(&mEditPropsAction, SIGNAL(execFired()), this, SLOT(onEditPropsAction()));
+	registerAction(&mAddLineAction);
 	registerAction(&mEditPropsAction);
 	registerAction(&mAddPinAction);
 	registerAction(&mAddTextAction);
@@ -399,6 +402,13 @@ void FPController::onAddTextAction()
 	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
 
 	installEditor(EditorFactory::instance().newTextEditor(this));
+}
+
+void FPController::onAddLineAction()
+{
+	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
+
+	installEditor(EditorFactory::instance().newLineEditor(this));
 }
 
 void FPController::onEditPropsAction()
