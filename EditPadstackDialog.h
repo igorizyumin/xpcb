@@ -19,7 +19,7 @@
 #define EDITPADSTACKDIALOG_H
 
 #include "ui_EditPadstackDialog.h"
-#include "Shape.h"
+#include "Footprint.h"
 
 class NewPadstackCmd;
 class EditPadstackCmd;

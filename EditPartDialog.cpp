@@ -18,7 +18,7 @@
 #include <QMessageBox>
 #include "EditPartDialog.h"
 #include "Part.h"
-#include "PCBDoc.h"
+#include "Document.h"
 #include "SelectFPDialog.h"
 
 EditPartDialog::EditPartDialog(QWidget *parent, PCBDoc* doc)

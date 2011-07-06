@@ -16,12 +16,10 @@ CONFIG(unittest) {
 
 TEMPLATE = app
 
-
 SOURCES += PCBView.cpp \
     GridToolbarWidget.cpp \
     AboutDialog.cpp \
     smcharacter.cpp \
-    Shape.cpp \
     smfontutil.cpp \
     Part.cpp \
     Net.cpp \
@@ -29,7 +27,6 @@ SOURCES += PCBView.cpp \
     PCBObject.cpp \
     Text.cpp \
     Area.cpp \
-    PCBDoc.cpp \
     Log.cpp \
     PolygonList.cpp \
     Polygon.cpp \
@@ -53,7 +50,9 @@ SOURCES += PCBView.cpp \
     main.cpp \
     EditLineDialog.cpp \
     LineEditor.cpp \
-    SelectFPDialog.cpp
+    SelectFPDialog.cpp \
+    Footprint.cpp \
+    Document.cpp
 
 unittest {
 	QT += testlib
@@ -71,7 +70,6 @@ HEADERS  += PCBView.h \
     AboutDialog.h \
     global.h \
     smcharacter.h \
-    Shape.h \
     smfontutil.h \
     Part.h \
     Net.h \
@@ -79,7 +77,6 @@ HEADERS  += PCBView.h \
     PCBObject.h \
     Text.h \
     Area.h \
-    PCBDoc.h \
     Log.h \
     PolygonList.h \
     Polygon.h \
@@ -101,7 +98,9 @@ HEADERS  += PCBView.h \
     FPPropDialog.h \
     EditLineDialog.h \
     LineEditor.h \
-    SelectFPDialog.h
+    SelectFPDialog.h \
+    Footprint.h \
+    Document.h
 
 FORMS    += GridToolbarWidget.ui \
     AboutDialog.ui \

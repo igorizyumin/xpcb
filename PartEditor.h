@@ -19,7 +19,7 @@
 #define PARTEDITOR_H
 
 #include "Editor.h"
-#include "PCBDoc.h"
+#include "Document.h"
 #include "EditPartDialog.h"
 
 class Part;

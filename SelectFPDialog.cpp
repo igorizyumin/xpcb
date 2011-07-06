@@ -18,7 +18,7 @@
 #include <QMessageBox>
 #include <QSettings>
 #include "SelectFPDialog.h"
-#include "PCBDoc.h"
+#include "Document.h"
 
 SelectFPDialog::SelectFPDialog(QWidget *parent) :
 	QDialog(parent), mPreviewLayout(new QVBoxLayout())

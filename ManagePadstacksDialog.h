@@ -19,7 +19,7 @@
 #define MANAGEPADSTACKSDIALOG_H
 
 #include "ui_ManagePadstacksDialog.h"
-#include "PCBDoc.h"
+#include "Document.h"
 #include <QUndoCommand>
 
 

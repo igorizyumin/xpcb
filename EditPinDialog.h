@@ -19,7 +19,7 @@
 #define EDITPINDIALOG_H
 
 #include "ui_EditPinDialog.h"
-#include "Shape.h"
+#include "Footprint.h"
 
 class NewPinCmd;
 class PinEditCmd;

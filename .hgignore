@@ -1,0 +1,17 @@
+syntax: glob
+*.o
+*.a
+*.moc
+Makefile
+moc_*.cpp
+ui_*.h
+*.pro.user
+qrc_*.cpp
+*.pyc
+*.so
+*.so.*
+sip*.cpp
+sip*.h
+*.exp
+*.sbf
+*.orig

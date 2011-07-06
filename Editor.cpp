@@ -22,7 +22,7 @@
 #include "LineEditor.h"
 #include "Controller.h"
 #include "Area.h"
-#include "Shape.h"
+#include "Footprint.h"
 #include "Part.h"
 
 AbstractEditor::AbstractEditor(Controller *ctrl) :

@@ -17,7 +17,7 @@
 
 #include <QMessageBox>
 #include "FPPropDialog.h"
-#include "Shape.h"
+#include "Footprint.h"
 
 FPPropDialog::FPPropDialog(QWidget* parent)
 	:	QDialog(parent)

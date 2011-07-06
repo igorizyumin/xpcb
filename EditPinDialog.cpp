@@ -16,9 +16,9 @@
 */
 
 #include "EditPinDialog.h"
-#include "PCBDoc.h"
+#include "Document.h"
 #include "ManagePadstacksDialog.h"
-#include "Shape.h"
+#include "Footprint.h"
 #include <QMessageBox>
 
 Q_DECLARE_METATYPE(QSharedPointer<Padstack>);

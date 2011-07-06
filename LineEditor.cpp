@@ -18,7 +18,7 @@
 #include "LineEditor.h"
 #include "Controller.h"
 #include "PCBObject.h"
-#include "PCBDoc.h"
+#include "Document.h"
 
 
 class LineNewCmd : public QUndoCommand

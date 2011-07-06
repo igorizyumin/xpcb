@@ -20,7 +20,7 @@
 
 #include "Editor.h"
 #include "Controller.h"
-#include "Shape.h"
+#include "Footprint.h"
 #include "EditPinDialog.h"
 
 class PinEditor : public AbstractEditor

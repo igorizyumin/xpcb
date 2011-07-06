@@ -19,8 +19,8 @@
 #define SELECTFPDIALOG_H
 
 #include <QUuid>
-#include "Shape.h"
-#include "PCBDoc.h"
+#include "Footprint.h"
+#include "Document.h"
 #include "ui_SelectFPDialog.h"
 
 class FootprintPreview : public QWidget

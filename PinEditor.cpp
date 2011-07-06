@@ -16,11 +16,11 @@
 */
 
 #include "PinEditor.h"
-#include "Shape.h"
+#include "Footprint.h"
 #include "EditPinDialog.h"
 #include "PCBView.h"
 #include "Controller.h"
-#include "PCBDoc.h"
+#include "Document.h"
 #include "Log.h"
 
 PinEditor::PinEditor(FPController* ctrl, QSharedPointer<Pin> pin)

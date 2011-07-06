@@ -16,7 +16,7 @@
 */
 
 #include "Controller.h"
-#include "PCBDoc.h"
+#include "Document.h"
 #include "PCBView.h"
 #include "Editor.h"
 #include "LayerWidget.h"
