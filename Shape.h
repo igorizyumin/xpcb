@@ -286,23 +286,24 @@ class FPDatabase
 public:
 	static FPDatabase& instance();
 
-	QList<FPDBFolder*> rootFolders() const { return mRootFolders; }
-	const FPDBFile* getByUuid(QUuid uuid) const { return mUuidHash.value(uuid); }
+	QList<QSharedPointer<FPDBFolder> > rootFolders() const { return mRootFolders; }
+	QSharedPointer<const FPDBFile> getByUuid(QUuid uuid) const { return mUuidHash.value(uuid); }
 
 private:
 	FPDatabase();
 	static FPDatabase* mInst;
-	QList<FPDBFolder*> mRootFolders;
-	QHash<QUuid, FPDBFile*> mUuidHash;
+	QList<QSharedPointer<FPDBFolder> > mRootFolders;
+	QHash<QUuid, QSharedPointer<FPDBFile> > mUuidHash;
 
-	FPDBFolder* createFolder(QString path, bool fullName = false);
-	FPDBFile* createFile(QString path);
+	QSharedPointer<FPDBFolder> createFolder(QString path, bool fullName = false);
+	QSharedPointer<FPDBFile> createFile(QString path);
 };
 
 class FPDBFile
 {
 public:
-	FPDBFile(QString path, QString name, QString author, QString source, QString desc, QUuid uuid);
+	FPDBFile(QString path, QString name, QString author, QString source,
+			 QString desc, QUuid uuid);
 
 	QString path() const { return mFpPath; }
 	QString name() const { return mName; }
@@ -332,18 +333,18 @@ private:
 class FPDBFolder
 {
 public:
-	FPDBFolder(QString name, QList<FPDBFolder*> folders, QList<FPDBFile*> files);
-	~FPDBFolder();
+	FPDBFolder(QString name, QList<QSharedPointer<FPDBFolder> > folders,
+			   QList<QSharedPointer<FPDBFile> > files);
 
 	void setParent(FPDBFolder* parent) { mParent = parent; }
 	FPDBFolder* parent() const { return mParent; }
 
 	QString name() const { return mName; }
-	QList<FPDBFolder*> folders() const { return mFolders; }
-	QList<FPDBFile*> items() const { return mFiles; }
+	QList<QSharedPointer<FPDBFolder> > folders() const { return mFolders; }
+	QList<QSharedPointer<FPDBFile> > items() const { return mFiles; }
 private:
 	QString mName;
-	QList<FPDBFolder*> mFolders;
-	QList<FPDBFile*> mFiles;
+	QList<QSharedPointer<FPDBFolder> > mFolders;
+	QList<QSharedPointer<FPDBFile> > mFiles;
 	FPDBFolder* mParent;
 };

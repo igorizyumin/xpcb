@@ -52,7 +52,8 @@ SOURCES += PCBView.cpp \
     FPPropDialog.cpp \
     main.cpp \
     EditLineDialog.cpp \
-    LineEditor.cpp
+    LineEditor.cpp \
+    SelectFPDialog.cpp
 
 unittest {
 	QT += testlib
@@ -99,7 +100,8 @@ HEADERS  += PCBView.h \
     Plugin.h \
     FPPropDialog.h \
     EditLineDialog.h \
-    LineEditor.h
+    LineEditor.h \
+    SelectFPDialog.h
 
 FORMS    += GridToolbarWidget.ui \
     AboutDialog.ui \
@@ -112,7 +114,8 @@ FORMS    += GridToolbarWidget.ui \
     ManagePadstacksDialog.ui \
     EditPinDialog.ui \
     FPPropDialog.ui \
-    EditLineDialog.ui
+    EditLineDialog.ui \
+    SelectFPDialog.ui
 
 RESOURCES += \
     qtfreepcb.qrc

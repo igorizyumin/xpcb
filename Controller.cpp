@@ -25,7 +25,7 @@
 #include "FPPropDialog.h"
 
 Controller::Controller(QObject *parent) :
-	QObject(parent),
+	QObject(parent), mView(NULL), mLayerWidget(NULL), mActionBar(NULL),
 	mPlaceGrid(XPcb::IN2PCB(0.05)), mRouteGrid(XPcb::IN2PCB(0.001))
 {
 }

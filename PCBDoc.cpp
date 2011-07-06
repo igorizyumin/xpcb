@@ -206,8 +206,9 @@ QSharedPointer<Footprint> PCBDoc::getFootprint(QUuid uuid)
 	if (mFootprints.contains(uuid))
 		return mFootprints.value(uuid);
 	// otherwise get it from the db and cache it
-	const FPDBFile* f = FPDatabase::instance().getByUuid(uuid);
-	if (!f) return QSharedPointer<Footprint>();
+	QSharedPointer<const FPDBFile> f = FPDatabase::instance().getByUuid(uuid);
+	if (!f)
+		return QSharedPointer<Footprint>();
 	QSharedPointer<Footprint> ptr = f->loadFootprint();
 	if (!ptr.isNull())
 		mFootprints.insert(uuid, ptr);

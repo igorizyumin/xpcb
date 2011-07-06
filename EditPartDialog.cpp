@@ -15,13 +15,11 @@
 	along with xpcb.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <QMessageBox>
 #include "EditPartDialog.h"
 #include "Part.h"
 #include "PCBDoc.h"
-#include <QMessageBox>
-
-AbstractSelFPDialogFactory* AbstractSelFPDialogFactory::mInst = NULL;
-
+#include "SelectFPDialog.h"
 
 EditPartDialog::EditPartDialog(QWidget *parent, PCBDoc* doc)
 	: QDialog(parent), mInMM(false), mFpChanged(false), mPart(NULL), mDoc(doc)
@@ -99,9 +97,9 @@ void EditPartDialog::updateFp()
 
 void EditPartDialog::on_fpSelButton_clicked()
 {
-	AbstractSelFPDialog* d = AbstractSelFPDialogFactory::instance()->makeDialog(this);
+	QScopedPointer<SelectFPDialog> d(new SelectFPDialog(this));
 	int res = d->exec();
-	if (res == QDialog::Accepted && d->fpSelected())
+	if (res == QDialog::Accepted && d->isFpSelected())
 	{
 		mCurrFpUuid = d->uuid();
 		mFpChanged = true;

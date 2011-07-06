@@ -61,22 +61,4 @@ private:
 	PCBDoc* mDoc;
 };
 
-class AbstractSelFPDialog : public QDialog
-{
-public:
-	AbstractSelFPDialog(QWidget *parent = NULL) : QDialog(parent) {}
-	virtual bool fpSelected() = 0;
-	virtual QUuid uuid() = 0;
-};
-
-class AbstractSelFPDialogFactory
-{
-public:
-	virtual AbstractSelFPDialog* makeDialog(QWidget* parent) = 0;
-	static AbstractSelFPDialogFactory* instance() { return mInst; }
-protected:
-	void registerInstance(AbstractSelFPDialogFactory* f) { mInst = f; }
-	static AbstractSelFPDialogFactory* mInst;
-};
-
 #endif // EDITPARTDIALOG_H
