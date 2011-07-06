@@ -1,4 +1,6 @@
 /*
+	Copyright (C) 2010-2011 Igor Izyumin	
+	
 	This file is part of xpcb.
 
 	xpcb is free software: you can redistribute it and/or modify
