@@ -399,17 +399,22 @@ void TraceList::AddSegCmd::redo()
 TraceList::DelSegCmd::DelSegCmd(QUndoCommand *parent,
 								TraceList *tl,
 								QSharedPointer<Segment> s)
-	: QUndoCommand(parent), mTl(tl), mSeg(s), mV1(s->v1()), mV2(s->v2())
+	: QUndoCommand(parent), mTl(tl), mSeg(s)
 {
 }
 
 void TraceList::DelSegCmd::undo()
 {
+	Log::instance().message(QString("undo delete: seg: %1\tv1: %2\tv2:%3").arg(mSeg->getid()).arg(mV1->getid()).arg(mV2->getid()));
 	mTl->addSegment(mSeg, mV1, mV2);
 }
 
 void TraceList::DelSegCmd::redo()
 {
+	mV1 = mSeg->v1();
+	mV2 = mSeg->v2();
+	Log::instance().message(QString("redo delete: seg: %1\tv1: %2\tv2:%3").arg(mSeg->getid()).arg(mV1->getid()).arg(mV2->getid()));
+
 	mTl->mySeg.remove(mSeg);
 	mV1->removeSegment(mSeg);
 	mV2->removeSegment(mSeg);
@@ -434,10 +439,13 @@ TraceList::SwapVtxCmd::SwapVtxCmd(QUndoCommand *parent, TraceList *tl,
 
 void TraceList::SwapVtxCmd::undo()
 {
+	Log::instance().message(QString("undo swap: seg: %1\t%2 -> %3").arg(mSeg->getid()).arg(mVNew->getid()).arg(mVOld->getid()));
+
 	Q_ASSERT((mSeg->v1() == mVNew && mSeg->v2() != mVNew) || (mSeg->v1() != mVNew && mSeg->v2() == mVNew));
 
 	Q_ASSERT(mSeg->v1()->segments().contains(mSeg));
 	Q_ASSERT(mSeg->v2()->segments().contains(mSeg));
+
 
 	mVNew->removeSegment(mSeg);
 	if (mVNew->segments().count() == 0)
@@ -458,6 +466,8 @@ void TraceList::SwapVtxCmd::undo()
 
 void TraceList::SwapVtxCmd::redo()
 {
+	Log::instance().message(QString("redo swap: seg: %1\t%2 -> %3").arg(mSeg->getid()).arg(mVOld->getid()).arg(mVNew->getid()));
+
 	Q_ASSERT((mSeg->v1() == mVOld && mSeg->v2() != mVOld) || (mSeg->v1() != mVOld && mSeg->v2() == mVOld));
 	Q_ASSERT(mSeg->v1()->segments().contains(mSeg));
 	Q_ASSERT(mSeg->v2()->segments().contains(mSeg));

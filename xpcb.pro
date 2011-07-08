@@ -52,7 +52,8 @@ SOURCES += PCBView.cpp \
     LineEditor.cpp \
     SelectFPDialog.cpp \
     Footprint.cpp \
-    Document.cpp
+    Document.cpp \
+    TraceEditor.cpp
 
 unittest {
 	QT += testlib
@@ -100,7 +101,8 @@ HEADERS  += PCBView.h \
     LineEditor.h \
     SelectFPDialog.h \
     Footprint.h \
-    Document.h
+    Document.h \
+    TraceEditor.h
 
 FORMS    += GridToolbarWidget.ui \
     AboutDialog.ui \

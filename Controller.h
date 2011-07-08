@@ -142,18 +142,18 @@ public:
 
 	void registerDoc(PCBDoc* doc);
 	virtual Document* doc();
+	PCBDoc* pcbDoc() { return mDoc; }
 
 protected slots:
 	void onAddTextAction();
 	void onAddPartAction();
-
-
+	void onAddTraceAction();
 
 protected:
 	PCBDoc* mDoc;
+	CtrlAction mAddTraceAction;
 	CtrlAction mAddTextAction;
 	CtrlAction mAddPartAction;
-
 };
 
 class FPController : public Controller

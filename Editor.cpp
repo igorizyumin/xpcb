@@ -26,6 +26,7 @@
 #include "Area.h"
 #include "Footprint.h"
 #include "Part.h"
+#include "TraceEditor.h"
 
 AbstractEditor::AbstractEditor(Controller *ctrl) :
 	QObject(ctrl), mCtrl(ctrl)
@@ -120,8 +121,7 @@ QSharedPointer<AbstractEditor> EditorFactory::newEditor(QSharedPointer<PCBObject
 	}
 	else if (QSharedPointer<Segment> s = obj.dynamicCast<Segment>())
 	{
-		if (mFactories.contains(ObjSegment))
-			return mFactories.value(ObjSegment)->makeEditor(ctrl, s);
+		return QSharedPointer<AbstractEditor>(new SegmentEditor(dynamic_cast<PCBController*>(ctrl), s));
 	}
 
 	return QSharedPointer<AbstractEditor>();
@@ -147,3 +147,7 @@ QSharedPointer<AbstractEditor> EditorFactory::newLineEditor(FPController *ctrl)
 	return QSharedPointer<AbstractEditor>(new LineEditor(ctrl));
 }
 
+QSharedPointer<AbstractEditor> EditorFactory::newTraceEditor(PCBController *ctrl)
+{
+	return QSharedPointer<AbstractEditor>(new NewTraceEditor(ctrl));
+}

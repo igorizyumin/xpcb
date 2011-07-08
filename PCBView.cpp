@@ -70,7 +70,8 @@ void PCBView::paintEvent(QPaintEvent *e)
 	// draw document
 	if (mCtrl && mCtrl->docIsOpen())
 	{
-		QList<Layer> layers = mCtrl->doc()->layerList(PCBDoc::DrawPriorityOrder);
+		QList<Layer> layers = mCtrl->doc()
+				->layerList(PCBDoc::DrawPriorityOrder);
 		// draw grid
 		QPen pen(Layer::color(Layer::LAY_VISIBLE_GRID));
 		pen.setCapStyle(Qt::RoundCap);
@@ -97,7 +98,8 @@ void PCBView::paintEvent(QPaintEvent *e)
 			Q_ASSERT(painter.isActive());
 			Layer curr;
 			// find first copper layer to draw current active layer
-			if (!activeDrawn && !i.peekNext().isCopper() && i.hasPrevious() && i.peekPrevious().isCopper())
+			if (!activeDrawn && !i.peekNext().isCopper()
+					&& i.hasPrevious() && i.peekPrevious().isCopper())
 			{
 				curr = active;
 				activeDrawn = true;
@@ -133,7 +135,8 @@ void PCBView::paintEvent(QPaintEvent *e)
 void PCBView::drawOrigin(QPainter *painter)
 {
 	// circle with 4 lines
-	painter->drawEllipse(XPcb::IN2PCB(-0.05),XPcb::IN2PCB(-0.05),XPcb::IN2PCB(0.1), XPcb::IN2PCB(0.1));
+	painter->drawEllipse(XPcb::IN2PCB(-0.05),XPcb::IN2PCB(-0.05),
+						 XPcb::IN2PCB(0.1), XPcb::IN2PCB(0.1));
 	painter->drawLine(XPcb::IN2PCB(0.05), 0, XPcb::IN2PCB(0.25), 0);
 	painter->drawLine(0, XPcb::IN2PCB(0.05), 0, XPcb::IN2PCB(0.25));
 	painter->drawLine(XPcb::IN2PCB(-0.05), 0, XPcb::IN2PCB(-0.25), 0);
@@ -224,7 +227,8 @@ void PCBView::recenter(QPoint pt, bool world)
 	if (!bound.contains(vp))
 	{
 		Log::instance().message(QString("(L: %1; R: %2; T: %3; B: %4)")
-								.arg(vp.left()).arg(vp.right()).arg(vp.top()).arg(vp.bottom()));
+								.arg(vp.left()).arg(vp.right())
+								.arg(vp.top()).arg(vp.bottom()));
 		if (vp.left() < bound.left())
 		{
 			mTransform.translate(-(bound.left() - vp.left()), 0);
@@ -260,8 +264,8 @@ void PCBView::zoom(double factor, QPoint pos)
 	// check if the bounding rectangle does not enclose the viewport
 	// refuse to zoom out (factor < 1) if that's the case
 	if(!test.mapRect(QRect(QPoint(-XPcb::PCB_BOUND, -XPcb::PCB_BOUND),
-								QPoint(XPcb::PCB_BOUND, XPcb::PCB_BOUND))).contains(this->rect())
-		&& factor < 1 )
+								QPoint(XPcb::PCB_BOUND, XPcb::PCB_BOUND)))
+			.contains(this->rect())	&& factor < 1 )
 	{
 		return;
 	}
