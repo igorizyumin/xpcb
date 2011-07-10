@@ -30,7 +30,7 @@
 
 Text::Text()
 	: PCBObject(), mAngle(0), mIsMirrored(false), mIsNegative(false),
-	mFontSize(XPcb::MIL2PCB(100)), mStrokeWidth(XPcb::MIL2PCB(10)), mParent(NULL), mIsDirty(true)
+	mFontSize(XPcb::milToPcb(100)), mStrokeWidth(XPcb::milToPcb(10)), mParent(NULL), mIsDirty(true)
 {
 }
 

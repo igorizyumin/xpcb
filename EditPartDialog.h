@@ -55,7 +55,7 @@ protected:
 private:
 	void updateUnits();
 	void updateFp();
-	int toPCB(double value) const { return mInMM ? XPcb::MM2PCB(value) : XPcb::MIL2PCB(value); }
+	int toPCB(double value) const { return mInMM ? XPcb::mmToPcb(value) : XPcb::milToPcb(value); }
 	bool mInMM;
 	bool mFpChanged;
 	QUuid mCurrFpUuid;

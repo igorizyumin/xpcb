@@ -46,6 +46,8 @@ public:
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
+	virtual bool testHit(QPoint p, int dist, const Layer &l) const;
+
 	virtual PCBObjState getState() const
 	{
 		return PCBObjState(new VtxState(*this));
@@ -103,10 +105,11 @@ class Segment : public PCBObject
 {
 public:
 	Segment(const Layer& layer, int w = 0);
+	Segment(const Segment& other);
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual bool testHit(QPoint p, const Layer &l) const;
+	virtual bool testHit(QPoint p, int dist, const Layer &l) const;
 	virtual PCBObjState getState() const
 	{
 		return PCBObjState(new SegState(*this));

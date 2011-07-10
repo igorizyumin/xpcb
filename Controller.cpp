@@ -28,7 +28,7 @@
 
 Controller::Controller(QObject *parent) :
 	QObject(parent), mView(NULL), mLayerWidget(NULL), mActionBar(NULL),
-	mPlaceGrid(XPcb::IN2PCB(0.05)), mRouteGrid(XPcb::IN2PCB(0.001))
+	mPlaceGrid(XPcb::inchToPcb(0.05)), mRouteGrid(XPcb::inchToPcb(0.001))
 {
 }
 
@@ -121,7 +121,7 @@ void Controller::mouseReleaseEvent(QMouseEvent *event)
 		return;
 	}
 	QPoint pos = mView->transform().inverted().map(event->pos());
-	QList<QSharedPointer<PCBObject> > objs = doc()->findObjs(pos);
+	QList<QSharedPointer<PCBObject> > objs = doc()->findObjs(pos, hitRadius());
 	QMutableListIterator<QSharedPointer<PCBObject> > i(objs);
 	while(i.hasNext())
 	{
@@ -135,7 +135,7 @@ void Controller::mouseReleaseEvent(QMouseEvent *event)
 		{
 			const Layer& l = j.previous();
 			if (!mLayerWidget->isLayerVisible(l)) continue;
-			if (obj->testHit(pos, l))
+			if (obj->testHit(pos, hitRadius(), l))
 			{
 				hit = true;
 				break;

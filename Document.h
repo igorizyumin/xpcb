@@ -86,7 +86,7 @@ public:
 	virtual XPcb::UNIT units() const { return mUnits; }
 
 	/// Returns a list of all objects that are hit
-	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt) = 0;
+	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt, int dist = 1) = 0;
 	/// Returns list of all objects touching rect
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QRect &rect) = 0;
 
@@ -136,7 +136,7 @@ public:
 	virtual bool loadFromFile(QFile & file);
 	virtual bool loadFromXml(QXmlStreamReader &reader);
 	virtual QList<Layer> layerList(LayerOrder order = ListOrder);
-	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt);
+	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt, int dist = 1);
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QRect &rect);
 
 	TraceList& traceList() const {return *mTraceList;}
@@ -191,7 +191,7 @@ public:
 
 	virtual QList<Layer> layerList(LayerOrder order = ListOrder);
 
-	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt);
+	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt, int dist = 1);
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QRect &rect);
 
 	virtual void addText(QSharedPointer<Text> t) { mFp->addText(t); }

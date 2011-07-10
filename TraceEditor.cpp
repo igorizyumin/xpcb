@@ -21,50 +21,9 @@
 #include "TraceEditor.h"
 #include "Document.h"
 
+using namespace XPcb;
+
 // utility functions
-// signum function
-inline short sign(double x)
-{
-	return x > 0 ? 1 : (x < 0 ? -1 : 0);
-}
-
-// computes perpendicular vector
-inline QPoint perp(const QPoint& v)
-{
-	return QPoint(-v.y(), v.x());
-}
-
-// dot (scalar) product
-inline int dotProd(const QPoint &pt1, const QPoint &pt2)
-{
-	return pt1.x() * pt2.x() + pt1.y() * pt2.y();
-}
-
-inline bool isParallel(const QPoint &dir1, const QPoint &dir2)
-{
-	return dotProd(dir1, perp(dir2)) == 0;
-}
-
-// finds the line intersection of the two lines given by (pt1, dir1)
-// and (pt2, dir2)
-// returns scale factor for dir1 vector (intersect. pt = pt1 + retVal * dir1
-// check for parallel-ness before using this
-inline double lineIntersect(const QPoint &pt1, const QPoint &dir1,
-					 const QPoint &pt2, const QPoint &dir2)
-{
-	QPoint w = pt1 - pt2;
-	return (double(dir2.y())*w.x() - double(dir2.x())*w.y()) /
-			(double(dir2.x())*dir1.y() - double(dir2.y())*dir1.x());
-}
-
-// returns line intersection point
-// check for lines being parallel first!
-inline QPoint lineIntersectPt(const QPoint &pt1, const QPoint &dir1,
-							  const QPoint &pt2, const QPoint &dir2)
-{
-	return pt1 + dir1 * lineIntersect(pt1, dir1, pt2, dir2);
-}
-
 inline bool segParallel(QSharedPointer<Segment> seg1,
 						QSharedPointer<Segment> seg2)
 {
@@ -99,7 +58,7 @@ void drawCrosshair45(QPainter* painter, QPoint pos)
 
 NewTraceEditor::NewTraceEditor(PCBController *ctrl)
 	: AbstractEditor(ctrl), mCtrl(ctrl), mState(PICK_START),
-	  mMode(ModeStraight45), mWidth(XPcb::MIL2PCB(10)),
+	  mMode(ModeStraight45), mWidth(XPcb::milToPcb(10)),
 	  mLayer(Layer::LAY_TOP_COPPER)
 {
 
@@ -229,10 +188,12 @@ void NewTraceEditor::toggleMode()
 SegmentEditor::SegmentEditor(PCBController *ctrl,
 							 QSharedPointer<Segment> segment)
 	: AbstractEditor(ctrl), mState(SELECTED), mCtrl(ctrl), mSegment(segment),
-	  mSlideAction(3, "Slide Segment")
+	  mSlideAction(3, "Slide Segment"), mAddVtxAction(2, "Add Vertex")
 {
 	connect(&mSlideAction, SIGNAL(execFired()),
 			this, SLOT(startSlideSegment()));
+	connect(&mAddVtxAction, SIGNAL(execFired()),
+			this, SLOT(startInsertVtx()));
 	ctrl->hideObj(mSegment);
 }
 
@@ -253,6 +214,11 @@ void SegmentEditor::drawOverlay(QPainter* painter)
 		if (mSeg2)
 			painter->drawLine(mFixedPt2, mPt2);
 	}
+	else if (mState == ADD_VTX)
+	{
+		painter->drawLine(mPt1, mPos);
+		painter->drawLine(mPos, mPt2);
+	}
 }
 
 void SegmentEditor::init()
@@ -264,24 +230,30 @@ QList<const CtrlAction*> SegmentEditor::actions() const
 {
 	QList<const CtrlAction*> out;
 	if (mState == SELECTED)
-		out << &mSlideAction;
+		out << &mSlideAction << &mAddVtxAction;
 	return out;
 }
 
 void SegmentEditor::mouseMoveEvent(QMouseEvent *event)
 {
+	QPoint pos = mCtrl->snapToRouteGrid(mCtrl->view()->transform().inverted()
+								  .map(event->pos()));
 	if (mState == SLIDE)
 	{
-		mPos = mCtrl->snapToRouteGrid(mCtrl->view()->transform().inverted()
-									  .map(event->pos()));
+		mPos = pos;
 		updateSlide();
+		emit overlayChanged();
+	}
+	else if (mState == ADD_VTX)
+	{
+		mPos = pos;
 		emit overlayChanged();
 	}
 }
 
 void SegmentEditor::mousePressEvent(QMouseEvent *event)
 {
-	if (mState == SLIDE)
+	if (mState == SLIDE || mState == ADD_VTX)
 	{
 		event->accept();
 	}
@@ -297,6 +269,11 @@ void SegmentEditor::mouseReleaseEvent(QMouseEvent *event)
 	{
 		event->accept();
 		finishSlide();
+	}
+	else if (mState == ADD_VTX)
+	{
+		event->accept();
+		finishAddVtx();
 	}
 	else
 	{
@@ -367,6 +344,13 @@ void SegmentEditor::startSlideSegment()
 	emit actionsChanged();
 }
 
+void SegmentEditor::startInsertVtx()
+{
+	mPt1 = mSegment->v1()->pos();
+	mPt2 = mSegment->v2()->pos();
+	mState = ADD_VTX;
+}
+
 void SegmentEditor::updateSlide()
 {
 	QPoint pos = mPos;
@@ -429,17 +413,6 @@ void SegmentEditor::cleanUpTrace(QList<QSharedPointer<Segment> > segments,
 	if (segments.length() < 2) return;
 	TraceList* tl = &mCtrl->pcbDoc()->traceList();
 
-	// debug: print the list
-//	Log::instance().message("#\tid\tv1\tv2");
-//	int i = 0;
-//	foreach(QSharedPointer<Segment> s, segments)
-//	{
-//		Log::instance().message(QString("%1\t%2\t%3\t%4").arg(i)
-//								.arg(s->getid()).arg(s->v1()->getid())
-//								.arg(s->v2()->getid()));
-//		i++;
-//	}
-
 	// list of nonzero length segments and their start vertices
 	QList<SegListEntry> nzList;
 
@@ -448,13 +421,11 @@ void SegmentEditor::cleanUpTrace(QList<QSharedPointer<Segment> > segments,
 			segments[0]->otherVertex(segments[0]->commonVertex(segments[1]));
 	foreach(QSharedPointer<Segment> s, segments)
 	{
-//		Log::instance().message(QString("curr is %1: %2\t%3").arg(s->getid()).arg(s->v1()->getid()).arg(s->v2()->getid()));
 		// remove all zero length segments
 		if (segZeroLength(s))
 		{
 			// remove segment
 			tl->removeSegmentCmd(s, parent);
-//			Log::instance().message("removing zero length segment");
 		}
 		else
 		{
@@ -465,8 +436,6 @@ void SegmentEditor::cleanUpTrace(QList<QSharedPointer<Segment> > segments,
 				// one to the start of the previous one, pop it off the list,
 				// and replace the entry with this segment.
 				QSharedPointer<Vertex> prevVtx = nzList.last().start;
-//				Log::instance().message(QString("swap on %1 : %2 -> %3").arg(s->getid()).arg(startVtx->getid()).arg(prevVtx->getid()));
-//				Log::instance().message(QString("delete seg %1").arg(nzList.last().seg->getid()));
 				tl->swapVtxCmd(s, startVtx, prevVtx, parent);
 				tl->removeSegmentCmd(nzList.last().seg, parent);
 				nzList.removeLast();
@@ -492,33 +461,6 @@ void SegmentEditor::cleanUpTrace(QList<QSharedPointer<Segment> > segments,
 		// Traverse the list of vertices.
 		startVtx = s->otherVertex(startVtx);
 	}
-}
-
-void SegmentEditor::removeSegAndJoin(QSharedPointer<Segment> seg, QUndoCommand *parent)
-{
-	TraceList* tl = &mCtrl->pcbDoc()->traceList();
-	QSet<QSharedPointer<Segment> > v1s = seg->v1()->segments();
-	v1s.remove(seg);
-	QSet<QSharedPointer<Segment> > v2s = seg->v2()->segments();
-	v2s.remove(seg);
-	// check for collinearity
-	if (!v1s.isEmpty() && !v2s.isEmpty()
-			&& segParallel(v1s.values().first(), v2s.values().first()))
-	{
-		// remove the extra segment
-		tl->swapVtxCmd(v1s.values().first(), seg->v1(),
-					   v2s.values().first()->otherVertex(seg->v2()), parent);
-		tl->removeSegmentCmd(v2s.values().first(), parent);
-	}
-	else if (!v1s.isEmpty())
-	{
-		tl->swapVtxCmd(v1s.values().first(), seg->v1(), seg->v2(), parent);
-	}
-	else if (!v2s.isEmpty())
-	{
-		tl->swapVtxCmd(v2s.values().first(), seg->v2(), seg->v1(), parent);
-	}
-	tl->removeSegmentCmd(seg, parent);
 }
 
 void SegmentEditor::finishSlide()
@@ -578,4 +520,140 @@ void SegmentEditor::finishSlide()
 	emit overlayChanged();
 }
 
+void SegmentEditor::finishAddVtx()
+{
+	QUndoCommand *parent = new QUndoCommand("insert vertex");
+	QSharedPointer<Vertex> v2 = mSegment->v2();
+	// create a new vertex
+	QSharedPointer<Vertex> vnew(new Vertex(mPos));
+	// create a new segment
+	QSharedPointer<Segment> snew(new Segment(*mSegment));
+	// make the modifications
+	TraceList* tl = &mCtrl->pcbDoc()->traceList();
+	tl->swapVtxCmd(mSegment, v2, vnew, parent);
+	tl->addSegmentCmd(snew, vnew, v2, parent);
+	mCtrl->doc()->doCommand(parent);
+	mState = SELECTED;
+	emit actionsChanged();
+	emit overlayChanged();
+}
 
+///////////////////////////////////////////////////////////////////////////////
+
+VertexEditor::VertexEditor(PCBController *ctrl, QSharedPointer<Vertex> vtx)
+	: AbstractEditor(ctrl), mState(SELECTED), mCtrl(ctrl), mVtx(vtx),
+	  mMoveAction(3, "Move Vertex")
+{
+	connect(&mMoveAction, SIGNAL(execFired()),
+			this, SLOT(startMove()));
+	mPos = mVtx->pos();
+}
+
+void VertexEditor::drawOverlay(QPainter* painter)
+{
+	if (mState == MOVE)
+		drawCrosshair45(painter, mPos);
+
+	if (mState == SELECTED)
+	{
+		double handSize = 10.0 / ctrl()->view()->transform().m11();
+		painter->save();
+		painter->setBrush(Layer::color(Layer::LAY_SELECTION));
+		QPen pen = painter->pen();
+		pen.setWidth(0);
+		painter->setPen(pen);
+		painter->drawRect(mPos.x() - handSize/2,
+						  mPos.y() - handSize/2,
+						  handSize, handSize);
+		painter->restore();
+	}
+
+
+}
+
+void VertexEditor::init()
+{
+	emit actionsChanged();
+}
+
+QList<const CtrlAction*> VertexEditor::actions() const
+{
+	QList<const CtrlAction*> out;
+	if (mState == SELECTED)
+		out << &mMoveAction;
+	return out;
+}
+void VertexEditor::mouseMoveEvent(QMouseEvent *event)
+{
+	if (mState == MOVE)
+	{
+		mPos = mCtrl->snapToRouteGrid(mCtrl->view()->transform().inverted()
+									  .map(event->pos()));
+		updateMove();
+		emit overlayChanged();
+	}
+}
+
+void VertexEditor::mousePressEvent(QMouseEvent *event)
+{
+	if (mState == MOVE)
+	{
+		event->accept();
+	}
+	else
+	{
+		event->ignore();
+	}
+}
+
+void VertexEditor::mouseReleaseEvent(QMouseEvent *event)
+{
+	if (mState == MOVE)
+	{
+		event->accept();
+		finishMove();
+	}
+	else
+	{
+		event->ignore();
+	}
+}
+
+void VertexEditor::keyPressEvent(QKeyEvent *event)
+{
+	if (event->key() == Qt::Key_Escape)
+	{
+		abortMove();
+	}
+}
+
+void VertexEditor::startMove()
+{
+	mPrevState = mVtx->getState();
+	mState = MOVE;
+	emit actionsChanged();
+	emit overlayChanged();
+}
+
+void VertexEditor::updateMove()
+{
+	mVtx->setPos(mPos);
+}
+
+void VertexEditor::finishMove()
+{
+	PCBObjEditCmd* cmd = new PCBObjEditCmd(NULL, mVtx, mPrevState);
+	mCtrl->doc()->doCommand(cmd);
+	mState = SELECTED;
+	emit actionsChanged();
+	emit overlayChanged();
+}
+
+void VertexEditor::abortMove()
+{
+	mVtx->loadState(mPrevState);
+	mState = SELECTED;
+	mPos = mVtx->pos();
+	emit actionsChanged();
+	emit overlayChanged();
+}

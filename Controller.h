@@ -91,6 +91,8 @@ public:
 
 	QPoint snapToPlaceGrid(const QPoint &p) const;
 	QPoint snapToRouteGrid(const QPoint &p) const;
+	// returns the object hit radius in pcb units
+	int hitRadius() const {return 10*mView->transform().inverted().m11(); }
 
 	bool isLayerVisible(const Layer& l) const;
 	const Layer& activeLayer() const;

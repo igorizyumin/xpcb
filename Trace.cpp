@@ -41,8 +41,22 @@ void Vertex::draw(QPainter */*painter*/, const Layer& /*layer*/) const
 QRect Vertex::bbox() const
 {
 	// XXX TODO do something useful here
-	return QRect();
+	return QRect(mPos.x(), mPos.y(), 1, 1);
 }
+
+bool Vertex::testHit(QPoint p, int dist, const Layer &l) const
+{
+	// XXX TODO check bbox
+	if (QRect(p.x()-dist/2, p.y()-dist/2, dist, dist).contains(mPos))
+	{
+		// test each of the connected segments
+		foreach(QSharedPointer<Segment> s, mSegs)
+			if (s->layer() == l)
+				return true;
+	}
+	return false;
+}
+
 
 void Vertex::addSegment(QSharedPointer<Segment> seg)
 {
@@ -279,6 +293,11 @@ Segment::Segment(const Layer& l, int w)
 {
 }
 
+Segment::Segment(const Segment &other)
+	: mLayer(other.mLayer), mWidth(other.mWidth)
+{
+}
+
 void Segment::draw(QPainter *painter, const Layer& layer) const
 {
 	if (mV1.isNull() || mV2.isNull()) return;
@@ -298,9 +317,11 @@ QRect Segment::bbox() const
 	return QRect(mV1->pos(), mV2->pos()).normalized().adjusted(-mWidth/2, -mWidth/2, mWidth/2, mWidth/2);
 }
 
-bool Segment::testHit(QPoint p, const Layer &l) const
+bool Segment::testHit(QPoint p, int dist, const Layer &l) const
 {
-	return bbox().contains(p) && l == layer();
+	return (l == layer()) &&
+			(XPcb::distPtToSegment(p, mV1->pos(), mV2->pos())
+			 <= (dist + mWidth));
 }
 
 bool Segment::loadState(PCBObjState& state)

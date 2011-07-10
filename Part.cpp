@@ -51,9 +51,10 @@ Layer PartPin::mapLayer(const Layer& layer) const
 		return Layer::LAY_HOLE;
 }
 
-bool PartPin::testHit( const QPoint& pt, const Layer& layer) const
+bool PartPin::testHit( const QPoint& pt, int dist, const Layer& layer) const
 {
-	return mPin->testHit(mPart->transform().inverted().map(pt), mapLayer(layer));
+	return mPin->testHit(mPart->transform().inverted().map(pt), dist,
+						 mapLayer(layer));
 }
 
 QPoint PartPin::pos() const

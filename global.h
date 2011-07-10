@@ -22,6 +22,8 @@
 
 #include <QString>
 #include <QColor>
+#include <QPoint>
+#include <cmath>
 
 namespace XPcb
 {
@@ -40,13 +42,105 @@ namespace XPcb
 
 	const int PCB_BOUND	= 32000*PCBU_PER_MIL;	// boundary
 
-	inline int IN2PCB(double x) { return x * 1000 * PCBU_PER_MIL; }
-	inline int MM2PCB(double x) {return x * PCBU_PER_MM; }
-	inline int MIL2PCB(double x) { return x * PCBU_PER_MIL; }
-	inline double PCB2IN(int x) { return double(x) / (1000 * PCBU_PER_MIL); }
-	inline double PCB2MM(int x) {return double(x) / PCBU_PER_MM; }
-	inline double PCB2MIL(int x) { return double(x) / PCBU_PER_MIL; }
+	// unit conversions
+	inline int inchToPcb(double x) { return x * 1000 * PCBU_PER_MIL; }
+	inline int mmToPcb(double x) {return x * PCBU_PER_MM; }
+	inline int milToPcb(double x) { return x * PCBU_PER_MIL; }
+	inline double pcbToInch(int x) { return double(x) / (1000 * PCBU_PER_MIL); }
+	inline double pcbToMm(int x) {return double(x) / PCBU_PER_MM; }
+	inline double pcbToMil(int x) { return double(x) / PCBU_PER_MIL; }
 
+	// useful math ops
+	// signum function
+	inline short sign(double x)
+	{
+		return x > 0 ? 1 : (x < 0 ? -1 : 0);
+	}
+
+	// computes perpendicular vector
+	inline QPoint perp(const QPoint& v)
+	{
+		return QPoint(-v.y(), v.x());
+	}
+
+	// dot (scalar) product
+	inline double dotProd(const QPoint &pt1, const QPoint &pt2)
+	{
+		return double(pt1.x()) * double(pt2.x())
+				+ double(pt1.y()) * double(pt2.y());
+	}
+
+	// returns true if vectors are parallel
+	inline bool isParallel(const QPoint &dir1, const QPoint &dir2)
+	{
+		return int(dotProd(dir1, perp(dir2))) == 0;
+	}
+
+	// finds the line intersection of the two lines given by (pt1, dir1)
+	// and (pt2, dir2)
+	// returns scale factor for dir1 vector (intersect. pt = pt1 + retVal * dir1
+	// check for parallel-ness before using this
+	inline double lineIntersect(const QPoint &pt1, const QPoint &dir1,
+						 const QPoint &pt2, const QPoint &dir2)
+	{
+		QPoint w = pt1 - pt2;
+		return (double(dir2.y())*w.x() - double(dir2.x())*w.y()) /
+				(double(dir2.x())*dir1.y() - double(dir2.y())*dir1.x());
+	}
+
+	// returns line intersection point
+	// check for lines being parallel first!
+	inline QPoint lineIntersectPt(const QPoint &pt1, const QPoint &dir1,
+								  const QPoint &pt2, const QPoint &dir2)
+	{
+		return pt1 + dir1 * lineIntersect(pt1, dir1, pt2, dir2);
+	}
+
+	// computes length of a vector
+	inline double norm(const QPoint& pt)
+	{
+		return std::sqrt(dotProd(pt, pt));
+	}
+
+	// computes distance between two points
+	inline double distance(const QPoint &pt1, const QPoint& pt2)
+	{
+		return norm(pt1 - pt2);
+	}
+
+	// computes the distance between a point and a line segment.
+	inline double distPtToSegment(const QPoint &p,
+							  const QPoint &start,
+							  const QPoint &end)
+	{
+		QPoint v = end - start;
+		QPoint w = p - start;
+		double c1 = dotProd(w, v);
+		if (c1 <= 0)
+			return distance(p, start);
+
+		double c2 = dotProd(v, v);
+		if (c2 <= c1)
+			return distance(p, end);
+
+		double b = double(c1) / c2;
+		QPoint pb = start + b*v;
+		return distance(p, pb);
+	}
+
+	// computes the distance between a point and a line
+	inline int distPtToLine(const QPoint &p,
+							  const QPoint &start,
+							  const QPoint &end)
+	{
+		QPoint v = end - start;
+		QPoint w = p - start;
+		int c1 = dotProd(w, v);
+		int c2 = dotProd(v, v);
+		double b = double(c1) / c2;
+		QPoint pb = start + b*v;
+		return distance(p, pb);
+	}
 };
 
 class Layer

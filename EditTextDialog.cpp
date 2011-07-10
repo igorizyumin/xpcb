@@ -38,11 +38,11 @@ void EditTextDialog::init(QSharedPointer<Text> t)
 		mirrorImageBox->setChecked(t->isMirrored());
 		negativeTextBox->setChecked(t->isNegative());
 		setWidthRadio->setChecked(true);
-		widthBox->setValue(XPcb::PCB2MIL(t->strokeWidth()));
-		heightBox->setValue(XPcb::PCB2MIL(t->fontSize()));
+		widthBox->setValue(XPcb::pcbToMil(t->strokeWidth()));
+		heightBox->setValue(XPcb::pcbToMil(t->fontSize()));
 		setPosRadio->setChecked(true);
-		xPos->setValue(XPcb::PCB2MIL(t->pos().x()));
-		yPos->setValue(XPcb::PCB2MIL(t->pos().y()));
+		xPos->setValue(XPcb::pcbToMil(t->pos().x()));
+		yPos->setValue(XPcb::pcbToMil(t->pos().y()));
 		angleBox->setCurrentIndex(t->angle() / 90);
 	}
 	else
@@ -80,10 +80,10 @@ void EditTextDialog::updateUnits()
 {
 	if (!mInMM)
 	{
-		widthBox->setValue(XPcb::PCB2MIL(XPcb::MM2PCB(widthBox->value())));
-		heightBox->setValue(XPcb::PCB2MIL(XPcb::MM2PCB(heightBox->value())));
-		xPos->setValue(XPcb::PCB2MIL(XPcb::MM2PCB(xPos->value())));
-		yPos->setValue(XPcb::PCB2MIL(XPcb::MM2PCB(yPos->value())));
+		widthBox->setValue(XPcb::pcbToMil(XPcb::mmToPcb(widthBox->value())));
+		heightBox->setValue(XPcb::pcbToMil(XPcb::mmToPcb(heightBox->value())));
+		xPos->setValue(XPcb::pcbToMil(XPcb::mmToPcb(xPos->value())));
+		yPos->setValue(XPcb::pcbToMil(XPcb::mmToPcb(yPos->value())));
 
 		widthBox->setDecimals(0);
 		heightBox->setDecimals(0);
@@ -102,10 +102,10 @@ void EditTextDialog::updateUnits()
 		xPos->setDecimals(3);
 		yPos->setDecimals(3);
 
-		widthBox->setValue(XPcb::PCB2MM(XPcb::MIL2PCB(widthBox->value())));
-		heightBox->setValue(XPcb::PCB2MM(XPcb::MIL2PCB(heightBox->value())));
-		xPos->setValue(XPcb::PCB2MM(XPcb::MIL2PCB(xPos->value())));
-		yPos->setValue(XPcb::PCB2MM(XPcb::MIL2PCB(yPos->value())));
+		widthBox->setValue(XPcb::pcbToMm(XPcb::milToPcb(widthBox->value())));
+		heightBox->setValue(XPcb::pcbToMm(XPcb::milToPcb(heightBox->value())));
+		xPos->setValue(XPcb::pcbToMm(XPcb::milToPcb(xPos->value())));
+		yPos->setValue(XPcb::pcbToMm(XPcb::milToPcb(yPos->value())));
 
 		widthBox->setSuffix(" mm");
 		heightBox->setSuffix(" mm");

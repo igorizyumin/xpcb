@@ -59,7 +59,7 @@ public:
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
 
-	bool testHit(const QPoint &pt, const Layer& layer) const;
+	bool testHit(const QPoint &pt, int dist, const Layer& layer) const;
 
 private:
 	class PartPinState : public PCBObjStateInternal
@@ -137,7 +137,8 @@ public:
 	void toXML(QXmlStreamWriter &writer) const;
 
 	QTransform transform() const { return mTransform; }
-	bool testHit(QPoint pt, const Layer& /*layer*/) const { return bbox().contains(pt); }
+	bool testHit(QPoint pt, int dist, const Layer& /*layer*/) const
+	{ return bbox().adjusted(-dist/2, -dist/2, dist/2, dist/2).contains(pt); }
 
 	PCBDoc* doc() const {return mDoc; }
 private:

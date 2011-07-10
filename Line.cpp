@@ -20,6 +20,7 @@
 #include "Line.h"
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
+#include <QDebug>
 
 Line::Line()
 	: mWidth(0), mType(LINE)
@@ -94,9 +95,10 @@ QRect Line::bbox() const
 	return QRect(mStart, mEnd).normalized().adjusted(-mWidth/2, -mWidth/2, mWidth/2, mWidth/2);
 }
 
-bool Line::testHit(QPoint p, const Layer &l) const
+bool Line::testHit(QPoint p, int dist, const Layer &l) const
 {
-	return (l == mLayer) && bbox().contains(p);
+	return (l == mLayer) &&
+			(XPcb::distPtToSegment(p, mStart, mEnd) <= (dist + mWidth));
 }
 
 void Line::drawArc(QPainter* painter, QPoint start, QPoint end, LineType type)

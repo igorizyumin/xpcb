@@ -46,7 +46,9 @@ public:
 	// overrides
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual bool testHit(QPoint pt, const Layer& l) const { return bbox().contains(pt) && mLayer == l; }
+	virtual bool testHit(QPoint pt, int dist, const Layer& l) const
+	{ return bbox().adjusted(-dist/2, -dist/2, dist/2, dist/2)
+				.contains(pt) && mLayer == l; }
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
 

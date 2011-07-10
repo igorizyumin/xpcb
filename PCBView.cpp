@@ -33,8 +33,8 @@ PCBView::PCBView(QWidget *parent)
 	// initialize transform
 	// 100 pixels = 1 inch
 	mTransform.translate(0, 300);
-	mTransform.scale(100.0/XPcb::IN2PCB(1), -100.0/XPcb::IN2PCB(1));
-	mVisibleGrid = XPcb::IN2PCB(0.1);
+	mTransform.scale(100.0/XPcb::inchToPcb(1), -100.0/XPcb::inchToPcb(1));
+	mVisibleGrid = XPcb::inchToPcb(0.1);
 	setMouseTracking(true);
 	setFocusPolicy(Qt::StrongFocus);
 }
@@ -135,12 +135,12 @@ void PCBView::paintEvent(QPaintEvent *e)
 void PCBView::drawOrigin(QPainter *painter)
 {
 	// circle with 4 lines
-	painter->drawEllipse(XPcb::IN2PCB(-0.05),XPcb::IN2PCB(-0.05),
-						 XPcb::IN2PCB(0.1), XPcb::IN2PCB(0.1));
-	painter->drawLine(XPcb::IN2PCB(0.05), 0, XPcb::IN2PCB(0.25), 0);
-	painter->drawLine(0, XPcb::IN2PCB(0.05), 0, XPcb::IN2PCB(0.25));
-	painter->drawLine(XPcb::IN2PCB(-0.05), 0, XPcb::IN2PCB(-0.25), 0);
-	painter->drawLine(0, XPcb::IN2PCB(-0.05), 0, XPcb::IN2PCB(-0.25));
+	painter->drawEllipse(XPcb::inchToPcb(-0.05),XPcb::inchToPcb(-0.05),
+						 XPcb::inchToPcb(0.1), XPcb::inchToPcb(0.1));
+	painter->drawLine(XPcb::inchToPcb(0.05), 0, XPcb::inchToPcb(0.25), 0);
+	painter->drawLine(0, XPcb::inchToPcb(0.05), 0, XPcb::inchToPcb(0.25));
+	painter->drawLine(XPcb::inchToPcb(-0.05), 0, XPcb::inchToPcb(-0.25), 0);
+	painter->drawLine(0, XPcb::inchToPcb(-0.05), 0, XPcb::inchToPcb(-0.25));
 }
 
 void PCBView::drawGrid(QPainter *painter)

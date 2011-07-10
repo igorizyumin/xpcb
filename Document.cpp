@@ -147,31 +147,33 @@ QList<Layer> FPDoc::layerList(LayerOrder order)
 	return l;
 }
 
-QList<QSharedPointer<PCBObject> > FPDoc::findObjs(QPoint &pt)
+QList<QSharedPointer<PCBObject> > FPDoc::findObjs(QPoint &pt, int dist)
 {
 	Q_ASSERT(mFp && mFp->refText() && mFp->valueText());
 
 	QList<QSharedPointer<PCBObject> > out;
 
+	QRect hitRect(pt.x()-dist/2, pt.y()-dist/2, dist, dist);
+
 	foreach(QSharedPointer<Pin> p, mFp->pins())
 	{
-		if (p->bbox().contains(pt))
+		if (p->bbox().intersects(hitRect))
 			out.append(p);
 	}
 	foreach(QSharedPointer<Text> p, mFp->texts())
 	{
-		if (p->bbox().contains(pt))
+		if (p->bbox().intersects(hitRect))
 			out.append(p);
 	}
 	foreach(QSharedPointer<Line> p, mFp->lines())
 	{
-		if (p->bbox().contains(pt))
+		if (p->bbox().intersects(hitRect))
 			out.append(p);
 	}
 
-	if (mFp->refText()->bbox().contains(pt))
+	if (mFp->refText()->bbox().intersects(hitRect))
 		out.append(mFp->refText());
-	if (mFp->valueText()->bbox().contains(pt))
+	if (mFp->valueText()->bbox().intersects(hitRect))
 		out.append(mFp->valueText());
 
 	return out;
@@ -283,6 +285,12 @@ QList<QSharedPointer<PCBObject> > PCBDoc::findObjs(QRect &rect)
 			out.append(s);
 	}
 
+	foreach(QSharedPointer<Vertex> v, mTraceList->vertices())
+	{
+		if (rect.intersects(v->bbox()))
+			out.append(v);
+	}
+
 	foreach(QSharedPointer<Part> p, mParts)
 	{
 		if (rect.intersects(p->bbox()))
@@ -308,29 +316,36 @@ QList<QSharedPointer<PCBObject> > PCBDoc::findObjs(QRect &rect)
 	return out;
 }
 
-QList<QSharedPointer<PCBObject> > PCBDoc::findObjs(QPoint &pt)
+QList<QSharedPointer<PCBObject> > PCBDoc::findObjs(QPoint &pt, int dist)
 {
 	QList<QSharedPointer<PCBObject> > out;
+	QRect hitRect(pt.x()-dist/2, pt.y()-dist/2, dist, dist);
+
 	foreach(QSharedPointer<Part> p, mParts)
 	{
-		if (p->bbox().contains(pt))
+		if (p->bbox().intersects(hitRect))
 		{
 			out.append(p);
 		}
-		if (p->refVisible() && p->refdesText()->bbox().contains(pt))
+		if (p->refVisible() && p->refdesText()->bbox().intersects(hitRect))
 			out.append(p->refdesText());
-		if (p->valueVisible() && p->valueText()->bbox().contains(pt))
+		if (p->valueVisible() && p->valueText()->bbox().intersects(hitRect))
 			out.append(p->valueText());
 	}
 	foreach(QSharedPointer<Text> t, mTexts)
 	{
-		if(t->bbox().contains(pt))
+		if(t->bbox().intersects(hitRect))
 			out.append(t);
 	}
 	foreach(QSharedPointer<Segment> s, mTraceList->segments())
 	{
-		if (s->bbox().contains(pt))
+		if (s->bbox().intersects(hitRect))
 			out.append(s);
+	}
+	foreach(QSharedPointer<Vertex> v, mTraceList->vertices())
+	{
+		if (v->bbox().intersects(hitRect))
+			out.append(v);
 	}
 
 	return out;

@@ -71,7 +71,7 @@ public:
 	PADCONNTYPE connFlag() {return mConnFlag;}
 	void setConnFlag(PADCONNTYPE flag) { mConnFlag = flag; }
 
-	bool testHit( const QPoint & pt );
+	bool testHit( const QPoint & pt, int dist );
 
 	QRect bbox() const;
 	void draw(QPainter *painter) const;
@@ -148,7 +148,7 @@ public:
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
 
-	virtual bool testHit(QPoint pt, const Layer& layer) const;
+	virtual bool testHit(QPoint pt, int dist, const Layer& layer) const;
 
 	static QSharedPointer<Pin> newFromXML(QXmlStreamReader &reader, const QHash<int, QSharedPointer<Padstack> > &padstacks, Footprint* fp);
 	void toXML(QXmlStreamWriter &writer) const;
@@ -203,7 +203,6 @@ class Footprint
 public:
 	Footprint();
 	Footprint(const Footprint& other);
-	~Footprint();
 
 	enum FP_DRAW_LAYER { LAY_START, LAY_INNER, LAY_END };
 

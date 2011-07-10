@@ -63,14 +63,14 @@ EditPadstackDialog::EditPadstackDialog(QWidget *parent)
 
 int EditPadstackDialog::toPcb(double unit)
 {
-	if (mInMM) return XPcb::MM2PCB(unit);
-	else return XPcb::MIL2PCB(unit);
+	if (mInMM) return XPcb::mmToPcb(unit);
+	else return XPcb::milToPcb(unit);
 }
 
 double EditPadstackDialog::toUnits(int pcbu)
 {
-	if (mInMM) return XPcb::PCB2MM(pcbu);
-	else return XPcb::PCB2MIL(pcbu);
+	if (mInMM) return XPcb::pcbToMm(pcbu);
+	else return XPcb::pcbToMil(pcbu);
 }
 
 void EditPadstackDialog::init(QSharedPointer<Padstack> ps)
@@ -271,14 +271,14 @@ void EditPadstackDialog::updateUnits()
 	{
 		if (!mInMM)
 		{
-			box->setValue(XPcb::PCB2MIL(XPcb::MM2PCB(box->value())));
+			box->setValue(XPcb::pcbToMil(XPcb::mmToPcb(box->value())));
 			box->setDecimals(0);
 			box->setSuffix(" mil");
 		}
 		else
 		{
 			box->setDecimals(3);
-			box->setValue(XPcb::PCB2MM(XPcb::MIL2PCB(box->value())));
+			box->setValue(XPcb::pcbToMm(XPcb::milToPcb(box->value())));
 			box->setSuffix(" mm");
 		}
 	}

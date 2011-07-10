@@ -42,7 +42,7 @@ public:
 	virtual QRect bbox() const;
 	virtual PCBObjState getState() const;
 	virtual bool loadState(PCBObjState &state);
-	virtual bool testHit(QPoint p, const Layer &l) const;
+	virtual bool testHit(QPoint p, int dist, const Layer &l) const;
 
 	QPoint start() const { return mStart; }
 	void setStart(QPoint p) { mStart = p; }

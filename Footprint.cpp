@@ -123,10 +123,8 @@ void Pad::toXML(QXmlStreamWriter &writer) const
 	writer.writeEndElement();
 }
 
-bool Pad::testHit( const QPoint& pt )
+bool Pad::testHit( const QPoint& pt, int dist)
 {
-	double dist = sqrt(pow(pt.x(), 2) + pow(pt.y(), 2));
-
 	// check if we hit the pad
 	switch( mShape )
 	{
@@ -136,13 +134,14 @@ bool Pad::testHit( const QPoint& pt )
 	case PAD_ROUND:
 	case PAD_OCTAGON:
 	case PAD_SQUARE:
-		if( dist < (mWidth/2) )
+		if( XPcb::norm(pt) < (mWidth/2 + dist) )
 			return true;
 		break;
 	case PAD_RECT:
 	case PAD_RRECT:
 	case PAD_OBROUND:
-		if( abs(pt.x()) < (mWidth/2) && abs(pt.y()) < (mLength/2) )
+		if( abs(pt.x()) < (mWidth/2 + dist)
+				&& abs(pt.y()) < (mLength/2 + dist) )
 			return true;
 		break;
 	}
@@ -395,17 +394,16 @@ void Pin::toXML(QXmlStreamWriter &writer) const
 	writer.writeEndElement();
 }
 
-bool Pin::testHit(QPoint pt, const Layer& layer) const
+bool Pin::testHit(QPoint pt, int dist, const Layer& layer) const
 {
 	// check if we hit a thru-hole
 	QPoint delta( pt - pos() );
-	double dist = sqrt( delta.x()*delta.x() + delta.y()*delta.y() );
-	if( dist < padstack()->holeSize()/2 )
+	if( XPcb::norm(delta) < (padstack()->holeSize()/2 + dist) )
 		return true;
 
 	Pad pad = getPadOnLayer(layer);
 	if (!pad.isNull())
-		return pad.testHit(delta);
+		return pad.testHit(delta, dist);
 
 	return false;
 }
@@ -470,10 +468,9 @@ Footprint::Footprint()
 {
 	mValueText->setText("VALUE");
 	mValueText->setLayer(Layer::LAY_SILK_TOP);
-	mValueText->setPos(QPoint(0, XPcb::MIL2PCB(-120)));
+	mValueText->setPos(QPoint(0, XPcb::milToPcb(-120)));
 	mRefText->setText("REF");
 	mRefText->setLayer(Layer::LAY_SILK_TOP);
-	Log::instance().message("FP constructed");
 }
 
 Footprint::Footprint(const Footprint &other)
@@ -510,15 +507,6 @@ Footprint::Footprint(const Footprint &other)
 	{
 		mTexts.append(QSharedPointer<Text>(new Text(*p)));
 	}
-	Log::instance().message("FP copy constructor");
-
-}
-
-// destructor
-//
-Footprint::~Footprint()
-{
-	Log::instance().message("FP destroyed");
 }
 
 void Footprint::draw(QPainter *painter, FP_DRAW_LAYER layer) const
@@ -736,49 +724,6 @@ QRect Footprint::getPinBounds() const
 	}
 	return r;
 }
-
-// move to pin
-#if 0
-// Get bounding rectangle of pad
-//
-QRect Footprint::GetPadBounds( int i )
-{
-	int dx=0, dy=0;
-	Padstack * ps = &m_padstack[i];
-	Pad * p = &ps->top;
-	if( ps->top.shape == PAD_NONE && ps->bottom.shape != PAD_NONE )
-		p = &ps->bottom;
-	if( p->shape == PAD_NONE )
-	{
-		{
-			dx = ps->hole_size/2;
-			dy = dx;
-		}
-	}
-	else if( p->shape == PAD_SQUARE || p->shape == PAD_ROUND || p->shape == PAD_OCTAGON )
-	{
-		dx = p->size_h/2;
-		dy = dx;
-	}
-	else if( p->shape == PAD_RECT || p->shape == PAD_RRECT || p->shape == PAD_OVAL )
-	{
-		if( ps->angle == 0 || ps->angle == 180 )
-		{
-			dx = p->size_l;
-			dy = p->size_h/2;
-		}
-		else if( ps->angle == 90 || ps->angle == 270 )
-		{
-			dx = p->size_h/2;
-			dy = p->size_l;
-		}
-		else
-			ASSERT(0);	// illegal angle
-	}
-	return QRect(ps->x_rel-dx, ps->y_rel-dy, 2*dx, 2*dy);
-
-}
-#endif
 
 // Get bounding rectangle of footprint
 //

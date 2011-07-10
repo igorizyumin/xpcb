@@ -116,8 +116,7 @@ QSharedPointer<AbstractEditor> EditorFactory::newEditor(QSharedPointer<PCBObject
 	}
 	else if (QSharedPointer<Vertex> v = obj.dynamicCast<Vertex>())
 	{
-		if (mFactories.contains(ObjVertex))
-			return mFactories.value(ObjVertex)->makeEditor(ctrl, v);
+		return QSharedPointer<AbstractEditor>(new VertexEditor(dynamic_cast<PCBController*>(ctrl), v));
 	}
 	else if (QSharedPointer<Segment> s = obj.dynamicCast<Segment>())
 	{

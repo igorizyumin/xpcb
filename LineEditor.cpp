@@ -302,7 +302,7 @@ void LineEditor::mousePressEvent(QMouseEvent *event)
 		else if (mState != SELECTED)
 		{
 			QPoint pos = ctrl()->view()->transform().inverted().map(event->pos());
-			if (mLine->testHit(pos, mLine->layer()))
+			if (mLine->testHit(pos, ctrl()->hitRadius(), mLine->layer()))
 				event->accept();
 			else
 				event->ignore();
@@ -343,7 +343,7 @@ void LineEditor::mouseReleaseEvent(QMouseEvent *event)
 		else if (mState != SELECTED)
 		{
 			QPoint pos = ctrl()->view()->transform().inverted().map(event->pos());
-			if (mLine->testHit(pos, mLine->layer()))
+			if (mLine->testHit(pos, ctrl()->hitRadius(), mLine->layer()))
 			{
 				mState = SELECTED;
 				event->accept();

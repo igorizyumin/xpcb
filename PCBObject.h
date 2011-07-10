@@ -65,8 +65,10 @@ public:
 	/// \return object ID
 	int getid() const {return objID;}
 
-	/// Returns true if the object was hit.
-	virtual bool testHit(QPoint /* pt */, const Layer& /*l*/) const { return false; }
+	/// Returns true if the object was hit (pt is less than the specified
+	/// distance away from the object).
+	virtual bool testHit(QPoint /* pt */, int /* distance */,
+						 const Layer& /*l*/) const { return false; }
 
 	/// Returns the object's transform (from the object's coordinate system to
 	/// PCB coordinates).

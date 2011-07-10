@@ -68,14 +68,14 @@ void EditPinDialog::updateUnits()
 	{
 		if (!mInMM)
 		{
-			boxes[i]->setValue(XPcb::PCB2MIL(XPcb::MM2PCB(boxes[i]->value())));
+			boxes[i]->setValue(XPcb::pcbToMil(XPcb::mmToPcb(boxes[i]->value())));
 			boxes[i]->setDecimals(0);
 			boxes[i]->setSuffix(" mil");
 		}
 		else
 		{
 			boxes[i]->setDecimals(3);
-			boxes[i]->setValue(XPcb::PCB2MM(XPcb::MIL2PCB(boxes[i]->value())));
+			boxes[i]->setValue(XPcb::pcbToMm(XPcb::milToPcb(boxes[i]->value())));
 			boxes[i]->setSuffix(" mm");
 		}
 	}
@@ -160,14 +160,14 @@ QList<QSharedPointer<Pin> > EditPinDialog::makePins(QSharedPointer<Footprint> fp
 
 int EditPinDialog::toPcb(double unit) const
 {
-	if (mInMM) return XPcb::MM2PCB(unit);
-	else return XPcb::MIL2PCB(unit);
+	if (mInMM) return XPcb::mmToPcb(unit);
+	else return XPcb::milToPcb(unit);
 }
 
 double EditPinDialog::toUnits(int pcbu) const
 {
-	if (mInMM) return XPcb::PCB2MM(pcbu);
-	else return XPcb::PCB2MIL(pcbu);
+	if (mInMM) return XPcb::pcbToMm(pcbu);
+	else return XPcb::pcbToMil(pcbu);
 }
 
 QSharedPointer<Padstack> EditPinDialog::padstack() const

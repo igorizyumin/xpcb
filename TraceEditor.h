@@ -84,15 +84,16 @@ protected:
 
 private slots:
 	void startSlideSegment();
+	void startInsertVtx();
 
 private:
 	enum State { SELECTED, SLIDE, ADD_VTX };
 
 	void updateSlide();
 	void finishSlide();
+	void finishAddVtx();
 	void cleanUpTrace(QList<QSharedPointer<Segment> > segments,
 									 QUndoCommand* parent);
-	void removeSegAndJoin(QSharedPointer<Segment> seg, QUndoCommand* parent);
 
 	State mState;
 
@@ -101,7 +102,7 @@ private:
 
 	QPoint mPos;
 
-	// stuff used by slide function
+	// stuff used by move functions
 	QPoint mPt1;
 	QPoint mPt2;
 	QPoint mSecantVec;
@@ -119,6 +120,45 @@ private:
 	short mSignY;
 
 	CtrlAction mSlideAction;
+	CtrlAction mAddVtxAction;
+};
+
+class VertexEditor : public AbstractEditor
+{
+	Q_OBJECT
+
+public:
+	explicit VertexEditor(PCBController *ctrl, QSharedPointer<Vertex> vtx);
+
+	virtual void drawOverlay(QPainter* painter);
+	virtual void init();
+	virtual QList<const CtrlAction*> actions() const;
+
+protected:
+	virtual void mouseMoveEvent(QMouseEvent *event);
+	virtual void mousePressEvent(QMouseEvent *event);
+	virtual void mouseReleaseEvent(QMouseEvent *event);
+	virtual void keyPressEvent(QKeyEvent *event);
+
+private slots:
+	void startMove();
+
+private:
+	enum State { SELECTED, MOVE };
+
+	void updateMove();
+	void finishMove();
+	void abortMove();
+
+	State mState;
+
+	PCBController* mCtrl;
+	QSharedPointer<Vertex> mVtx;
+	PCBObjState mPrevState;
+
+	QPoint mPos;
+
+	CtrlAction mMoveAction;
 };
 
 #endif // TRACEEDITOR_H

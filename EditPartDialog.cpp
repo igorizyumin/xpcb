@@ -39,8 +39,8 @@ void EditPartDialog::updateUnits()
 {
 	if (!mInMM)
 	{
-		xPos->setValue(XPcb::PCB2MIL(XPcb::MM2PCB(xPos->value())));
-		yPos->setValue(XPcb::PCB2MIL(XPcb::MM2PCB(yPos->value())));
+		xPos->setValue(XPcb::pcbToMil(XPcb::mmToPcb(xPos->value())));
+		yPos->setValue(XPcb::pcbToMil(XPcb::mmToPcb(yPos->value())));
 
 		xPos->setDecimals(0);
 		yPos->setDecimals(0);
@@ -53,8 +53,8 @@ void EditPartDialog::updateUnits()
 		xPos->setDecimals(3);
 		yPos->setDecimals(3);
 
-		xPos->setValue(XPcb::PCB2MM(XPcb::MIL2PCB(xPos->value())));
-		yPos->setValue(XPcb::PCB2MM(XPcb::MIL2PCB(yPos->value())));
+		xPos->setValue(XPcb::pcbToMm(XPcb::milToPcb(xPos->value())));
+		yPos->setValue(XPcb::pcbToMm(XPcb::milToPcb(yPos->value())));
 
 		xPos->setSuffix(" mm");
 		yPos->setSuffix(" mm");
@@ -76,8 +76,8 @@ void EditPartDialog::init(QSharedPointer<Part> p)
 		this->setPosRadio->setChecked(true);
 		this->sideBox->setCurrentIndex(static_cast<int>(p->side()));
 		this->angleBox->setCurrentIndex(p->angle() / 90);
-		this->xPos->setValue(XPcb::PCB2MIL(p->pos().x()));
-		this->yPos->setValue(XPcb::PCB2MIL(p->pos().y()));
+		this->xPos->setValue(XPcb::pcbToMil(p->pos().x()));
+		this->yPos->setValue(XPcb::pcbToMil(p->pos().y()));
 		this->mFpChanged = false;
 	}
 	else
