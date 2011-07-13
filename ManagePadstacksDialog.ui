@@ -21,7 +21,7 @@
        <item>
         <widget class="QPushButton" name="newButton">
          <property name="text">
-          <string>New...</string>
+          <string>&amp;New...</string>
          </property>
         </widget>
        </item>
@@ -31,7 +31,7 @@
           <bool>false</bool>
          </property>
          <property name="text">
-          <string>Edit...</string>
+          <string>&amp;Edit...</string>
          </property>
         </widget>
        </item>
@@ -41,7 +41,7 @@
           <bool>false</bool>
          </property>
          <property name="text">
-          <string>Copy...</string>
+          <string>&amp;Copy...</string>
          </property>
         </widget>
        </item>
@@ -51,7 +51,7 @@
           <bool>false</bool>
          </property>
          <property name="text">
-          <string>Delete</string>
+          <string>&amp;Delete</string>
          </property>
         </widget>
        </item>

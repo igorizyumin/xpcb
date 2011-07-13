@@ -20,6 +20,7 @@
 #include <QPoint>
 #include "TraceEditor.h"
 #include "Document.h"
+#include "SegmentLayerDialog.h"
 
 using namespace XPcb;
 
@@ -188,12 +189,17 @@ void NewTraceEditor::toggleMode()
 SegmentEditor::SegmentEditor(PCBController *ctrl,
 							 QSharedPointer<Segment> segment)
 	: AbstractEditor(ctrl), mState(SELECTED), mCtrl(ctrl), mSegment(segment),
-	  mSlideAction(3, "Slide Segment"), mAddVtxAction(2, "Add Vertex")
+	  mSlideAction(3, "Slide Segment"), mAddVtxAction(2, "Add Vertex"),
+	  mDelAction(7, "Ripup Segment"), mSetLayerAction(1, "Set Layer")
 {
 	connect(&mSlideAction, SIGNAL(execFired()),
 			this, SLOT(startSlideSegment()));
 	connect(&mAddVtxAction, SIGNAL(execFired()),
 			this, SLOT(startInsertVtx()));
+	connect(&mDelAction, SIGNAL(execFired()),
+			this, SLOT(deleteSegment()));
+	connect(&mSetLayerAction, SIGNAL(execFired()),
+			this, SLOT(setLayer()));
 	ctrl->hideObj(mSegment);
 }
 
@@ -230,7 +236,8 @@ QList<const CtrlAction*> SegmentEditor::actions() const
 {
 	QList<const CtrlAction*> out;
 	if (mState == SELECTED)
-		out << &mSlideAction << &mAddVtxAction;
+		out << &mSlideAction << &mAddVtxAction
+			<< &mDelAction << &mSetLayerAction;
 	return out;
 }
 
@@ -284,7 +291,37 @@ void SegmentEditor::mouseReleaseEvent(QMouseEvent *event)
 void SegmentEditor::keyPressEvent(QKeyEvent *event)
 {
 	if (event->key() == Qt::Key_Escape)
-		emit editorFinished();
+	{
+		if (mState == SLIDE)
+			abortSlide();
+		else
+			mState = SELECTED;
+		emit actionsChanged();
+		emit overlayChanged();
+	}
+}
+
+void SegmentEditor::deleteSegment()
+{
+	TraceList* tl = &mCtrl->pcbDoc()->traceList();
+	QUndoCommand *cmd = tl->removeSegmentCmd(mSegment);
+	// exec the command
+	mCtrl->doc()->doCommand(cmd);
+	emit editorFinished();
+}
+
+void SegmentEditor::setLayer()
+{
+	SegmentLayerDialog dlg(mCtrl->view(), mCtrl);
+	dlg.init(mSegment.data());
+	PCBObjState prev = mSegment->getState();
+	if (dlg.exec() == QDialog::Accepted)
+	{
+		// XXX TODO apply to connected segments if needed
+		mSegment->setLayer(dlg.layer());
+		PCBObjEditCmd* cmd = new PCBObjEditCmd(0, mSegment, prev);
+		mCtrl->doc()->doCommand(cmd);
+	}
 }
 
 void SegmentEditor::startSlideSegment()
@@ -520,6 +557,17 @@ void SegmentEditor::finishSlide()
 	emit overlayChanged();
 }
 
+void SegmentEditor::abortSlide()
+{
+	if (mSeg1)
+		mCtrl->unhideObj(mSeg1);
+	if (mSeg2)
+		mCtrl->unhideObj(mSeg2);
+	mSeg1.clear();
+	mSeg2.clear();
+	mState = SELECTED;
+}
+
 void SegmentEditor::finishAddVtx()
 {
 	QUndoCommand *parent = new QUndoCommand("insert vertex");
@@ -542,10 +590,12 @@ void SegmentEditor::finishAddVtx()
 
 VertexEditor::VertexEditor(PCBController *ctrl, QSharedPointer<Vertex> vtx)
 	: AbstractEditor(ctrl), mState(SELECTED), mCtrl(ctrl), mVtx(vtx),
-	  mMoveAction(3, "Move Vertex")
+	  mMoveAction(3, "Move Vertex"), mDelAction(7, "Delete Vertex")
 {
 	connect(&mMoveAction, SIGNAL(execFired()),
 			this, SLOT(startMove()));
+	connect(&mDelAction, SIGNAL(execFired()),
+			this, SLOT(deleteVtx()));
 	mPos = mVtx->pos();
 }
 
@@ -580,7 +630,10 @@ QList<const CtrlAction*> VertexEditor::actions() const
 {
 	QList<const CtrlAction*> out;
 	if (mState == SELECTED)
+	{
 		out << &mMoveAction;
+		out << &mDelAction;
+	}
 	return out;
 }
 void VertexEditor::mouseMoveEvent(QMouseEvent *event)
@@ -621,7 +674,7 @@ void VertexEditor::mouseReleaseEvent(QMouseEvent *event)
 
 void VertexEditor::keyPressEvent(QKeyEvent *event)
 {
-	if (event->key() == Qt::Key_Escape)
+	if (event->key() == Qt::Key_Escape && mState == MOVE)
 	{
 		abortMove();
 	}
@@ -656,4 +709,22 @@ void VertexEditor::abortMove()
 	mPos = mVtx->pos();
 	emit actionsChanged();
 	emit overlayChanged();
+}
+
+void VertexEditor::deleteVtx()
+{
+	QList<QSharedPointer<Segment> > segs = mVtx->segments().toList();
+	// do not delete tees or vertices with only one segment
+	if (segs.size() != 2)
+		return;
+	TraceList* tl = &mCtrl->pcbDoc()->traceList();
+	QSharedPointer<Vertex> v2 = segs[1]->otherVertex(mVtx);
+	QUndoCommand *parent = new QUndoCommand("delete vertex");
+	// reattach the first segment
+	tl->swapVtxCmd(segs[0], mVtx, v2, parent);
+	// delete the second segment
+	tl->removeSegmentCmd(segs[1], parent);
+	// exec the command
+	mCtrl->doc()->doCommand(parent);
+	emit editorFinished();
 }

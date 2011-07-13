@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>293</width>
-    <height>113</height>
+    <height>115</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,7 +19,7 @@
      <item>
       <widget class="QLabel" name="label">
        <property name="text">
-        <string>Line &amp;Width</string>
+        <string>Line &amp;Width:</string>
        </property>
        <property name="buddy">
         <cstring>widthBox</cstring>
@@ -70,7 +70,7 @@
         </sizepolicy>
        </property>
        <property name="text">
-        <string>&amp;Units</string>
+        <string>&amp;Units:</string>
        </property>
        <property name="buddy">
         <cstring>unitsBox</cstring>
@@ -104,7 +104,7 @@
      <item>
       <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>&amp;Layer</string>
+        <string>&amp;Layer:</string>
        </property>
        <property name="buddy">
         <cstring>layerBox</cstring>

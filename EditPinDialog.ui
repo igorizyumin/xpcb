@@ -28,7 +28,10 @@
         <item>
          <widget class="QLabel" name="label">
           <property name="text">
-           <string>Pin name</string>
+           <string>Pin &amp;name:</string>
+          </property>
+          <property name="buddy">
+           <cstring>pinName</cstring>
           </property>
          </widget>
         </item>
@@ -42,7 +45,10 @@
         <item>
          <widget class="QLabel" name="label_2">
           <property name="text">
-           <string>Padstack</string>
+           <string>&amp;Padstack:</string>
+          </property>
+          <property name="buddy">
+           <cstring>psList</cstring>
           </property>
          </widget>
         </item>
@@ -76,7 +82,7 @@
         <item>
          <widget class="QPushButton" name="manageBtn">
           <property name="text">
-           <string>Manage...</string>
+           <string>&amp;Manage...</string>
           </property>
          </widget>
         </item>
@@ -102,7 +108,7 @@
         <item>
          <widget class="QRadioButton" name="dragRadio">
           <property name="text">
-           <string>Drag to position</string>
+           <string>&amp;Drag to position</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -131,7 +137,7 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>&amp;Units</string>
+           <string>&amp;Units:</string>
           </property>
           <property name="buddy">
            <cstring>unitsBox</cstring>
@@ -165,7 +171,7 @@
         <item>
          <widget class="QRadioButton" name="setPosRadio">
           <property name="text">
-           <string>Set position</string>
+           <string>&amp;Set position</string>
           </property>
          </widget>
         </item>
@@ -191,7 +197,10 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>Angle</string>
+           <string>An&amp;gle:</string>
+          </property>
+          <property name="buddy">
+           <cstring>angleBox</cstring>
           </property>
          </widget>
         </item>
@@ -231,7 +240,10 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>X</string>
+           <string>&amp;X:</string>
+          </property>
+          <property name="buddy">
+           <cstring>xPosBox</cstring>
           </property>
          </widget>
         </item>
@@ -322,7 +334,10 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>Y</string>
+           <string>&amp;Y:</string>
+          </property>
+          <property name="buddy">
+           <cstring>yPosBox</cstring>
           </property>
          </widget>
         </item>
@@ -402,7 +417,7 @@
       <item>
        <widget class="QCheckBox" name="addRowCheck">
         <property name="text">
-         <string>Add row of pins</string>
+         <string>Add &amp;row of pins</string>
         </property>
        </widget>
       </item>
@@ -411,7 +426,10 @@
         <item row="0" column="0">
          <widget class="QLabel" name="label_3">
           <property name="text">
-           <string>Num pins</string>
+           <string>N&amp;um pins:</string>
+          </property>
+          <property name="buddy">
+           <cstring>numPinsBox</cstring>
           </property>
          </widget>
         </item>
@@ -431,7 +449,10 @@
         <item row="0" column="3">
          <widget class="QLabel" name="label_4">
           <property name="text">
-           <string>Increment</string>
+           <string>&amp;Increment:</string>
+          </property>
+          <property name="buddy">
+           <cstring>incrementBox</cstring>
           </property>
          </widget>
         </item>
@@ -451,7 +472,10 @@
         <item row="1" column="3">
          <widget class="QLabel" name="label_9">
           <property name="text">
-           <string>Spacing</string>
+           <string>Sp&amp;acing:</string>
+          </property>
+          <property name="buddy">
+           <cstring>spacingBox</cstring>
           </property>
          </widget>
         </item>
@@ -483,7 +507,10 @@
         <item row="1" column="0">
          <widget class="QLabel" name="label_10">
           <property name="text">
-           <string>Orientation</string>
+           <string>Ori&amp;entation:</string>
+          </property>
+          <property name="buddy">
+           <cstring>orientBox</cstring>
           </property>
          </widget>
         </item>

@@ -85,12 +85,15 @@ protected:
 private slots:
 	void startSlideSegment();
 	void startInsertVtx();
+	void deleteSegment();
+	void setLayer();
 
 private:
 	enum State { SELECTED, SLIDE, ADD_VTX };
 
 	void updateSlide();
 	void finishSlide();
+	void abortSlide();
 	void finishAddVtx();
 	void cleanUpTrace(QList<QSharedPointer<Segment> > segments,
 									 QUndoCommand* parent);
@@ -121,6 +124,10 @@ private:
 
 	CtrlAction mSlideAction;
 	CtrlAction mAddVtxAction;
+	CtrlAction mDelAction;
+	CtrlAction mSetLayerAction;
+
+
 };
 
 class VertexEditor : public AbstractEditor
@@ -142,6 +149,7 @@ protected:
 
 private slots:
 	void startMove();
+	void deleteVtx();
 
 private:
 	enum State { SELECTED, MOVE };
@@ -159,6 +167,7 @@ private:
 	QPoint mPos;
 
 	CtrlAction mMoveAction;
+	CtrlAction mDelAction;
 };
 
 #endif // TRACEEDITOR_H

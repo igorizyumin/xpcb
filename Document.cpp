@@ -105,43 +105,75 @@ FPDoc::FPDoc()
 {
 }
 
-QList<Layer> FPDoc::layerList(LayerOrder order)
+QList<Layer> FPDoc::layerList(LayerOrder order, Document::LayerMask mask)
 {
 	QList<Layer> l = QList<Layer>();
 
 	if (order == ListOrder)
 	{
-		l.append(Layer(Layer::LAY_SELECTION));
-		l.append(Layer(Layer::LAY_VISIBLE_GRID));
-		l.append(Layer(Layer::LAY_CENTROID));
-		l.append(Layer(Layer::LAY_SILK_TOP));
-		l.append(Layer(Layer::LAY_SILK_BOTTOM));
-		l.append(Layer(Layer::LAY_GLUE));
-		l.append(Layer(Layer::LAY_SMCUT_TOP));
-		l.append(Layer(Layer::LAY_SMCUT_BOTTOM));
-		l.append(Layer(Layer::LAY_PASTE_TOP));
-		l.append(Layer(Layer::LAY_PASTE_BOTTOM));
-		l.append(Layer(Layer::LAY_HOLE));
-		l.append(Layer(Layer::LAY_START));
-		l.append(Layer(Layer::LAY_INNER));
-		l.append(Layer(Layer::LAY_END));
+		if (mask & Document::Display)
+		{
+			l.append(Layer(Layer::LAY_SELECTION));
+			l.append(Layer(Layer::LAY_VISIBLE_GRID));
+			l.append(Layer(Layer::LAY_CENTROID));
+		}
+		if (mask & Document::Silk)
+		{
+			l.append(Layer(Layer::LAY_SILK_TOP));
+			l.append(Layer(Layer::LAY_SILK_BOTTOM));
+		}
+		if (mask & Document::Glue)
+			l.append(Layer(Layer::LAY_GLUE));
+		if (mask & Document::Mask)
+		{
+			l.append(Layer(Layer::LAY_SMCUT_TOP));
+			l.append(Layer(Layer::LAY_SMCUT_BOTTOM));
+		}
+		if (mask & Document::Paste)
+		{
+			l.append(Layer(Layer::LAY_PASTE_TOP));
+			l.append(Layer(Layer::LAY_PASTE_BOTTOM));
+		}
+		if (mask & Document::Hole)
+			l.append(Layer(Layer::LAY_HOLE));
+		if (mask & Document::Copper)
+		{
+			l.append(Layer(Layer::LAY_START));
+			l.append(Layer(Layer::LAY_INNER));
+			l.append(Layer(Layer::LAY_END));
+		}
 	}
 	else
 	{
-		l.append(Layer(Layer::LAY_VISIBLE_GRID));
-		l.append(Layer(Layer::LAY_CENTROID));
-		l.append(Layer(Layer::LAY_SMCUT_BOTTOM));
-		l.append(Layer(Layer::LAY_PASTE_BOTTOM));
-		l.append(Layer(Layer::LAY_SILK_BOTTOM));
-		l.append(Layer(Layer::LAY_END));
-		l.append(Layer(Layer::LAY_INNER));
-		l.append(Layer(Layer::LAY_START));
-		l.append(Layer(Layer::LAY_HOLE));
-		l.append(Layer(Layer::LAY_SMCUT_TOP));
-		l.append(Layer(Layer::LAY_PASTE_TOP));
-		l.append(Layer(Layer::LAY_SILK_TOP));
-		l.append(Layer(Layer::LAY_GLUE));
-		l.append(Layer(Layer::LAY_SELECTION));
+		if (mask & Document::Display)
+		{
+			l.append(Layer(Layer::LAY_VISIBLE_GRID));
+			l.append(Layer(Layer::LAY_CENTROID));
+		}
+		if (mask & Document::Mask)
+			l.append(Layer(Layer::LAY_SMCUT_BOTTOM));
+		if (mask & Document::Paste)
+			l.append(Layer(Layer::LAY_PASTE_BOTTOM));
+		if (mask & Document::Silk)
+			l.append(Layer(Layer::LAY_SILK_BOTTOM));
+		if (mask & Document::Copper)
+		{
+			l.append(Layer(Layer::LAY_END));
+			l.append(Layer(Layer::LAY_INNER));
+			l.append(Layer(Layer::LAY_START));
+		}
+		if (mask & Document::Hole)
+			l.append(Layer(Layer::LAY_HOLE));
+		if (mask & Document::Mask)
+			l.append(Layer(Layer::LAY_SMCUT_TOP));
+		if (mask & Document::Paste)
+			l.append(Layer(Layer::LAY_PASTE_TOP));
+		if (mask & Document::Silk)
+			l.append(Layer(Layer::LAY_SILK_TOP));
+		if (mask & Document::Glue)
+			l.append(Layer(Layer::LAY_GLUE));
+		if (mask & Document::Display)
+			l.append(Layer(Layer::LAY_SELECTION));
 	}
 
 	return l;
@@ -368,44 +400,71 @@ void PCBDoc::clearDoc()
 	mPadstacks.append(mDefaultPadstack);
 }
 
-QList<Layer> PCBDoc::layerList(LayerOrder order)
+QList<Layer> PCBDoc::layerList(LayerOrder order, Document::LayerMask mask)
 {
 	if (order == ListOrder)
 	{
 		QList<Layer> l = QList<Layer>();
-		l.append(Layer(Layer::LAY_SELECTION));
-		l.append(Layer(Layer::LAY_VISIBLE_GRID));
-		l.append(Layer(Layer::LAY_DRC));
-		l.append(Layer(Layer::LAY_BOARD_OUTLINE));
-		l.append(Layer(Layer::LAY_RAT_LINE));
-		l.append(Layer(Layer::LAY_SILK_TOP));
-		l.append(Layer(Layer::LAY_SILK_BOTTOM));
-		l.append(Layer(Layer::LAY_SMCUT_TOP));
-		l.append(Layer(Layer::LAY_SMCUT_BOTTOM));
-		l.append(Layer(Layer::LAY_HOLE));
-		l.append(Layer(Layer::LAY_TOP_COPPER));
-		for(int i = 0; i < numLayers() - 2; i++)
-			l.append(Layer((Layer::Type(Layer::LAY_INNER1+i))));
-		l.append(Layer(Layer::LAY_BOTTOM_COPPER));
+		if (mask & Document::Display)
+		{
+			l.append(Layer(Layer::LAY_SELECTION));
+			l.append(Layer(Layer::LAY_VISIBLE_GRID));
+			l.append(Layer(Layer::LAY_DRC));
+			l.append(Layer(Layer::LAY_BOARD_OUTLINE));
+			l.append(Layer(Layer::LAY_RAT_LINE));
+		}
+		if (mask & Document::Silk)
+		{
+			l.append(Layer(Layer::LAY_SILK_TOP));
+			l.append(Layer(Layer::LAY_SILK_BOTTOM));
+		}
+		if (mask & Document::Mask)
+		{
+			l.append(Layer(Layer::LAY_SMCUT_TOP));
+			l.append(Layer(Layer::LAY_SMCUT_BOTTOM));
+		}
+		if (mask & Document::Hole)
+			l.append(Layer(Layer::LAY_HOLE));
+		if (mask & Document::Copper)
+		{
+			l.append(Layer(Layer::LAY_TOP_COPPER));
+			for(int i = 0; i < numLayers() - 2; i++)
+				l.append(Layer((Layer::Type(Layer::LAY_INNER1+i))));
+			l.append(Layer(Layer::LAY_BOTTOM_COPPER));
+		}
 		return l;
 	}
 	else
 	{
 		QList<Layer> l = QList<Layer>();
-		l.append(Layer(Layer::LAY_VISIBLE_GRID));
-		l.append(Layer(Layer::LAY_BOTTOM_COPPER));
-		for(int i = numLayers() - 3; i >= 0; i--)
-			l.append(Layer(Layer::Type(Layer::LAY_INNER1+i)));
-		l.append(Layer(Layer::LAY_TOP_COPPER));
-		l.append(Layer(Layer::LAY_HOLE));
-		l.append(Layer(Layer::LAY_SMCUT_BOTTOM));
-		l.append(Layer(Layer::LAY_SMCUT_TOP));
-		l.append(Layer(Layer::LAY_SILK_BOTTOM));
-		l.append(Layer(Layer::LAY_SILK_TOP));
-		l.append(Layer(Layer::LAY_RAT_LINE));
-		l.append(Layer(Layer::LAY_BOARD_OUTLINE));
-		l.append(Layer(Layer::LAY_DRC));
-		l.append(Layer(Layer::LAY_SELECTION));
+		if (mask & Document::Display)
+			l.append(Layer(Layer::LAY_VISIBLE_GRID));
+		if (mask & Document::Copper)
+		{
+			l.append(Layer(Layer::LAY_BOTTOM_COPPER));
+			for(int i = numLayers() - 3; i >= 0; i--)
+				l.append(Layer(Layer::Type(Layer::LAY_INNER1+i)));
+			l.append(Layer(Layer::LAY_TOP_COPPER));
+		}
+		if (mask & Document::Hole)
+			l.append(Layer(Layer::LAY_HOLE));
+		if (mask & Document::Mask)
+		{
+			l.append(Layer(Layer::LAY_SMCUT_BOTTOM));
+			l.append(Layer(Layer::LAY_SMCUT_TOP));
+		}
+		if (mask & Document::Silk)
+		{
+			l.append(Layer(Layer::LAY_SILK_BOTTOM));
+			l.append(Layer(Layer::LAY_SILK_TOP));
+		}
+		if (mask & Document::Display)
+		{
+			l.append(Layer(Layer::LAY_RAT_LINE));
+			l.append(Layer(Layer::LAY_BOARD_OUTLINE));
+			l.append(Layer(Layer::LAY_DRC));
+			l.append(Layer(Layer::LAY_SELECTION));
+		}
 		return l;
 	}
 }

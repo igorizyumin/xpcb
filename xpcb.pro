@@ -53,7 +53,8 @@ SOURCES += PCBView.cpp \
     SelectFPDialog.cpp \
     Footprint.cpp \
     Document.cpp \
-    TraceEditor.cpp
+    TraceEditor.cpp \
+    SegmentLayerDialog.cpp
 
 unittest {
 	QT += testlib
@@ -102,7 +103,8 @@ HEADERS  += PCBView.h \
     SelectFPDialog.h \
     Footprint.h \
     Document.h \
-    TraceEditor.h
+    TraceEditor.h \
+    SegmentLayerDialog.h
 
 FORMS    += GridToolbarWidget.ui \
     AboutDialog.ui \
@@ -116,7 +118,8 @@ FORMS    += GridToolbarWidget.ui \
     EditPinDialog.ui \
     FPPropDialog.ui \
     EditLineDialog.ui \
-    SelectFPDialog.ui
+    SelectFPDialog.ui \
+    SegmentLayerDialog.ui
 
 RESOURCES += \
     qtfreepcb.qrc

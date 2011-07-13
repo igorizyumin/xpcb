@@ -138,8 +138,6 @@ void Part::updateFp()
 	mFp = doc()->getFootprint(mFpUuid);
 	if (mFp.isNull()) return;
 
-	Log::instance().message(QString("num pins: %1").arg(mFp->numPins()));
-
 	// create new pins
 	for(int i = 0; i < mFp->numPins(); i++)
 	{

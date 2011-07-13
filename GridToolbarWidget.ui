@@ -457,7 +457,7 @@
    <item>
     <widget class="QLabel" name="label_5">
      <property name="text">
-      <string>Angle</string>
+      <string>Angle:</string>
      </property>
     </widget>
    </item>

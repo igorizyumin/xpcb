@@ -46,7 +46,7 @@
         </sizepolicy>
        </property>
        <property name="text">
-        <string>&amp;Layer</string>
+        <string>&amp;Layer:</string>
        </property>
        <property name="buddy">
         <cstring>layerBox</cstring>
@@ -86,7 +86,7 @@
         </sizepolicy>
        </property>
        <property name="text">
-        <string>&amp;Units</string>
+        <string>&amp;Units:</string>
        </property>
        <property name="buddy">
         <cstring>unitsBox</cstring>
@@ -184,7 +184,7 @@
         <item>
          <widget class="QRadioButton" name="setWidthRadio">
           <property name="text">
-           <string>Set &amp;width</string>
+           <string>Set &amp;width:</string>
           </property>
          </widget>
         </item>
@@ -227,7 +227,7 @@
       <item row="0" column="0">
        <widget class="QRadioButton" name="dragPosRadio">
         <property name="text">
-         <string>Dra&amp;g to position</string>
+         <string>&amp;Drag to position</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -245,7 +245,7 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>&amp;X</string>
+           <string>&amp;X:</string>
           </property>
           <property name="buddy">
            <cstring>xPos</cstring>
@@ -302,7 +302,7 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>&amp;Y</string>
+           <string>&amp;Y:</string>
           </property>
           <property name="buddy">
            <cstring>yPos</cstring>
@@ -344,7 +344,7 @@
            <bool>true</bool>
           </property>
           <property name="text">
-           <string>Set &amp;position and angle</string>
+           <string>Set &amp;position and angle:</string>
           </property>
           <property name="checked">
            <bool>false</bool>

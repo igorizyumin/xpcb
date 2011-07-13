@@ -27,7 +27,7 @@
           <item>
            <widget class="QLabel" name="label_14">
             <property name="text">
-             <string>Name</string>
+             <string>Name:</string>
             </property>
            </widget>
           </item>
@@ -44,7 +44,7 @@
           <item>
            <widget class="QLabel" name="label_15">
             <property name="text">
-             <string>Units</string>
+             <string>Units:</string>
             </property>
            </widget>
           </item>
@@ -94,7 +94,7 @@
              </sizepolicy>
             </property>
             <property name="text">
-             <string>Through-hole, diameter</string>
+             <string>Through-hole, diameter:</string>
             </property>
            </widget>
           </item>
@@ -248,7 +248,7 @@
              </sizepolicy>
             </property>
             <property name="text">
-             <string>Copper pad</string>
+             <string>Copper pad:</string>
             </property>
            </widget>
           </item>
@@ -635,7 +635,7 @@
              </sizepolicy>
             </property>
             <property name="text">
-             <string>Solder mask cutout</string>
+             <string>Solder mask cutout:</string>
             </property>
            </widget>
           </item>
@@ -648,7 +648,7 @@
              </sizepolicy>
             </property>
             <property name="text">
-             <string>Paste mask cutout</string>
+             <string>Paste mask cutout:</string>
             </property>
            </widget>
           </item>
@@ -678,7 +678,7 @@
              </sizepolicy>
             </property>
             <property name="text">
-             <string>Copper area connection</string>
+             <string>Copper area connection:</string>
             </property>
            </widget>
           </item>
@@ -819,7 +819,7 @@
              </sizepolicy>
             </property>
             <property name="text">
-             <string>Copper pad</string>
+             <string>Copper pad:</string>
             </property>
            </widget>
           </item>
@@ -949,7 +949,7 @@
              </sizepolicy>
             </property>
             <property name="text">
-             <string>Copper area connection</string>
+             <string>Copper area connection:</string>
             </property>
            </widget>
           </item>
@@ -1082,7 +1082,7 @@
               </sizepolicy>
              </property>
              <property name="text">
-              <string>Copper pad</string>
+              <string>Copper pad:</string>
              </property>
             </widget>
            </item>
@@ -1227,7 +1227,7 @@
               </sizepolicy>
              </property>
              <property name="text">
-              <string>Solder mask cutout</string>
+              <string>Solder mask cutout:</string>
              </property>
             </widget>
            </item>
@@ -1377,7 +1377,7 @@
               </sizepolicy>
              </property>
              <property name="text">
-              <string>Paste mask cutout</string>
+              <string>Paste mask cutout:</string>
              </property>
             </widget>
            </item>
@@ -1532,7 +1532,7 @@
              </sizepolicy>
             </property>
             <property name="text">
-             <string>Copper area connection</string>
+             <string>Copper area connection:</string>
             </property>
            </widget>
           </item>

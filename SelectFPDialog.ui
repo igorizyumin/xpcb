@@ -36,7 +36,7 @@
        <item>
         <widget class="QLabel" name="label_5">
          <property name="text">
-          <string>Available Footprints</string>
+          <string>Available Footprints:</string>
          </property>
         </widget>
        </item>
@@ -57,7 +57,7 @@
        <item>
         <widget class="QLabel" name="label">
          <property name="text">
-          <string>Preview</string>
+          <string>Preview:</string>
          </property>
         </widget>
        </item>

@@ -25,7 +25,7 @@
      <item row="0" column="0">
       <widget class="QLabel" name="label">
        <property name="text">
-        <string>&amp;Reference</string>
+        <string>&amp;Reference:</string>
        </property>
        <property name="buddy">
         <cstring>refdesEdit</cstring>
@@ -38,7 +38,7 @@
      <item row="1" column="0">
       <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>&amp;Value</string>
+        <string>&amp;Value:</string>
        </property>
        <property name="buddy">
         <cstring>valueEdit</cstring>
@@ -94,7 +94,7 @@
         <item row="0" column="0">
          <widget class="QLabel" name="label_3">
           <property name="text">
-           <string>Name</string>
+           <string>Name:</string>
           </property>
           <property name="buddy">
            <cstring>fpNameEdit</cstring>
@@ -122,7 +122,7 @@
         <item row="6" column="0">
          <widget class="QLabel" name="label_4">
           <property name="text">
-           <string>Author</string>
+           <string>Author:</string>
           </property>
           <property name="buddy">
            <cstring>authorEdit</cstring>
@@ -139,7 +139,7 @@
         <item row="7" column="0">
          <widget class="QLabel" name="label_5">
           <property name="text">
-           <string>Source</string>
+           <string>Source:</string>
           </property>
           <property name="buddy">
            <cstring>sourceEdit</cstring>
@@ -156,7 +156,7 @@
         <item row="8" column="0">
          <widget class="QLabel" name="label_6">
           <property name="text">
-           <string>Description</string>
+           <string>Description:</string>
           </property>
           <property name="buddy">
            <cstring>descEdit</cstring>
@@ -242,7 +242,7 @@
         <item row="0" column="1">
          <widget class="QLabel" name="label_11">
           <property name="text">
-           <string>&amp;Units</string>
+           <string>&amp;Units:</string>
           </property>
           <property name="buddy">
            <cstring>unitsBox</cstring>
@@ -265,7 +265,7 @@
         <item row="1" column="1">
          <widget class="QLabel" name="label_10">
           <property name="text">
-           <string>Si&amp;de</string>
+           <string>Si&amp;de:</string>
           </property>
           <property name="buddy">
            <cstring>sideBox</cstring>
@@ -300,7 +300,7 @@
              </sizepolicy>
             </property>
             <property name="text">
-             <string>&amp;X</string>
+             <string>&amp;X:</string>
             </property>
             <property name="buddy">
              <cstring>xPos</cstring>
@@ -363,7 +363,7 @@
              </sizepolicy>
             </property>
             <property name="text">
-             <string>&amp;Y</string>
+             <string>&amp;Y:</string>
             </property>
             <property name="buddy">
              <cstring>yPos</cstring>
@@ -445,7 +445,7 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>&amp;Angle</string>
+           <string>&amp;Angle:</string>
           </property>
           <property name="buddy">
            <cstring>angleBox</cstring>

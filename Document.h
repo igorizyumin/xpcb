@@ -42,6 +42,22 @@ public:
 		DrawPriorityOrder	/// The order in which the layers should be drawn.
 	};
 
+	enum LayerType
+	{
+		Copper = 0x01,
+		Silk = 0x02,
+		Mask = 0x04,
+		Glue = 0x08,
+		Paste = 0x10,
+		Hole = 0x20,
+		Physical = 0xFF,
+		Display = 0x100,
+		All = 0xFFFF
+	};
+
+	Q_DECLARE_FLAGS(LayerMask, LayerType)
+
+
 	Document();
 	virtual ~Document();
 
@@ -80,7 +96,7 @@ public:
 
 	/// Returns the list of layers in the document, ordered appropriately.
 	/// \param order The order in which layers will be arranged.
-	virtual QList<Layer> layerList(LayerOrder order = ListOrder) = 0;
+	virtual QList<Layer> layerList(LayerOrder order = ListOrder, LayerMask mask = All) = 0;
 
 	virtual QString name() const { return mName; }
 	virtual XPcb::UNIT units() const { return mUnits; }
@@ -121,6 +137,8 @@ protected:
 	QUndoStack mUndoStack;
 };
 
+Q_DECLARE_OPERATORS_FOR_FLAGS(Document::LayerMask)
+
 class PCBDoc : public Document
 {
 	Q_OBJECT
@@ -135,7 +153,8 @@ public:
 	virtual bool saveToXml(QXmlStreamWriter &writer);
 	virtual bool loadFromFile(QFile & file);
 	virtual bool loadFromXml(QXmlStreamReader &reader);
-	virtual QList<Layer> layerList(LayerOrder order = ListOrder);
+	virtual QList<Layer> layerList(LayerOrder order = ListOrder,
+								   Document::LayerMask mask = Document::All);
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt, int dist = 1);
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QRect &rect);
 
@@ -189,7 +208,8 @@ public:
 	virtual bool loadFromFile(QFile & file);
 	virtual bool loadFromXml(QXmlStreamReader &reader);
 
-	virtual QList<Layer> layerList(LayerOrder order = ListOrder);
+	virtual QList<Layer> layerList(LayerOrder order = ListOrder,
+								   Document::LayerMask mask = Document::All);
 
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt, int dist = 1);
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QRect &rect);
