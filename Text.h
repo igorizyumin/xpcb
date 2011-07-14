@@ -96,10 +96,10 @@ private:
 	private:
 		friend class Text;
 		TextState(const Text &t)
-			: pos(t.pos()), layer(t.layer()), angle(t.angle()),
-			ismirrored(t.isMirrored()), isnegative(t.isNegative()),
-			fontsize(t.fontSize()), width(t.strokeWidth()),
-			text(t.text())
+			: pos(t.mPos), layer(t.mLayer), angle(t.mAngle),
+			ismirrored(t.mIsMirrored), isnegative(t.mIsNegative),
+			fontsize(t.mFontSize), width(t.mStrokeWidth),
+			text(t.mText)
 		{}
 
 		QPoint pos;
@@ -109,6 +109,7 @@ private:
 		int fontsize, width;
 		QString text;
 	};
+	friend class TextState;
 	// member variables
 	QPoint mPos;
 	Layer mLayer;
