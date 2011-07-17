@@ -19,9 +19,11 @@ private Q_SLOTS:
 	void testPolygon();
 	void testFootprint();
 	void testPart();
+#if 0
 	void testNet();
 	void testArea();
 	void testDoc();
+#endif
 };
 
 #endif // TST_XMLLOADTEST_H

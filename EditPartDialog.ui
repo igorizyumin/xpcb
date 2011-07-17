@@ -541,22 +541,6 @@
   <connection>
    <sender>setPosRadio</sender>
    <signal>toggled(bool)</signal>
-   <receiver>yPos</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>194</x>
-     <y>332</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>220</x>
-     <y>364</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>setPosRadio</sender>
-   <signal>toggled(bool)</signal>
    <receiver>angleBox</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
@@ -567,6 +551,22 @@
     <hint type="destinationlabel">
      <x>388</x>
      <y>361</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>setPosRadio</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>yPos</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>194</x>
+     <y>332</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>220</x>
+     <y>364</y>
     </hint>
    </hints>
   </connection>

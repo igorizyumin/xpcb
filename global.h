@@ -143,6 +143,34 @@ namespace XPcb
 	}
 };
 
+class Dimension
+{
+public:
+	enum Unit { mm, mils, pcbu };
+
+	Dimension() : mUnit(pcbu), mValue(0) {}
+	Dimension(int value) : mUnit(pcbu), mValue(value) {}
+	Dimension(double value, Unit unit = mils);
+
+	int toPcb() const { return mValue; }
+	double toMm() const { return XPcb::pcbToMm(mValue); }
+	double toMils() const { return XPcb::pcbToMil(mValue); }
+
+	Unit units() const { return mUnit; }
+	void setUnits(Unit unit) { mUnit = unit; }
+
+	bool operator==(const Dimension& other) const { return other.mValue == mValue; }
+	bool operator!=(const Dimension& other) const { return other.mValue != mValue; }
+	bool operator<(const Dimension& rhs) const { return mValue < rhs.mValue; }
+	bool operator>(const Dimension& rhs) const { return mValue > rhs.mValue; }
+	bool operator<=(const Dimension& rhs) const { return mValue <= rhs.mValue; }
+	bool operator>=(const Dimension& rhs) const { return mValue >= rhs.mValue; }
+
+private:
+	Unit mUnit;
+	int mValue;
+};
+
 class Layer
 {
 public:

@@ -4,8 +4,8 @@
 #include "Line.h"
 #include "Text.h"
 #include "Net.h"
-#include "Shape.h"
-#include "PCBDoc.h"
+#include "Footprint.h"
+#include "Document.h"
 #include "Part.h"
 #include "Trace.h"
 #include "Polygon.h"
@@ -19,27 +19,26 @@ void XmlLoadTest::testLine()
 {
 	QXmlStreamReader reader("<line width='600' layer='2' x1='100' y1='200' x2='1000' y2='2000' />");
 	reader.readNextStartElement();
-	Line l = Line::newFromXml(reader);
-	QCOMPARE(l.width(), 600);
-	QCOMPARE(l.layer(), (PCBLAYER)2);
-	QCOMPARE(l.start(), QPoint(100, 200));
-	QCOMPARE(l.end(), QPoint(1000, 2000));
+	QSharedPointer<Line> l = Line::newFromXml(reader);
+	QCOMPARE(l->width(), 600);
+	QCOMPARE(l->layer(), Layer(static_cast<Layer::Type>(2)));
+	QCOMPARE(l->start(), QPoint(100, 200));
+	QCOMPARE(l->end(), QPoint(1000, 2000));
+	QCOMPARE(l->type(), Line::LINE);
 	QVERIFY(reader.isEndElement());
-
 }
 
 void XmlLoadTest::testArc()
 {
 	QXmlStreamReader reader("<arc width='600' layer='2' x1='100' y1='200' x2='1000' y2='2000' dir='cw'/>");
 	reader.readNextStartElement();
-	Arc a = Arc::newFromXml(reader);
-	QCOMPARE(a.width(), 600);
-	QCOMPARE(a.layer(), (PCBLAYER)2);
-	QCOMPARE(a.start(), QPoint(100, 200));
-	QCOMPARE(a.end(), QPoint(1000, 2000));
-	QCOMPARE(a.isCw(), true);
+	QSharedPointer<Line> l = Line::newFromXml(reader);
+	QCOMPARE(l->width(), 600);
+	QCOMPARE(l->layer(), Layer(static_cast<Layer::Type>(2)));
+	QCOMPARE(l->start(), QPoint(100, 200));
+	QCOMPARE(l->end(), QPoint(1000, 2000));
+	QCOMPARE(l->type(), Line::ARC_CW);
 	QVERIFY(reader.isEndElement());
-
 }
 
 void XmlLoadTest::testText()
@@ -47,9 +46,9 @@ void XmlLoadTest::testText()
 	QXmlStreamReader reader("<text layer='2' x='100' y='200' rot='180' lineWidth='300' textSize='400'> testing 123  </text>");
 	reader.readNextStartElement();
 
-	Text* t = Text::newFromXML(reader);
+	QSharedPointer<Text> t = Text::newFromXML(reader);
 
-	QCOMPARE(t->layer(), (PCBLAYER)2);
+	QCOMPARE(t->layer(), Layer(static_cast<Layer::Type>(2)));
 	QCOMPARE(t->angle(), 180);
 	QCOMPARE(t->pos(), QPoint(100,200));
 	QCOMPARE(t->strokeWidth(), 300);
@@ -87,9 +86,9 @@ void XmlLoadTest::testPadstack()
 			"<startmask/><endmask/><startpaste/><endpaste/>"
 			"</padstack>");
 	reader.readNextStartElement();
-	Padstack* ps = Padstack::newFromXML(reader);
-	QVERIFY(ps != NULL);
-	QCOMPARE(ps->mName(), QString("pstest"));
+	QSharedPointer<Padstack> ps = Padstack::newFromXML(reader);
+	QVERIFY(!ps.isNull());
+	QCOMPARE(ps->name(), QString("pstest"));
 	QCOMPARE(ps->holeSize(), 1000);
 	QCOMPARE(ps->startPad().isNull(), false);
 	QCOMPARE(ps->startPad().shape(), Pad::PAD_SQUARE);
@@ -106,7 +105,6 @@ void XmlLoadTest::testPadstack()
 	QCOMPARE(ps->startPaste().isNull(), true);
 	QCOMPARE(ps->endPaste().isNull(), true);
 	QVERIFY(reader.isEndElement());
-	delete ps;
 }
 
 void XmlLoadTest::testTraceList()
@@ -126,25 +124,25 @@ void XmlLoadTest::testTraceList()
 	reader.readNextStartElement();
 	TraceList tl;
 	tl.loadFromXml(reader);
-	QSet<Vertex*> vtx = tl.vertices();
-	QSet<Segment*> seg = tl.segments();
+	QSet<QSharedPointer<Vertex> > vtx = tl.vertices();
+	QSet<QSharedPointer<Segment> > seg = tl.segments();
 	QCOMPARE(vtx.size(), 4);
 	QCOMPARE(seg.size(), 3);
-	foreach(Vertex* v, vtx)
+	foreach(QSharedPointer<Vertex> v, vtx)
 	{
 		if (v->pos() == QPoint(100, 200))
 		{
 			// vertex 101
 			QCOMPARE(v->segments().size(), 1);
 			QCOMPARE(v->segments().toList()[0]->width(), 1000);
-			QCOMPARE(v->segments().toList()[0]->layer(), (PCBLAYER)8);
+			QCOMPARE(v->segments().toList()[0]->layer(), Layer(static_cast<Layer::Type>(8)));
 			QCOMPARE(v->segments().toList()[0]->otherVertex(v)->pos(), QPoint(300,400));
 		}
 		else if (v->pos() == QPoint(300, 400))
 		{
 			// vertex 102
 			QCOMPARE(v->segments().size(), 2);
-			QList<Segment*> l = v->segments().toList();
+			QList<QSharedPointer<Segment> > l = v->segments().toList();
 			int first = 1;
 			int second = 0;
 			if (l[0]->width() == 1000)
@@ -153,17 +151,17 @@ void XmlLoadTest::testTraceList()
 				second = 1;
 			}
 			QCOMPARE(v->segments().toList()[first]->width(), 1000);
-			QCOMPARE(v->segments().toList()[first]->layer(), (PCBLAYER)8);
+			QCOMPARE(v->segments().toList()[first]->layer(), Layer(static_cast<Layer::Type>(8)));
 			QCOMPARE(v->segments().toList()[first]->otherVertex(v)->pos(), QPoint(100,200));
 			QCOMPARE(v->segments().toList()[second]->width(), 3000);
-			QCOMPARE(v->segments().toList()[second]->layer(), (PCBLAYER)8);
+			QCOMPARE(v->segments().toList()[second]->layer(), Layer(static_cast<Layer::Type>(8)));
 			QCOMPARE(v->segments().toList()[second]->otherVertex(v)->pos(), QPoint(500,600));
 		}
 		else if (v->pos() == QPoint(500, 600))
 		{
 			// vertex 103
 			QCOMPARE(v->segments().size(), 2);
-			QList<Segment*> l = v->segments().toList();
+			QList<QSharedPointer<Segment> > l = v->segments().toList();
 			int first = 1;
 			int second = 0;
 			if (l[0]->width() == 2000)
@@ -172,10 +170,10 @@ void XmlLoadTest::testTraceList()
 				second = 1;
 			}
 			QCOMPARE(v->segments().toList()[first]->width(), 2000);
-			QCOMPARE(v->segments().toList()[first]->layer(), (PCBLAYER)8);
+			QCOMPARE(v->segments().toList()[first]->layer(), Layer(static_cast<Layer::Type>(8)));
 			QCOMPARE(v->segments().toList()[first]->otherVertex(v)->pos(), QPoint(700,800));
 			QCOMPARE(v->segments().toList()[second]->width(), 3000);
-			QCOMPARE(v->segments().toList()[second]->layer(), (PCBLAYER)8);
+			QCOMPARE(v->segments().toList()[second]->layer(), Layer(static_cast<Layer::Type>(8)));
 			QCOMPARE(v->segments().toList()[second]->otherVertex(v)->pos(), QPoint(300,400));
 		}
 		else if (v->pos() == QPoint(700, 800))
@@ -183,7 +181,7 @@ void XmlLoadTest::testTraceList()
 			// vertex 104
 			QCOMPARE(v->segments().size(), 1);
 			QCOMPARE(v->segments().toList()[0]->width(), 2000);
-			QCOMPARE(v->segments().toList()[0]->layer(), (PCBLAYER)8);
+			QCOMPARE(v->segments().toList()[0]->layer(), Layer(static_cast<Layer::Type>(8)));
 			QCOMPARE(v->segments().toList()[0]->otherVertex(v)->pos(), QPoint(500,600));
 		}
 		else
@@ -212,43 +210,52 @@ void XmlLoadTest::testPolygon()
 							"</polygon>"
 							);
 	reader.readNextStartElement();
-	Polygon *p = Polygon::newFromXML(reader);
-	QVERIFY(p != NULL);
-	QCOMPARE(p->numHoles(), 1);
-	QCOMPARE(p->outline()->numSegs(), 4);
-	QCOMPARE(p->outline()->segment(0).type, PolyContour::Segment::START);
-	QCOMPARE(p->outline()->segment(0).end, QPoint(0,0));
-	QCOMPARE(p->outline()->segment(1).type, PolyContour::Segment::LINE);
-	QCOMPARE(p->outline()->segment(1).end, QPoint(0,1000));
-	QCOMPARE(p->outline()->segment(2).type, PolyContour::Segment::ARC_CW);
-	QCOMPARE(p->outline()->segment(2).end, QPoint(1000,0));
-	QCOMPARE(p->outline()->segment(3).type, PolyContour::Segment::LINE);
-	QCOMPARE(p->outline()->segment(3).end, QPoint(0,0));
-	QCOMPARE(p->hole(0)->numSegs(), 4);
-	QCOMPARE(p->hole(0)->segment(0).type, PolyContour::Segment::START);
-	QCOMPARE(p->hole(0)->segment(0).end, QPoint(100,100));
-	QCOMPARE(p->hole(0)->segment(1).type, PolyContour::Segment::ARC_CW);
-	QCOMPARE(p->hole(0)->segment(1).end, QPoint(200,200));
-	QCOMPARE(p->hole(0)->segment(2).type, PolyContour::Segment::LINE);
-	QCOMPARE(p->hole(0)->segment(2).end, QPoint(200,100));
-	QCOMPARE(p->hole(0)->segment(3).type, PolyContour::Segment::LINE);
-	QCOMPARE(p->hole(0)->segment(3).end, QPoint(100,100));
+	Polygon p = Polygon::newFromXML(reader);
+	QVERIFY(!p.isVoid());
+	QCOMPARE(p.numHoles(), 1);
+	QCOMPARE(p.outline()->numSegs(), 4);
+	QCOMPARE(p.outline()->segment(0).type, PolyContour::Segment::START);
+	QCOMPARE(p.outline()->segment(0).end, QPoint(0,0));
+	QCOMPARE(p.outline()->segment(1).type, PolyContour::Segment::LINE);
+	QCOMPARE(p.outline()->segment(1).end, QPoint(0,1000));
+	QCOMPARE(p.outline()->segment(2).type, PolyContour::Segment::ARC_CW);
+	QCOMPARE(p.outline()->segment(2).end, QPoint(1000,0));
+	QCOMPARE(p.outline()->segment(3).type, PolyContour::Segment::LINE);
+	QCOMPARE(p.outline()->segment(3).end, QPoint(0,0));
+	QCOMPARE(p.hole(0)->numSegs(), 4);
+	QCOMPARE(p.hole(0)->segment(0).type, PolyContour::Segment::START);
+	QCOMPARE(p.hole(0)->segment(0).end, QPoint(100,100));
+	QCOMPARE(p.hole(0)->segment(1).type, PolyContour::Segment::ARC_CW);
+	QCOMPARE(p.hole(0)->segment(1).end, QPoint(200,200));
+	QCOMPARE(p.hole(0)->segment(2).type, PolyContour::Segment::LINE);
+	QCOMPARE(p.hole(0)->segment(2).end, QPoint(200,100));
+	QCOMPARE(p.hole(0)->segment(3).type, PolyContour::Segment::LINE);
+	QCOMPARE(p.hole(0)->segment(3).end, QPoint(100,100));
 	QVERIFY(reader.isEndElement());
-
-
-	delete p;
 }
 
 void XmlLoadTest::testFootprint()
 {
 	QXmlStreamReader reader("<footprint>"
 							"<name>RES0805</name>"
+							"<uuid>{33432ef6-7214-4eea-9eb4-bbeae00b167f}</uuid>"
 							"<units>mm</units>"
 							"<author>igor</author>"
 							"<source>test</source>"
 							"<desc/>"
 							"<centroid x='10' y='20' custom='0'/>"
 							"<line width='600' layer='2' x1='100' y1='200' x2='1000' y2='2000' />"
+							"<padstacks>"
+							"<padstack name='test' id='101' holesize='0'>"
+							"<startpad />"
+							"<innerpad />"
+							"<endpad />"
+							"<startmask />"
+							"<endmask />"
+							"<startpaste />"
+							"<endpaste />"
+							"</padstack>"
+							"</padstacks>"
 							"<pins>"
 							"<pin name='1' x='100' y='200' rot='90' padstack='101'/>"
 							"<pin name='2' x='400' y='600' rot='0' padstack='101'/>"
@@ -258,52 +265,55 @@ void XmlLoadTest::testFootprint()
 							"</footprint>");
 	reader.readNextStartElement();
 
-	QHash<int, Padstack*> padstacks;
-	padstacks.insert(101, new Padstack());
-
-	Footprint* fp = Footprint::newFromXML(reader, padstacks);
+	QSharedPointer<Footprint> fp = Footprint::newFromXML(reader);
+	QVERIFY(!fp.isNull());
 	QCOMPARE(fp->name(), QString("RES0805"));
 	QCOMPARE(fp->author(), QString("igor"));
 	QCOMPARE(fp->source(), QString("test"));
 	QCOMPARE(fp->desc(), QString());
-	QCOMPARE(fp->units(), MM);
+	QCOMPARE(fp->units(), XPcb::MM);
 	QCOMPARE(fp->centroid(), QPoint(10,20));
 	QCOMPARE(fp->isCustomCentroid(), false);
 	QCOMPARE(fp->numPins(), 2);
-	QCOMPARE(fp->getPin(0)->padstack(), padstacks.value(101));
-	QCOMPARE(fp->getPin(0)->pos(), QPoint(100,200));
-	QCOMPARE(fp->getPin(0)->angle(), 90);
-	QCOMPARE(fp->getPin(1)->padstack(), padstacks.value(101));
-	QCOMPARE(fp->getPin(1)->pos(), QPoint(400,600));
-	QCOMPARE(fp->getPin(1)->angle(), 0);
-	QCOMPARE(fp->getRefText().pos(), QPoint(1000,1100));
-	QCOMPARE(fp->getRefText().angle(), 90);
-	QCOMPARE(fp->getRefText().strokeWidth(), 99);
-	QCOMPARE(fp->getRefText().fontSize(), 200);
-	QCOMPARE(fp->getValueText().pos(), QPoint(1200,1400));
-	QCOMPARE(fp->getValueText().angle(), 0);
-	QCOMPARE(fp->getValueText().strokeWidth(), 102);
-	QCOMPARE(fp->getValueText().fontSize(), 220);
+	QCOMPARE(fp->pin(0)->pos(), QPoint(100,200));
+	QCOMPARE(fp->pin(0)->angle(), 90);
+	QCOMPARE(fp->pin(1)->pos(), QPoint(400,600));
+	QCOMPARE(fp->pin(1)->angle(), 0);
+	QCOMPARE(fp->refText()->pos(), QPoint(1000,1100));
+	QCOMPARE(fp->refText()->angle(), 90);
+	QCOMPARE(fp->refText()->strokeWidth(), 99);
+	QCOMPARE(fp->refText()->fontSize(), 200);
+	QCOMPARE(fp->valueText()->pos(), QPoint(1200,1400));
+	QCOMPARE(fp->valueText()->angle(), 0);
+	QCOMPARE(fp->valueText()->strokeWidth(), 102);
+	QCOMPARE(fp->valueText()->fontSize(), 220);
 	QVERIFY(reader.isEndElement());
-	delete fp;
 }
 
 void XmlLoadTest::testPart()
 {
 	// create test objects
 	PCBDoc doc;
-	Padstack* ps = new Padstack();
-	doc.mPadstacks.append(ps);
-	QHash<int, Padstack*> padstacks;
-	padstacks.insert(101, ps);
 	QXmlStreamReader fpxml("<footprint>"
 							"<name>RES0805</name>"
+							"<uuid>{33432ef6-7214-4eea-9eb4-bbeae00b167f}</uuid>"
 							"<units>mm</units>"
 							"<author>igor</author>"
 							"<source>test</source>"
 							"<desc/>"
 							"<centroid x='10' y='20' custom='0'/>"
 							"<line width='600' layer='2' x1='100' y1='200' x2='1000' y2='2000' />"
+							"<padstacks>"
+							"<padstack name='test' id='101' holesize='0'>"
+							"<startpad />"
+							"<innerpad />"
+							"<endpad />"
+							"<startmask />"
+							"<endmask />"
+							"<startpaste />"
+							"<endpaste />"
+							"</padstack>"
+							"</padstacks>"
 							"<pins>"
 							"<pin name='1' x='100' y='200' rot='90' padstack='101'/>"
 							"<pin name='2' x='400' y='600' rot='0' padstack='101'/>"
@@ -312,38 +322,41 @@ void XmlLoadTest::testPart()
 							"<valueText x='1200' y='1400' rot='0' lineWidth='102' textSize='220'/>"
 							"</footprint>");
 	fpxml.readNextStartElement();
-	Footprint* fp = Footprint::newFromXML(fpxml, padstacks);
-	doc.mFootprints.append(fp);
-	QXmlStreamReader partxml("<part refdes='P1' value='val' footprint='RES0805' x='1' y='2' rot='270' side='bot' locked='1'>"
-							"<refText x='0' y='0' rot='270' lineWidth='42' textSize='212'/>"
-							"<valueText x='1' y='1' rot='180' lineWidth='55' textSize='443'/>"
+	QSharedPointer<Footprint> fp = Footprint::newFromXML(fpxml);
+	doc.mFootprints.insert(fp->uuid(), fp);
+	QXmlStreamReader partxml("<part refdes='P1' value='val' footprint_uuid='{33432ef6-7214-4eea-9eb4-bbeae00b167f}' x='1' y='2' rot='270' side='bot' locked='1'>"
+							"<refText x='1' y='2' rot='270' lineWidth='42' textSize='212' visible='0'/>"
+							"<valueText x='0' y='1' rot='180' lineWidth='55' textSize='443'/>"
 							"</part>");
 	partxml.readNextStartElement();
-	Part* p = Part::newFromXML(partxml, &doc);
-	QVERIFY(p != NULL);
+	QSharedPointer<Part> p = Part::newFromXML(partxml, &doc);
+	QVERIFY(!p.isNull());
 	QCOMPARE(p->refdes(), QString("P1"));
 	QCOMPARE(p->value(), QString("val"));
 	QCOMPARE(p->pos(), QPoint(1,2));
 	QCOMPARE(p->angle(), 270);
-	QCOMPARE(p->side(), SIDE_BOTTOM);
+	QCOMPARE(p->side(), Part::SIDE_BOTTOM);
 	QCOMPARE(p->locked(), true);
+	QCOMPARE(p->refVisible(), false);
 	QCOMPARE(p->refdesText()->pos(), QPoint(1,2));
 	QCOMPARE(p->refdesText()->angle(), 270);
 	QCOMPARE(p->refdesText()->strokeWidth(), 42);
 	QCOMPARE(p->refdesText()->fontSize(), 212);
+	QCOMPARE(p->valueVisible(), true);
 	QCOMPARE(p->valueText()->pos(), QPoint(0,1));
 	QCOMPARE(p->valueText()->angle(), 180);
 	QCOMPARE(p->valueText()->strokeWidth(), 55);
 	QCOMPARE(p->valueText()->fontSize(), 443);
-	delete p;
 }
 
+// in need of updates, XXX re-enable when these are finished
+#if 0
 void XmlLoadTest::testNet()
 {
 	// create test objects
 	// we need a document, a padstack, a footprint, 2 part objects
 	PCBDoc doc;
-	Padstack* ps = new Padstack();
+	QSharedPointer<Padstack> ps(new Padstack());
 	doc.mPadstacks.append(ps);
 	QHash<int, Padstack*> padstacks;
 	padstacks.insert(101, ps);
@@ -639,3 +652,4 @@ void XmlLoadTest::testDoc()
 
 	file.close();
 }
+#endif

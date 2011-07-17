@@ -22,6 +22,7 @@
 #include "ManagePadstacksDialog.h"
 #include "Document.h"
 #include <QSettings>
+#include "WidgetTestDialog.h"
 
 inline void setDefaultValue(QSettings &s, QString key, QVariant value)
 {
@@ -81,8 +82,12 @@ int main(int argc, char *argv[])
 	// initialize the app settings with defaults, if they do not exist
 	initSettings();
 
-	PCBEditWindow w;
-	w.show();
+	WidgetTestDialog d;
+	d.exec();
+	return 0;
+
+//	PCBEditWindow w;
+//	w.show();
 
 	return a.exec();
 }

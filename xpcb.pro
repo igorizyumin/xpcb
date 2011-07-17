@@ -47,24 +47,26 @@ SOURCES += PCBView.cpp \
     PinEditor.cpp \
     Plugin.cpp \
     FPPropDialog.cpp \
-    main.cpp \
     EditLineDialog.cpp \
     LineEditor.cpp \
     SelectFPDialog.cpp \
     Footprint.cpp \
     Document.cpp \
     TraceEditor.cpp \
-    SegmentLayerDialog.cpp
+    SegmentLayerDialog.cpp \
+    SegmentWidthDialog.cpp \
+    WidgetTestDialog.cpp \
+    UnitLineEdit.cpp
 
 unittest {
 	QT += testlib
 	SOURCES +=	xpcbtests/tst_XmlLoadTest.cpp \
 				xpcbtests/testmain.cpp \
-	xpcbtests/tst_TextTest.cpp
-
-	HEADERS += xpcbtests/tst_XmlLoadTest.h xpcbtests/tst_TextTest.h
+	xpcbtests/tst_TextTest.cpp \
+	xpcbtests/tst_UnitSpinboxTest.cpp
+	HEADERS += xpcbtests/tst_XmlLoadTest.h xpcbtests/tst_TextTest.h xpcbtests/tst_UnitSpinboxTest.h
 } else {
-	SOURCES +=
+	SOURCES += main.cpp
 }
 
 HEADERS  += PCBView.h \
@@ -104,7 +106,11 @@ HEADERS  += PCBView.h \
     Footprint.h \
     Document.h \
     TraceEditor.h \
-    SegmentLayerDialog.h
+    SegmentLayerDialog.h \
+    SegmentWidthDialog.h \
+	WidgetTestDialog.h \
+    UnitLineEdit.h
+
 
 FORMS    += GridToolbarWidget.ui \
     AboutDialog.ui \
@@ -119,7 +125,9 @@ FORMS    += GridToolbarWidget.ui \
     FPPropDialog.ui \
     EditLineDialog.ui \
     SelectFPDialog.ui \
-    SegmentLayerDialog.ui
+    SegmentLayerDialog.ui \
+    SegmentWidthDialog.ui \
+    WidgetTestDialog.ui
 
 RESOURCES += \
     qtfreepcb.qrc

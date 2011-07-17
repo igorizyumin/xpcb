@@ -4,7 +4,7 @@
 #include <QtTest/QtTest>
 #include "global.h"
 
-Q_DECLARE_METATYPE(PCBLAYER);
+Q_DECLARE_METATYPE(Layer);
 
 class TextTest : public QObject
 {

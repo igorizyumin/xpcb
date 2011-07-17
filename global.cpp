@@ -20,6 +20,24 @@
 #include "global.h"
 #include <QSettings>
 
+
+Dimension::Dimension(double value, Unit unit)
+	: mUnit(unit)
+{
+	switch(unit)
+	{
+	case mm:
+		mValue = XPcb::mmToPcb(value);
+		break;
+	case mils:
+		mValue = XPcb::milToPcb(value);
+		break;
+	case pcbu:
+		mValue = value;
+		break;
+	}
+}
+
 bool Layer::isPhysical() const
 {
 	return  mType != LAY_BACKGND

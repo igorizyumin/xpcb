@@ -31,15 +31,15 @@ void TextTest::testConstruct_data()
 	QTest::addColumn<int>("angle");
 	QTest::addColumn<bool>("mirrored");
 	QTest::addColumn<bool>("negative");
-	QTest::addColumn<PCBLAYER>("layer");
+	QTest::addColumn<Layer>("layer");
 	QTest::addColumn<int>("fontsize");
 	QTest::addColumn<int>("strokewidth");
 	QTest::addColumn<QString>("text");
 
-	QTest::newRow("text1") << QPoint(100, 200) << 0 << true << true << LAY_TOP_COPPER << 200 << 1004 << "test 2342 5234 asdf";
-	QTest::newRow("text2") << QPoint(100, 200) << 90 << true << false << LAY_SILK_TOP << 45 << 55 << " 5234 asdf";
-	QTest::newRow("text3") << QPoint(100, 0) << 180 << false << true << LAY_SILK_BOTTOM << 6 << 1004 << "";
-	QTest::newRow("text4") << QPoint(0, 200) << 270 << false << false << LAY_INNER6 << 0 << 1004 << "test 234";
+	QTest::newRow("text1") << QPoint(100, 200) << 0 << true << true << Layer(Layer::LAY_TOP_COPPER) << 200 << 1004 << "test 2342 5234 asdf";
+	QTest::newRow("text2") << QPoint(100, 200) << 90 << true << false << Layer(Layer::LAY_SILK_TOP) << 45 << 55 << " 5234 asdf";
+	QTest::newRow("text3") << QPoint(100, 0) << 180 << false << true << Layer(Layer::LAY_SILK_BOTTOM) << 6 << 1004 << "";
+	QTest::newRow("text4") << QPoint(0, 200) << 270 << false << false << Layer(Layer::LAY_INNER6) << 0 << 1004 << "test 234";
 }
 
 void TextTest::testConstruct()
@@ -48,7 +48,7 @@ void TextTest::testConstruct()
 	QFETCH(int, angle);
 	QFETCH(bool, mirrored);
 	QFETCH(bool, negative);
-	QFETCH(PCBLAYER, layer);
+	QFETCH(Layer, layer);
 	QFETCH(int, fontsize);
 	QFETCH(int, strokewidth);
 	QFETCH(QString, text);
@@ -69,9 +69,12 @@ class TestDummy : public PCBObject
 {
 public:
 	virtual void accept(PCBObjectVisitor *v) {}
-	virtual void draw(QPainter *painter, PCBLAYER layer) const {}
+	virtual void draw(QPainter *painter, const Layer& layer) const {}
 	virtual QRect bbox() const { return QRect(); }
 	virtual QTransform transform() const { return mTransform; }
+
+	virtual PCBObjState getState() const { return PCBObjState(); }
+	virtual bool loadState(PCBObjState &) { return false; }
 
 	QTransform mTransform;
 };
@@ -80,7 +83,7 @@ void TextTest::testParent()
 {
 	TestDummy d;
 	d.mTransform.translate(100, 150);
-	Text t(QPoint(10, 100), 90, false, false, LAY_TOP_COPPER, 100, 10, ">");
+	Text t(QPoint(10, 100), 90, false, false, Layer::LAY_TOP_COPPER, 100, 10, ">");
 	QCOMPARE(t.pos(), QPoint(10, 100));
 	QRect bb = t.bbox();
 	t.setParent(&d);
