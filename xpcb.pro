@@ -62,9 +62,12 @@ unittest {
 	QT += testlib
 	SOURCES +=	xpcbtests/tst_XmlLoadTest.cpp \
 				xpcbtests/testmain.cpp \
-	xpcbtests/tst_TextTest.cpp \
-	xpcbtests/tst_UnitSpinboxTest.cpp
-	HEADERS += xpcbtests/tst_XmlLoadTest.h xpcbtests/tst_TextTest.h xpcbtests/tst_UnitSpinboxTest.h
+				xpcbtests/tst_TextTest.cpp \
+				xpcbtests/tst_UnitSpinboxTest.cpp
+	HEADERS += xpcbtests/tst_XmlLoadTest.h \
+			   xpcbtests/tst_TextTest.h \
+			   xpcbtests/tst_UnitSpinboxTest.h
+
 } else {
 	SOURCES += main.cpp
 }
@@ -109,7 +112,7 @@ HEADERS  += PCBView.h \
     SegmentLayerDialog.h \
     SegmentWidthDialog.h \
 	WidgetTestDialog.h \
-    UnitLineEdit.h
+	UnitLineEdit.h
 
 
 FORMS    += GridToolbarWidget.ui \

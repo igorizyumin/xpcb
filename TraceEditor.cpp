@@ -21,6 +21,7 @@
 #include "TraceEditor.h"
 #include "Document.h"
 #include "SegmentLayerDialog.h"
+#include "SegmentWidthDialog.h"
 
 using namespace XPcb;
 
@@ -190,7 +191,8 @@ SegmentEditor::SegmentEditor(PCBController *ctrl,
 							 QSharedPointer<Segment> segment)
 	: AbstractEditor(ctrl), mState(SELECTED), mCtrl(ctrl), mSegment(segment),
 	  mSlideAction(3, "Slide Segment"), mAddVtxAction(2, "Add Vertex"),
-	  mDelAction(7, "Ripup Segment"), mSetLayerAction(1, "Set Layer")
+	  mDelAction(7, "Ripup Segment"), mSetLayerAction(1, "Change Layer"),
+	  mSetWidthAction(0, "Change Width")
 {
 	connect(&mSlideAction, SIGNAL(execFired()),
 			this, SLOT(startSlideSegment()));
@@ -200,6 +202,8 @@ SegmentEditor::SegmentEditor(PCBController *ctrl,
 			this, SLOT(deleteSegment()));
 	connect(&mSetLayerAction, SIGNAL(execFired()),
 			this, SLOT(setLayer()));
+	connect(&mSetWidthAction, SIGNAL(execFired()),
+			this, SLOT(setWidth()));
 	ctrl->hideObj(mSegment);
 }
 
@@ -237,7 +241,8 @@ QList<const CtrlAction*> SegmentEditor::actions() const
 	QList<const CtrlAction*> out;
 	if (mState == SELECTED)
 		out << &mSlideAction << &mAddVtxAction
-			<< &mDelAction << &mSetLayerAction;
+			<< &mDelAction << &mSetLayerAction
+			<< &mSetWidthAction;
 	return out;
 }
 
@@ -319,6 +324,20 @@ void SegmentEditor::setLayer()
 	{
 		// XXX TODO apply to connected segments if needed
 		mSegment->setLayer(dlg.layer());
+		PCBObjEditCmd* cmd = new PCBObjEditCmd(0, mSegment, prev);
+		mCtrl->doc()->doCommand(cmd);
+	}
+}
+
+void SegmentEditor::setWidth()
+{
+	SegmentWidthDialog dlg(mCtrl->view());
+	dlg.init(mSegment.data());
+	PCBObjState prev = mSegment->getState();
+	if (dlg.exec() == QDialog::Accepted)
+	{
+		// XXX TODO apply to connected segments if needed
+		mSegment->setWidth(dlg.width().toPcb());
 		PCBObjEditCmd* cmd = new PCBObjEditCmd(0, mSegment, prev);
 		mCtrl->doc()->doCommand(cmd);
 	}

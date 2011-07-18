@@ -82,12 +82,12 @@ int main(int argc, char *argv[])
 	// initialize the app settings with defaults, if they do not exist
 	initSettings();
 
-	WidgetTestDialog d;
-	d.exec();
-	return 0;
+//	WidgetTestDialog d;
+//	d.exec();
+//	return 0;
 
-//	PCBEditWindow w;
-//	w.show();
+	PCBEditWindow w;
+	w.show();
 
 	return a.exec();
 }

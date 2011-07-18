@@ -18,16 +18,16 @@
 */
 
 #include "tst_UnitSpinboxTest.h"
-#include "UnitSpinbox.h"
+#include "UnitLineEdit.h"
 
 Q_DECLARE_METATYPE(QValidator::State);
 
-UnitSpinboxTest::UnitSpinboxTest() :
+UnitLineEditTest::UnitLineEditTest() :
 	QObject()
 {
 }
 
-void UnitSpinboxTest::testValidator_data()
+void UnitLineEditTest::testValidator_data()
 {
 	QTest::addColumn<QString>("text");
 	QTest::addColumn<int>("pos");
@@ -50,17 +50,15 @@ void UnitSpinboxTest::testValidator_data()
 	QTest::newRow("15") << "-.mil" << 0 << QValidator::Intermediate;
 }
 
-void UnitSpinboxTest::testValidator()
+void UnitLineEditTest::testValidator()
 {
 	QFETCH(QString, text);
 	QFETCH(int, pos);
 	QFETCH(QValidator::State, state);
 
-	QValidator::State s;
-	UnitSpinbox sb;
-	sb.setMinimum(-1000000000);
-	sb.setMaximum(1000000000);
+	UnitValidator v;
+	v.setMinimum(-1000000000);
+	v.setMaximum(1000000000);
 
-	sb.validateAndInterpret(text, pos, s);
-	QCOMPARE(s, state);
+	QCOMPARE(v.validate(text, pos), state);
 }

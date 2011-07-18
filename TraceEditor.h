@@ -87,6 +87,7 @@ private slots:
 	void startInsertVtx();
 	void deleteSegment();
 	void setLayer();
+	void setWidth();
 
 private:
 	enum State { SELECTED, SLIDE, ADD_VTX };
@@ -126,8 +127,7 @@ private:
 	CtrlAction mAddVtxAction;
 	CtrlAction mDelAction;
 	CtrlAction mSetLayerAction;
-
-
+	CtrlAction mSetWidthAction;
 };
 
 class VertexEditor : public AbstractEditor

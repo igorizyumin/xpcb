@@ -22,11 +22,11 @@
 
 #include <QtTest/QtTest>
 
-class UnitSpinboxTest : public QObject
+class UnitLineEditTest : public QObject
 {
     Q_OBJECT
 public:
-	UnitSpinboxTest();
+	UnitLineEditTest();
 
 private slots:
 	void testValidator();

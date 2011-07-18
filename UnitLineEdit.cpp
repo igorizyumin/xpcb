@@ -20,10 +20,19 @@
 #include "UnitLineEdit.h"
 #include <QDebug>
 
+
+#define ULE_DEBUG
+#ifdef ULE_DEBUG
+#define ULEDBG() qDebug()
+#else
+#define ULEDBG() if (false) qDebug()
+#endif
+
 UnitLineEdit::UnitLineEdit(QWidget *parent) :
     QLineEdit(parent)
 {
 	this->setText(mValidator.textFromValue(0));
+	mValidator.setPreviousText(text());
 	this->setValidator(&mValidator);
 	connect(this, SIGNAL(editingFinished()),
 			this, SLOT(onEditFinished()));
@@ -31,16 +40,25 @@ UnitLineEdit::UnitLineEdit(QWidget *parent) :
 
 void UnitLineEdit::onEditFinished()
 {
-	mValidator.setPreviousValue(value());
+	mValidator.setPreviousText(text());
 	emit valueChanged(text());
 	emit valueChanged(value());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
+UnitComboBox::UnitComboBox(QWidget *parent)
+	: QComboBox(parent)
+{
+	setLineEdit(new UnitLineEdit(this));
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+
 void UnitValidator::fixup(QString &input) const
 {
-	qDebug() << "fixup";
+	ULEDBG() << "fixup";
 	QValidator::State s;
 	Dimension d = validateAndInterpret(input, s);
 	if (s == QValidator::Intermediate)
@@ -53,24 +71,23 @@ void UnitValidator::fixup(QString &input) const
 		if (d.toPcb() > mMax)
 		{
 			input = textFromValue(max);
-			qDebug() << "clamping to max: " << max.toPcb() << input;
+			ULEDBG() << "clamping to max: " << max.toPcb() << input;
 		}
 		else if (d.toPcb() < mMin)
 		{
 			input = textFromValue(min);
-			qDebug() << "clamping to min: " << min.toPcb() << input;
+			ULEDBG() << "clamping to min: " << min.toPcb() << input;
 		}
 		else
 		{
-			// hack
-			input = textFromValue(mPrevDim);
-			qDebug() << "reset to prev from interm";
+			input = mPrevTxt;
+			ULEDBG() << "reset to prev from interm";
 		}
 	}
 	else
 	{
-		input = textFromValue(mPrevDim);
-		qDebug() << "reset to prev from invalid";
+		input = mPrevTxt;
+		ULEDBG() << "reset to prev from invalid";
 	}
 }
 

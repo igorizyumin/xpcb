@@ -21,13 +21,24 @@
 #define SEGMENTWIDTHDIALOG_H
 
 #include "ui_SegmentWidthDialog.h"
+#include "global.h"
+#include "Trace.h"
 
 class SegmentWidthDialog : public QDialog, private Ui::SegmentWidthDialog
 {
     Q_OBJECT
 
 public:
-    explicit SegmentWidthDialog(QWidget *parent = 0);
+	enum ApplyToObj { SEGMENT, TRACE, NET };
+
+	explicit SegmentWidthDialog(QWidget *parent);
+
+	void init(const Segment* seg = 0);
+
+	Dimension width() const { return widthBox->value(); }
+
+	ApplyToObj applyTo() const;
+
 };
 
 #endif // SEGMENTWIDTHDIALOG_H

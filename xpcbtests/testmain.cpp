@@ -10,7 +10,7 @@ int main(int argc, char* argv[])
 	QTest::qExec(&loadTest);
 	TextTest textTest;
 	QTest::qExec(&textTest);
-	UnitSpinboxTest sbTest;
+	UnitLineEditTest sbTest;
 	QTest::qExec(&sbTest);
 
 	return 0;

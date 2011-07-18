@@ -21,6 +21,7 @@
 #define UNITLINEEDIT_H
 
 #include <QLineEdit>
+#include <QComboBox>
 #include <QValidator>
 #include "global.h"
 
@@ -44,7 +45,7 @@ public:
 	void setMaximum(int max) { mMax = max; }
 
 	// this is a hack to use fixup() to enforce validity
-	void setPreviousValue(Dimension prev) { mPrevDim = prev; }
+	void setPreviousText(QString prev) { mPrevTxt = prev; }
 
 private:
 	Dimension validateAndInterpret(const QString &input,
@@ -52,7 +53,7 @@ private:
 
 	int mMin;
 	int mMax;
-	Dimension mPrevDim;
+	QString mPrevTxt;
 };
 
 // A spinbox would be more logical to subclass for this.  Unfortunately,
@@ -65,7 +66,7 @@ class UnitLineEdit : public QLineEdit
     Q_OBJECT
 	Q_PROPERTY(int minimum READ minimum WRITE setMinimum USER true)
 	Q_PROPERTY(int maximum READ maximum WRITE setMaximum USER true)
-//	Q_PROPERTY(Dimension value READ value WRITE setValue NOTIFY valueChanged USER true	)
+	Q_PROPERTY(Dimension value READ value WRITE setValue NOTIFY valueChanged USER true	)
 
 public:
 	explicit UnitLineEdit(QWidget *parent = 0);
@@ -88,8 +89,32 @@ private slots:
 
 private:
 	UnitValidator mValidator;
+};
 
+class UnitComboBox : public QComboBox
+{
+	Q_OBJECT
+public:
+	explicit UnitComboBox(QWidget *parent = 0);
 
+	int maximum() const { return mValidator.maximum(); }
+	int minimum() const { return mValidator.minimum(); }
+	void setMinimum(int min) { mValidator.setMinimum(min); }
+	void setMaximum(int max) { mValidator.setMaximum(max); }
+
+	Dimension value() const { return mValidator.valueFromText(currentText()); }
+signals:
+	void valueChanged(Dimension val);
+	void valueChanged(const QString &val);
+
+public slots:
+//	void setValue(Dimension val) { setText(mValidator.textFromValue(val)); }
+
+private slots:
+//	void onEditFinished();
+
+private:
+	UnitValidator mValidator;
 };
 
 #endif // UNITLINEEDIT_H
