@@ -56,7 +56,8 @@ SOURCES += PCBView.cpp \
     SegmentLayerDialog.cpp \
     SegmentWidthDialog.cpp \
     WidgetTestDialog.cpp \
-    UnitLineEdit.cpp
+    UnitLineEdit.cpp \
+    NetlistDialog.cpp
 
 unittest {
 	QT += testlib
@@ -112,7 +113,8 @@ HEADERS  += PCBView.h \
     SegmentLayerDialog.h \
     SegmentWidthDialog.h \
 	WidgetTestDialog.h \
-	UnitLineEdit.h
+	UnitLineEdit.h \
+    NetlistDialog.h
 
 
 FORMS    += GridToolbarWidget.ui \
@@ -130,7 +132,8 @@ FORMS    += GridToolbarWidget.ui \
     SelectFPDialog.ui \
     SegmentLayerDialog.ui \
     SegmentWidthDialog.ui \
-    WidgetTestDialog.ui
+    WidgetTestDialog.ui \
+    NetlistDialog.ui
 
 RESOURCES += \
     qtfreepcb.qrc

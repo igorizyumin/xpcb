@@ -49,8 +49,9 @@ QRect Area::bbox() const
 
 void Area::findConnections()
 {
-	QSharedPointer<Net> net = mNet.toStrongRef();
-	if (net.isNull() || !this->mDoc)
+	// XXX TODO fix this
+#if 0
+	if (!this->mDoc)
 		return;
 
 	this->mConnPins.clear();
@@ -81,6 +82,7 @@ void Area::findConnections()
 	// find all vertices within copper area
 	TraceList &tl = this->mDoc->traceList();
 	mConnVtx = tl.getVerticesInArea(*this);
+#endif
 }
 
 bool Area::pointInside(const QPoint &p) const
@@ -94,7 +96,7 @@ QSharedPointer<Area> Area::newFromXML(QXmlStreamReader &reader, const PCBDoc &do
 
 	QXmlStreamAttributes attr = reader.attributes();
 	QSharedPointer<Area> a(new Area(&doc));
-	a->mNet = doc.net(attr.value("net").toString());
+	a->mNet = attr.value("net").toString();
 	a->mLayer = Layer(attr.value("layer").toString().toInt());
 	QStringRef t = attr.value("hatch");
 	if (t == "none")
@@ -113,9 +115,8 @@ QSharedPointer<Area> Area::newFromXML(QXmlStreamReader &reader, const PCBDoc &do
 void Area::toXML(QXmlStreamWriter &writer)
 {
 	writer.writeStartElement("area");
-	QSharedPointer<Net> net = mNet.toStrongRef();
-	if (!net.isNull())
-		writer.writeAttribute("net", net->name());
+	if (!mNet.isEmpty())
+		writer.writeAttribute("net", mNet);
 	writer.writeAttribute("layer", QString::number(mLayer.toInt()));
 	switch(mHatchStyle)
 	{

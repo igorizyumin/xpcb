@@ -18,7 +18,7 @@
 */
 
 #include "Log.h"
-#include <iostream>
+#include <QDebug>
 
 using namespace std;
 
@@ -35,18 +35,18 @@ Log::Log()
 {
 }
 
-void Log::error(QString msg)
+void Log::instError(QString msg)
 {
-	cerr << "ERROR: " << msg.toStdString() << endl;
+	qDebug() << "ERROR: " << msg;
 }
 
-void Log::warning(QString msg)
+void Log::instWarning(QString msg)
 {
-	cerr << "WARN: " << msg.toStdString() << endl;
+	qDebug() << "WARN: " << msg;
 }
 
-void Log::message(QString msg)
+void Log::instMessage(QString msg)
 {
-	cerr << msg.toStdString() << endl;
+	qDebug() << msg;
 }
 

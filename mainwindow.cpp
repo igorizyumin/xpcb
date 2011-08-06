@@ -274,6 +274,16 @@ void PCBEditWindow::closeDoc()
 	setCurrentFile("");
 }
 
+void PCBEditWindow::on_actionImport_Netlist_triggered()
+{
+	if (!mDoc) return;
+	QString fileName = QFileDialog::getOpenFileName(this);
+	if (!fileName.isEmpty())
+	{
+		mDoc->netlist().loadFromFile(fileName);
+	}
+}
+
 Document* PCBEditWindow::doc()
 {
 	return mDoc;

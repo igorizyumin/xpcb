@@ -23,6 +23,13 @@
       </xs:restriction>
     </xs:simpleType>
   </xs:element>
+  <!-- unique universal identifier -->
+  <xs:simpleType name="UuidStr">
+    <xs:restriction base="xs:string">
+      <xs:length value="38"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="uuid" type="UuidStr"/>
   <!-- dimension data type -->
   <xs:simpleType name="Dimension">
     <xs:restriction base="xs:int">
@@ -81,7 +88,7 @@
         <xs:element ref="footprints"/>
         <xs:group ref="Outline"/>
         <xs:element ref="parts"/>
-        <xs:element ref="nets"/>
+        <xs:element ref="netlist"/>
         <xs:element ref="traces"/>
         <xs:element ref="areas"/>
         <xs:element ref="texts"/>
@@ -114,7 +121,7 @@
       </xs:restriction>
     </xs:simpleType>
   </xs:element>
-  <xs:element name="defaultPadstack" type="ObjID"/>
+  <xs:element name="defaultPadstack" type="UuidStr"/>
   <!-- Padstacks section -->
   <xs:element name="padstacks">
     <xs:complexType>
@@ -136,7 +143,7 @@
         <xs:element ref="endpaste"/>
       </xs:sequence>
       <xs:attribute name="name" type="xs:string"/>
-      <xs:attribute name="id" use="required" type="ObjID"/>
+      <xs:attribute name="uuid" use="required" type="UuidStr"/>
       <xs:attribute name="holesize" use="required" type="Dimension"/>
     </xs:complexType>
   </xs:element>
@@ -191,7 +198,7 @@
   </xs:element>
   <!-- Padstack reference -->
   <xs:attributeGroup name="PSRef">
-    <xs:attribute name="padstack" use="required" type="ObjID"/>
+    <xs:attribute name="padstack" use="required" type="UuidStr"/>
   </xs:attributeGroup>
   <!-- pin reference -->
   <xs:element name="pinRef">
@@ -230,13 +237,6 @@
         <xs:element ref="valueText"/>
       </xs:sequence>
     </xs:complexType>
-  </xs:element>
-  <xs:element name="uuid">
-    <xs:simpleType>
-      <xs:restriction base="xs:string">
-        <xs:length value="38"/>
-      </xs:restriction>
-    </xs:simpleType>
   </xs:element>
   <xs:element name="author" type="xs:string"/>
   <xs:element name="source" type="xs:string"/>
@@ -378,48 +378,56 @@
   <!-- Parts section -->
   <xs:element name="parts">
     <xs:complexType>
-      <xs:sequence>
-        <xs:element minOccurs="0" maxOccurs="unbounded" ref="part"/>
-      </xs:sequence>
+      <xs:group minOccurs="0" maxOccurs="unbounded" ref="Part"/>
     </xs:complexType>
   </xs:element>
   <!-- part definition -->
-  <xs:element name="part">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element minOccurs="0" ref="refText"/>
-        <xs:element minOccurs="0" ref="valueText"/>
-      </xs:sequence>
-      <xs:attribute name="refdes" use="required" type="xs:string"/>
-      <xs:attribute name="value" type="xs:string"/>
-      <xs:attribute name="footprint_uuid" use="required">
-        <xs:simpleType>
-          <xs:restriction base="xs:string">
-            <xs:length value="38"/>
-          </xs:restriction>
-        </xs:simpleType>
-      </xs:attribute>
-      <xs:attributeGroup ref="CoordsAttr"/>
-      <xs:attributeGroup ref="RotAttr"/>
-      <xs:attribute name="side" use="required">
-        <xs:simpleType>
-          <xs:restriction base="xs:token">
-            <xs:enumeration value="top"/>
-            <xs:enumeration value="bot"/>
-          </xs:restriction>
-        </xs:simpleType>
-      </xs:attribute>
-      <xs:attribute name="locked" type="Bool"/>
-    </xs:complexType>
-  </xs:element>
+  <xs:group name="Part">
+    <xs:sequence>
+      <xs:element name="part">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" ref="refText"/>
+            <xs:element minOccurs="0" ref="valueText"/>
+          </xs:sequence>
+          <xs:attribute name="refdes" use="required" type="xs:string"/>
+          <xs:attribute name="value" type="xs:string"/>
+          <xs:attribute name="footprint_uuid" use="required" type="UuidStr"/>
+          <xs:attributeGroup ref="CoordsAttr"/>
+          <xs:attributeGroup ref="RotAttr"/>
+          <xs:attribute name="side" use="required">
+            <xs:simpleType>
+              <xs:restriction base="xs:token">
+                <xs:enumeration value="top"/>
+                <xs:enumeration value="bot"/>
+              </xs:restriction>
+            </xs:simpleType>
+          </xs:attribute>
+          <xs:attribute name="locked" type="Bool"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
   <!-- Nets section -->
-  <xs:element name="nets">
+  <xs:element name="netlist">
     <xs:complexType>
       <xs:sequence>
+        <xs:group minOccurs="0" maxOccurs="unbounded" ref="NetlistPart"/>
         <xs:element minOccurs="0" maxOccurs="unbounded" ref="net"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
+  <xs:group name="NetlistPart">
+    <xs:sequence>
+      <xs:element name="part">
+        <xs:complexType>
+          <xs:attribute name="refdes" use="required" type="xs:string"/>
+          <xs:attribute name="value" type="xs:string"/>
+          <xs:attribute name="footprint" use="required" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
   <!-- Net definition -->
   <xs:element name="net">
     <xs:complexType>
@@ -428,7 +436,7 @@
       </xs:sequence>
       <xs:attribute name="name" use="required" type="xs:string"/>
       <xs:attribute name="visible" type="Bool"/>
-      <xs:attribute name="defViaPadstack" type="ObjID"/>
+      <xs:attribute name="defViaPadstack" type="UuidStr"/>
     </xs:complexType>
   </xs:element>
   <!-- Traces section -->
@@ -460,7 +468,7 @@
       <xs:attribute name="id" use="required" type="ObjID"/>
       <xs:attributeGroup ref="CoordsAttr"/>
       <xs:attribute name="forcevia" type="Bool"/>
-      <xs:attribute name="padstack" type="ObjID"/>
+      <xs:attribute name="padstack" type="UuidStr"/>
     </xs:complexType>
   </xs:element>
   <!-- Segment definition -->

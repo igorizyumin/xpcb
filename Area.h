@@ -27,7 +27,6 @@
 
 class PartPin;
 class Vertex;
-class Net;
 class TraceList;
 class PCBDoc;
 class QXmlStreamReader;
@@ -73,7 +72,7 @@ public:
 	void setHatchStyle( HatchStyle hatch ) { mHatchStyle = hatch; }
 
 	bool connSmt() { return mConnectSMT; }
-	QSharedPointer<Net> net() { return mNet.toStrongRef(); }
+	QString net() { return mNet; }
 	Polygon& poly() { return mPoly; }
 
 	/// Check if a point is within the area boundaries.
@@ -91,7 +90,7 @@ private:
 	const PCBDoc* mDoc;
 
 	/// Net assigned to this area
-	QWeakPointer<Net> mNet;
+	QString mNet;
 
 	/// Whether to connect SMT pads to this area
 	bool mConnectSMT;

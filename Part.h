@@ -25,7 +25,6 @@
 #include "Text.h"
 
 // forward declarations
-class Net;
 class Vertex;
 class PCBDoc;
 class Part;
@@ -42,8 +41,8 @@ public:
 
 	Pad getPadOnLayer(const Layer& layer) const;
 
-	void setNet(QSharedPointer<Net> newnet) { mNet = newnet.toWeakRef(); }
-	QSharedPointer<Net> net() const { return mNet.toStrongRef(); }
+	void setNet(QString newnet) { mNet = newnet; }
+	QString net() const { return mNet; }
 
 	void setVertex(QSharedPointer<Vertex> vertex) { mVertex = vertex.toWeakRef(); }
 	QSharedPointer<Vertex> vertex() const { return mVertex; }
@@ -75,7 +74,7 @@ private:
 
 		QSharedPointer<Pin> pin;
 		Part* part;
-		QWeakPointer<Net> net;
+		QString net;
 		QWeakPointer<Vertex> vertex;
 	};
 
@@ -86,8 +85,8 @@ private:
 	QSharedPointer<Pin> mPin;
 	/// Pointer to parent part.
 	Part * mPart;
-	/// Pointer to assigned net.  NULL if no assigned net.
-	QWeakPointer<Net> mNet;
+	/// Name of assigned net.
+	QString mNet;
 	/// Pointer to attached vertex. May be NULL.
 	QWeakPointer<Vertex> mVertex;
 };

@@ -62,6 +62,8 @@ protected slots:
 	void on_action_Redo_triggered();
 	void onUndoAvailableChanged(bool enabled);
 	void onRedoAvailableChanged(bool enabled);
+	virtual void on_actionImport_Netlist_triggered() {}
+
 
 protected:
 	virtual void closeEvent(QCloseEvent *event);
@@ -102,6 +104,8 @@ protected:
 	virtual void loadGeom();
 	virtual void saveGeom();
 
+protected slots:
+	virtual void on_actionImport_Netlist_triggered();
 
 private:
 	PCBDoc* mDoc;

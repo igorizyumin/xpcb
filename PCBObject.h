@@ -26,21 +26,18 @@
 #include "Log.h"
 
 // Forward declarations for visitor abstract class
-class Area;
-class Line;
-class Net;
-class PartPin;
-class Pin;
-class Part;
-class Text;
-class Vertex;
-class Segment;
-class Padstack;
-class PCBObjectVisitor;
+//class Area;
+//class Line;
+//class PartPin;
+//class Pin;
+//class Part;
+//class Text;
+//class Vertex;
+//class Segment;
+//class Padstack;
+//class PCBObjectVisitor;
 class PCBDoc;
-class Layer;
 class PCBObjState;
-class QPainter;
 
 /// Abstract base class for PCB graphical objects
 

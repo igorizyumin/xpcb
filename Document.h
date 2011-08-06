@@ -118,6 +118,8 @@ public:
 	virtual void addPadstack(QSharedPointer<Padstack>) = 0;
 	/// Removes the provided padstack from the document.
 	virtual void removePadstack(QSharedPointer<Padstack>) = 0;
+	/// Returns a padstack for the given UUID (or null if not present).
+	virtual QSharedPointer<Padstack> padstack(QUuid uuid) = 0;
 signals:
 	void changed();
 	void cleanChanged(bool clean);
@@ -159,13 +161,12 @@ public:
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QRect &rect);
 
 	TraceList& traceList() const {return *mTraceList;}
+	Netlist& netlist() const { return *mNetlist; }
 
 	QSharedPointer<Part> part(const QString & refdes);
 
 	QSharedPointer<Footprint> getFootprint(QUuid uuid);
 	QList<QSharedPointer<Footprint> > footprints() { return mFootprints.values(); }
-
-	QSharedPointer<Net> net(const QString &name) const;
 
 	virtual void addText(QSharedPointer<Text> t);
 	virtual void removeText(QSharedPointer<Text> t);
@@ -175,9 +176,10 @@ public:
 
 	int numLayers() const { return mNumLayers; }
 
-	virtual QList<QSharedPointer<Padstack> > padstacks() { return mPadstacks; }
+	virtual QList<QSharedPointer<Padstack> > padstacks() { return mPadstacks.values(); }
 	virtual void addPadstack(QSharedPointer<Padstack> ps);
 	virtual void removePadstack(QSharedPointer<Padstack> ps);
+	virtual QSharedPointer<Padstack> padstack(QUuid uuid);
 
 private:
 	void clearDoc();
@@ -185,14 +187,14 @@ private:
 	/// Number of copper layers
 	int mNumLayers;
 	QSharedPointer<TraceList> mTraceList;
-	QList<QSharedPointer<Net> > mNets;
+	QSharedPointer<Netlist> mNetlist;
 	QList<QSharedPointer<Part> > mParts;
 	QList<QSharedPointer<Text> > mTexts;
 	QList<QSharedPointer<Area> > mAreas;
 	QHash<QUuid, QSharedPointer<Footprint> > mFootprints;
-	QList<QSharedPointer<Padstack> > mPadstacks;
+	QHash<QUuid, QSharedPointer<Padstack> > mPadstacks;
 	Polygon mBoardOutline;
-	QSharedPointer<Padstack> mDefaultPadstack;
+	QUuid mDefaultPadstack;
 };
 
 class FPDoc : public Document
@@ -220,6 +222,7 @@ public:
 	virtual QList<QSharedPointer<Padstack> > padstacks() { return mFp->padstacks(); }
 	virtual void addPadstack(QSharedPointer<Padstack> ps) { return mFp->addPadstack(ps); }
 	virtual void removePadstack(QSharedPointer<Padstack> ps) { return mFp->removePadstack(ps); }
+	virtual QSharedPointer<Padstack> padstack(QUuid uuid) { return mFp->padstack(uuid); }
 
 	void addPin(QSharedPointer<Pin> p) { mFp->addPin(p); }
 	void removePin(QSharedPointer<Pin> p) { mFp->removePin(p); }

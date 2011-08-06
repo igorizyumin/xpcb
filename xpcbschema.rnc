@@ -8,6 +8,9 @@ Bool = ( "1" | "0" )
 # display units selection for board/footprint editor 
 # (all units are always nm in the XML file)
 Units = (element units { "mm" | "mils" })
+# unique universal identifier
+UuidStr = (xsd:string {length = "38"})
+Uuid = (element uuid { UuidStr })
 # dimension data type
 Dimension = (xsd:int {minInclusive = "0"})
 # object id type
@@ -27,7 +30,7 @@ Layer = (xsd:int)
 XPcbBoard = element xpcbBoard 
 { 
 	Properties, Padstacks, Footprints, Outline, 
-	Parts, Nets, Traces, Areas, Texts 
+	Parts, Netlist, Traces, Areas, Texts
 }
 
 XPcbFp = element xpcbFootprint
@@ -41,7 +44,7 @@ Properties = element props
 		element name { xsd:string } &
 		Units &
 		element numLayers { xsd:int {minInclusive = "2"} } &
-		element defaultPadstack {ObjID}
+		element defaultPadstack {UuidStr}
 }
 
 # Padstacks section
@@ -52,7 +55,7 @@ Padstacks = element padstacks
 # padstack definition
 Padstack = element padstack {
 	attribute name { xsd:string }?,
-	attribute id {ObjID},
+	attribute uuid { UuidStr },
 	attribute holesize { Dimension},
 	element startpad { PadDef? }, 
 	element innerpad {PadDef?},
@@ -63,7 +66,7 @@ Padstack = element padstack {
 	element endpaste {PadDef? }
 }
 # Padstack reference
-PSRef = attribute padstack { ObjID }
+PSRef = attribute padstack { UuidStr }
 # pin reference
 PinRef = element pinRef {
 	attribute partref { xsd:string },
@@ -79,7 +82,7 @@ Footprints = element footprints
 Footprint = element footprint
 {
 	element name { xsd:string },
-	element uuid { xsd:string {length = "38"} },
+	Uuid,
 	Units,
 	element author { xsd:string }?,
 	element source { xsd:string }?,
@@ -151,7 +154,7 @@ Parts = element parts {
 Part = element part {
 	attribute refdes { xsd:string },
 	attribute value { xsd:string }?,
-	attribute footprint_uuid { xsd:string {length = "38"} },
+	attribute footprint_uuid { UuidStr },
 	CoordsAttr,
 	RotAttr,
 	attribute side {"top" | "bot"},
@@ -161,14 +164,22 @@ Part = element part {
 }
 
 # Nets section
-Nets = element nets {
+Netlist = element netlist {
+	NetlistPart*,
 	Net*
 }
+
+NetlistPart = element part {
+	attribute refdes { xsd:string },
+	attribute value { xsd:string }?,
+	attribute footprint { xsd:string }
+}
+
 # Net definition
 Net = element net {
 	attribute name { xsd:string },
 	attribute visible {Bool}?,
-	attribute defViaPadstack {ObjID}?,
+	attribute defViaPadstack {UuidStr}?,
 	PinRef+
 }
 

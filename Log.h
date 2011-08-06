@@ -28,13 +28,18 @@ class Log
 public:
 	static Log& instance();
 
-	void message(QString msg);
-	void warning(QString msg);
-	void error(QString msg);
+	static void message(QString msg) { instance().instMessage(msg); }
+	static void warning(QString msg) { instance().instWarning(msg); }
+	static void error(QString msg) { instance().instError(msg); }
 
 private:
     Log();
 	Log(Log& other);
+
+	void instMessage(QString msg);
+	void instWarning(QString msg);
+	void instError(QString msg);
+
 
 	static Log* mInstance;
 };

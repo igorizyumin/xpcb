@@ -247,10 +247,9 @@ QList<QSharedPointer<PCBObject> > FPDoc::findObjs(QRect &rect)
 ////////////////////////////// PCBDOC /////////////////////////////////
 
 PCBDoc::PCBDoc()
-		: mNumLayers(2), mTraceList(QSharedPointer<TraceList>(new TraceList())),
-		  mDefaultPadstack(QSharedPointer<Padstack>(new Padstack()))
+		: mNumLayers(2), mTraceList(new TraceList()),
+		  mNetlist(new Netlist())
 {
-	mPadstacks.append(mDefaultPadstack);
 }
 
 QSharedPointer<Footprint> PCBDoc::getFootprint(QUuid uuid)
@@ -276,16 +275,6 @@ QSharedPointer<Part> PCBDoc::part(const QString &refdes)
 			return p;
 	}
 	return QSharedPointer<Part>();
-}
-
-QSharedPointer<Net> PCBDoc::net(const QString &name) const
-{
-	foreach(QSharedPointer<Net> p, mNets)
-	{
-		if (p->name() == name)
-			return p;
-	}
-	return QSharedPointer<Net>();
 }
 
 void PCBDoc::addText(QSharedPointer<Text> t)
@@ -387,7 +376,6 @@ void PCBDoc::clearDoc()
 {
 	mTraceList = QSharedPointer<TraceList>(new TraceList());
 
-	mNets.clear();
 	mParts.clear();
 	mTexts.clear();
 	mAreas.clear();
@@ -396,8 +384,7 @@ void PCBDoc::clearDoc()
 
 	mBoardOutline = Polygon();
 
-	mDefaultPadstack = QSharedPointer<Padstack>(new Padstack());
-	mPadstacks.append(mDefaultPadstack);
+	mDefaultPadstack = QUuid();
 }
 
 QList<Layer> PCBDoc::layerList(LayerOrder order, Document::LayerMask mask)
@@ -471,12 +458,19 @@ QList<Layer> PCBDoc::layerList(LayerOrder order, Document::LayerMask mask)
 
 void PCBDoc::addPadstack(QSharedPointer<Padstack> ps)
 {
-	mPadstacks.append(ps);
+	mPadstacks.insert(ps->uuid(), ps);
 }
 
 void PCBDoc::removePadstack(QSharedPointer<Padstack> ps)
 {
-	mPadstacks.removeOne(ps);
+	mPadstacks.remove(ps->uuid());
+}
+
+QSharedPointer<Padstack> PCBDoc::padstack(QUuid uuid)
+{
+	if (mPadstacks.contains(uuid))
+		return mPadstacks[uuid];
+	return QSharedPointer<Padstack>();
 }
 
 void PCBDoc::addPart(QSharedPointer<Part> p)
@@ -495,14 +489,19 @@ void PCBDoc::removePart(QSharedPointer<Part> p)
 
 //////// XML PARSING /////////
 // parser methods
-void loadProps(QXmlStreamReader &reader, QString &name, XPcb::UNIT &units, int &defaultps, int &numLayers);
-void loadPadstacks(QXmlStreamReader &reader, QHash<int, QSharedPointer<Padstack> > &padstacks);
-void loadFootprints(QXmlStreamReader &reader, QHash<QUuid, QSharedPointer<Footprint> > &footprints);
-void loadOutline(QXmlStreamReader &reader, Polygon & poly);
-void loadParts(QXmlStreamReader &reader, QList<QSharedPointer<Part> >& parts, PCBDoc* doc);
-void loadNets(QXmlStreamReader &reader, QList<QSharedPointer<Net> >& nets, PCBDoc* doc, const QHash<int, QSharedPointer<Padstack> > &padstacks);
-void loadAreas(QXmlStreamReader &reader, QList<QSharedPointer<Area> >& areas, PCBDoc *doc);
-void loadTexts(QXmlStreamReader &reader, QList<QSharedPointer<Text> >& texts);
+static void loadProps(QXmlStreamReader &reader, QString &name,
+					  XPcb::UNIT &units, QUuid &defaultps, int &numLayers);
+static void loadPadstacks(QXmlStreamReader &reader,
+						  QHash<QUuid, QSharedPointer<Padstack> > &padstacks);
+static void loadFootprints(QXmlStreamReader &reader, QHash<QUuid,
+						   QSharedPointer<Footprint> > &footprints);
+static void loadOutline(QXmlStreamReader &reader, Polygon & poly);
+static void loadParts(QXmlStreamReader &reader,
+					  QList<QSharedPointer<Part> >& parts, PCBDoc* doc);
+static void loadAreas(QXmlStreamReader &reader,
+					  QList<QSharedPointer<Area> >& areas, PCBDoc *doc);
+static void loadTexts(QXmlStreamReader &reader,
+					  QList<QSharedPointer<Text> >& texts);
 
 
 bool validateFile(QIODevice &file)
@@ -537,7 +536,8 @@ bool PCBDoc::saveToXml(QXmlStreamWriter &writer)
 	writer.writeTextElement("units", this->mUnits == XPcb::MM ? "mm" : "mils");
 	writer.writeTextElement("numLayers", QString::number(this->mNumLayers));
 	writer.writeTextElement("name", this->mName);
-	writer.writeTextElement("defaultPadstack", QString::number(this->mDefaultPadstack->getid()));
+	writer.writeTextElement("defaultPadstack",
+							mDefaultPadstack.toString());
 	writer.writeEndElement();
 
 	writer.writeStartElement("padstacks");
@@ -559,10 +559,7 @@ bool PCBDoc::saveToXml(QXmlStreamWriter &writer)
 		p->toXML(writer);
 	writer.writeEndElement();
 
-	writer.writeStartElement("nets");
-	foreach(QSharedPointer<Net> n, mNets)
-		n->toXML(writer);
-	writer.writeEndElement();
+	mNetlist->toXML(writer);
 
 	mTraceList->toXML(writer);
 
@@ -602,11 +599,7 @@ bool PCBDoc::loadFromXml(QXmlStreamReader &reader)
 {
 	clearDoc();
 	mTraceList = QSharedPointer<TraceList>(new TraceList());
-
-	// default padstack id
-	int defaultPS;
-
-	QHash<int, QSharedPointer<Padstack> > padstacks;
+	mNetlist = QSharedPointer<Netlist>(new Netlist());
 
 	reader.readNextStartElement();
 	if (reader.name() != "xpcbBoard")
@@ -618,19 +611,10 @@ bool PCBDoc::loadFromXml(QXmlStreamReader &reader)
 	{
 		QStringRef t = reader.name();
 		if (t == "props")
-			loadProps(reader, mName, mUnits, defaultPS, mNumLayers);
+			loadProps(reader, mName, mUnits, mDefaultPadstack, mNumLayers);
 		else if (t == "padstacks")
 		{
-			loadPadstacks(reader, padstacks);
-			mPadstacks.append(padstacks.values());
-			if (padstacks.contains(defaultPS))
-				mDefaultPadstack = padstacks.value(defaultPS);
-			else
-			{
-				Log::instance().error("Invalid default padstack specified.");
-				mDefaultPadstack = QSharedPointer<Padstack>(new Padstack());
-				mPadstacks.append(mDefaultPadstack);
-			}
+			loadPadstacks(reader, mPadstacks);
 		}
 		else if (t == "footprints")
 			loadFootprints(reader, this->mFootprints);
@@ -638,8 +622,10 @@ bool PCBDoc::loadFromXml(QXmlStreamReader &reader)
 			loadOutline(reader, this->mBoardOutline);
 		else if (t == "parts")
 			loadParts(reader, this->mParts, this);
-		else if (t == "nets")
-			loadNets(reader, this->mNets, this, padstacks);
+		else if (t == "netlist")
+		{
+			mNetlist->loadFromXML(reader);
+		}
 		else if (t == "traces")
 		{
 			mTraceList->loadFromXml(reader);
@@ -721,7 +707,8 @@ bool FPDoc::saveToXml(QXmlStreamWriter &writer)
 	return true;
 }
 
-void loadProps(QXmlStreamReader &reader, QString &name, XPcb::UNIT &units, int &defaultps, int &numLayers)
+void loadProps(QXmlStreamReader &reader, QString &name, XPcb::UNIT &units,
+			   QUuid &defaultps, int &numLayers)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "props");
 	while(reader.readNextStartElement())
@@ -741,7 +728,7 @@ void loadProps(QXmlStreamReader &reader, QString &name, XPcb::UNIT &units, int &
 		}
 		else if (t == "defaultPadstack")
 		{
-			defaultps = reader.readElementText().toInt();
+			defaultps = QUuid(reader.readElementText());
 		}
 		else if (t == "numLayers")
 		{
@@ -751,7 +738,8 @@ void loadProps(QXmlStreamReader &reader, QString &name, XPcb::UNIT &units, int &
 	Q_ASSERT(reader.isEndElement() && reader.name() == "props");
 }
 
-void loadPadstacks(QXmlStreamReader &reader, QHash<int, QSharedPointer<Padstack> > &padstacks)
+void loadPadstacks(QXmlStreamReader &reader,
+				   QHash<QUuid, QSharedPointer<Padstack> > &padstacks)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "padstacks");
 	while(!reader.atEnd() && !reader.hasError())
@@ -763,14 +751,13 @@ void loadPadstacks(QXmlStreamReader &reader, QHash<int, QSharedPointer<Padstack>
 			continue; // comments, etc.
 		if (reader.name() == "padstack")
 		{
-			int psid = reader.attributes().value("id").toString().toInt();
 			QSharedPointer<Padstack> ps = Padstack::newFromXML(reader);
 			if (!ps)
 			{
 				Log::instance().error("Error loading padstack");
 			}
 			else
-				padstacks.insert(psid, ps);
+				padstacks.insert(ps->uuid(), ps);
 		}
 	}
 	do
@@ -837,26 +824,6 @@ void loadParts(QXmlStreamReader &reader, QList<QSharedPointer<Part> >& parts, PC
 	Q_ASSERT(reader.isEndElement() && reader.name() == "parts");
 
 }
-
-void loadNets(QXmlStreamReader &reader, QList<QSharedPointer<Net> > &nets,
-			  PCBDoc *doc,
-			  const QHash<int, QSharedPointer<Padstack> > &padstacks)
-{
-	Q_ASSERT(reader.isStartElement() && reader.name() == "nets");
-	while(reader.readNextStartElement())
-	{
-		QSharedPointer<Net> net = Net::newFromXML(reader, doc, padstacks);
-		if (!net)
-		{
-			Log::instance().error("Error loading net");
-		}
-		else
-			nets.append(net);
-	}
-	Q_ASSERT(reader.isEndElement() && reader.name() == "nets");
-
-}
-
 
 void loadAreas(QXmlStreamReader &reader, QList<QSharedPointer<Area> > &areas, PCBDoc *doc)
 {

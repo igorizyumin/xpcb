@@ -92,11 +92,6 @@ QSharedPointer<AbstractEditor> EditorFactory::newEditor(QSharedPointer<PCBObject
 	{
 		return QSharedPointer<AbstractEditor>(new LineEditor(dynamic_cast<FPController*>(ctrl), l));
 	}
-	else if (QSharedPointer<Net> n = obj.dynamicCast<Net>())
-	{
-		if (mFactories.contains(ObjNet))
-			return mFactories.value(ObjNet)->makeEditor(ctrl, n);
-	}
 	else if (QSharedPointer<PartPin> pp = obj.dynamicCast<PartPin>())
 	{
 		if (mFactories.contains(ObjPartPin))

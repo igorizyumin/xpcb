@@ -215,10 +215,12 @@ void Pad::draw(QPainter *painter) const
 
 // class padstack
 Padstack::Padstack() :
-		hole_size(0), mID(PCBObject::getNextID())
+		hole_size(0), mUuid(QUuid::createUuid())
 {
 }
 
+// XXX why is this necessary?
+#if 0
 bool Padstack::operator==(const Padstack &p) const
 { 
 	return( mName == p.mName
@@ -232,6 +234,7 @@ bool Padstack::operator==(const Padstack &p) const
 			&& inner==p.inner				
 			); 
 }
+#endif
 
 QSharedPointer<Padstack> Padstack::newFromXML(QXmlStreamReader &reader)
 {
@@ -240,6 +243,7 @@ QSharedPointer<Padstack> Padstack::newFromXML(QXmlStreamReader &reader)
 	if (reader.attributes().hasAttribute("name"))
 		p->mName = reader.attributes().value("name").toString();
 	p->hole_size = reader.attributes().value("holesize").toString().toInt();
+	p->mUuid = QUuid(reader.attributes().value("uuid").toString());
 	reader.readNextStartElement();
 	do
 	{
@@ -304,7 +308,7 @@ void Padstack::toXML(QXmlStreamWriter &writer) const
 {
 	writer.writeStartElement("padstack");
 	writer.writeAttribute("name", mName);
-	writer.writeAttribute("id", QString::number(getid()));
+	writer.writeAttribute("uuid", mUuid.toString());
 	writer.writeAttribute("holesize", QString::number(hole_size));
 
 	writer.writeStartElement("startpad");
@@ -390,7 +394,7 @@ void Pin::toXML(QXmlStreamWriter &writer) const
 	writer.writeAttribute("x", QString::number(mPos.x()));
 	writer.writeAttribute("y", QString::number(mPos.y()));
 	writer.writeAttribute("rot", QString::number(mAngle));
-	writer.writeAttribute("padstack", QString::number(mPadstack->getid()));
+	writer.writeAttribute("padstack", mPadstack->uuid().toString());
 	writer.writeEndElement();
 }
 
@@ -687,6 +691,16 @@ void Footprint::removePadstack(QSharedPointer<Padstack> ps)
 	}
 	// not in use, delete
 	mPadstacks.removeOne(ps);
+}
+
+QSharedPointer<Padstack> Footprint::padstack(QUuid uuid) const
+{
+	foreach(QSharedPointer<Padstack> p, mPadstacks)
+	{
+		if (p->uuid() == uuid)
+			return p;
+	}
+	return QSharedPointer<Padstack>();
 }
 
 int Footprint::numPins() const

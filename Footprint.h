@@ -89,7 +89,7 @@ class Padstack
 {
 public:
 	Padstack();
-	bool operator==(const Padstack &p) const;
+//	bool operator==(const Padstack &p) const;
 
 	static QSharedPointer<Padstack> newFromXML(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
@@ -110,9 +110,8 @@ public:
 	bool isSmt() const {return hole_size == 0;}
 	QRect bbox() const;
 	void draw(QPainter *painter, const Layer& layer) const;
-//	virtal void accept(PCBObjectVisitor *v);
 
-	int getid() const { return mID; }
+	QUuid uuid() const { return mUuid; }
 private:
 	/// Padstack name; optional; only used for library padstacks
 	/// (i.e. VIA_15MIL)
@@ -121,7 +120,7 @@ private:
 	Pad start, start_mask, start_paste;
 	Pad end, end_mask, end_paste;
 	Pad inner;
-	int mID;
+	QUuid mUuid;
 };
 
 /// A pin is an instance of a padstack associated with a footprint.
@@ -225,6 +224,7 @@ public:
 	QList<QSharedPointer<Padstack> > padstacks() { return mPadstacks; }
 	void addPadstack(QSharedPointer<Padstack> ps) { mPadstacks.append(ps); }
 	void removePadstack(QSharedPointer<Padstack> ps);
+	QSharedPointer<Padstack> padstack(QUuid uuid) const;
 
 	int numPins() const;
 	QSharedPointer<Pin> pin(const QString & pin) const;

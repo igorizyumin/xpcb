@@ -35,6 +35,9 @@
 
 class PCBDoc;
 
+// to be removed soon
+#if 0
+// why the hell is a net a PCB object?
 class Net : public PCBObject
 {
 public:
@@ -85,38 +88,84 @@ private:
 	QList<QWeakPointer<PartPin> > mPins;	// pointers to part pins that are in this net
 	QSharedPointer<Padstack> mViaPS; // via padstack for this net
 };
+#endif
 
+class NLPart
+{
+public:
+	NLPart(QString ref = QString(), QString footprint = QString(),
+		   QString value = QString())
+		: mRef(ref), mValue(value), mFp(footprint)
+	{
+	}
+
+	QString refdes() const { return mRef; }
+	QString value() const { return mValue; }
+	QString footprint() const { return mFp; }
+
+	void toXML(QXmlStreamWriter &writer) const;
+	static NLPart newFromXML(QXmlStreamReader &reader);
+private:
+	QString mRef;
+	QString mValue;
+	QString mFp;
+};
+
+class NLNet
+{
+public:
+	NLNet(QString name = QString(), QSet<QPair<QString, QString> > pins =
+		  QSet<QPair<QString, QString> >())
+		: mName(name), mPins(pins) {}
+
+	QString name() const { return mName; }
+	QSet<QPair<QString, QString> > pins() const { return mPins; }
+
+	void addPin(QString partref, QString pinname)
+	{
+		mPins.insert(QPair<QString, QString>(partref, pinname));
+	}
+
+	void removePin(QString partref, QString pinname)
+	{
+		mPins.remove(QPair<QString, QString>(partref, pinname));
+	}
+
+	bool hasPin(QString partref, QString pinname) const
+	{
+		return mPins.contains(QPair<QString, QString>(partref, pinname));
+	}
+
+	void toXML(QXmlStreamWriter &writer) const;
+	static NLNet newFromXML(QXmlStreamReader &reader);
+private:
+	QString mName;
+	QSet<QPair<QString, QString> > mPins;
+};
 
 class Netlist
 {
 public:
-	void addNet(QString name, QList<QPair<QString, QString> > net) { mNets.insert(name, net); }
+	void addNet(const NLNet& net) { mNets.insert(net.name(), net); }
 	void removeNet(QString name) { mNets.remove(name); }
-	QList<QPair<QString, QString> > net(QString &name) const { return mNets.value(name); }
+	NLNet net(QString &name) const { return mNets.value(name); }
 
-	/// Returns a list of part reference designators.
-	QList<QString> parts() const { return mParts.keys(); }
-	/// Returns the footprint name for a part.
-	QString partFpName(QString refdes) const { return mParts.value(refdes); }
+	QList<NLPart> parts() const { return mParts.values(); }
+	NLPart part(QString ref) const { return mParts.value(ref); }
 
-	void addPart(QString refdes, QString fp) { mParts.insert(refdes, fp); }
+	void addPart(const NLPart &part) { mParts.insert(part.refdes(), part); }
 
+	static QSharedPointer<Netlist> loadFromFile(QString path);
+
+	void toXML(QXmlStreamWriter &writer) const;
+	void loadFromXML(QXmlStreamReader &reader);
 protected:
-	/// List of nets in this netlist.
-	QHash<QString, QList<QPair<QString, QString> > > mNets;
-	/// Associates parts with footprint names.
-	QHash<QString, QString> mParts;
-};
+	static QSharedPointer<Netlist> loadFromFile(QFile &file);
 
-class NetlistLoader
-{
-public:
-	static Netlist* loadFile(QString path);
-	static void registerLoader(NetlistLoader* loader) { mLoaders.append(loader); }
-
-protected:
-	virtual Netlist* loadFromFile(QFile &file) = 0;
-	static QList<NetlistLoader*> mLoaders;
+	/// List of nets in this netlist (keyed by net name).
+	QHash<QString, NLNet> mNets;
+	/// List of parts (keyed by refdes).
+	QHash<QString, NLPart> mParts;
 };
 
 #endif // NET_H
