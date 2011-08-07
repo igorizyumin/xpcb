@@ -35,5 +35,11 @@
         <file>Resources/f1.png</file>
         <file alias="bg-disabled.png">Resources/bg-layer-disabled.png</file>
         <file>xpcbschema.xsd</file>
+        <file>Resources/icon-error.png</file>
+        <file>Resources/icon-no.png</file>
+        <file>Resources/icon-warning.png</file>
+        <file>Resources/icon-yes.png</file>
+        <file>Resources/xpcb-icon.png</file>
+        <file>Resources/xpcb-logo.png</file>
     </qresource>
 </RCC>

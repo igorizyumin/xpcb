@@ -62,6 +62,7 @@ protected slots:
 	void on_action_Redo_triggered();
 	void onUndoAvailableChanged(bool enabled);
 	void onRedoAvailableChanged(bool enabled);
+	virtual void on_actionNets_triggered() {}
 	virtual void on_actionImport_Netlist_triggered() {}
 
 
@@ -106,6 +107,7 @@ protected:
 
 protected slots:
 	virtual void on_actionImport_Netlist_triggered();
+	virtual void on_actionNets_triggered();
 
 private:
 	PCBDoc* mDoc;

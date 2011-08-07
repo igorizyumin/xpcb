@@ -160,8 +160,8 @@ public:
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt, int dist = 1);
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QRect &rect);
 
-	TraceList& traceList() const {return *mTraceList;}
-	Netlist& netlist() const { return *mNetlist; }
+	QSharedPointer<TraceList> traceList() const {return mTraceList;}
+	QSharedPointer<Netlist> netlist() const { return mNetlist; }
 
 	QSharedPointer<Part> part(const QString & refdes);
 

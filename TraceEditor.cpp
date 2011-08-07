@@ -135,7 +135,7 @@ void NewTraceEditor::mouseReleaseEvent(QMouseEvent *event)
 			return;
 		}
 		QUndoCommand* cmd = mCtrl->pcbDoc()->traceList()
-				.addSegmentCmd(mSeg1, mVtxStart, mVtxMid);
+				->addSegmentCmd(mSeg1, mVtxStart, mVtxMid);
 		mCtrl->doc()->doCommand(cmd);
 		mSeg1 = mSeg2;
 		mVtxStart = mVtxMid;
@@ -308,8 +308,7 @@ void SegmentEditor::keyPressEvent(QKeyEvent *event)
 
 void SegmentEditor::deleteSegment()
 {
-	TraceList* tl = &mCtrl->pcbDoc()->traceList();
-	QUndoCommand *cmd = tl->removeSegmentCmd(mSegment);
+	QUndoCommand *cmd = mCtrl->pcbDoc()->traceList()->removeSegmentCmd(mSegment);
 	// exec the command
 	mCtrl->doc()->doCommand(cmd);
 	emit editorFinished();
@@ -467,7 +466,7 @@ void SegmentEditor::cleanUpTrace(QList<QSharedPointer<Segment> > segments,
 								 QUndoCommand* parent)
 {
 	if (segments.length() < 2) return;
-	TraceList* tl = &mCtrl->pcbDoc()->traceList();
+	QSharedPointer<TraceList> tl = mCtrl->pcbDoc()->traceList();
 
 	// list of nonzero length segments and their start vertices
 	QList<SegListEntry> nzList;
@@ -566,7 +565,7 @@ void SegmentEditor::finishSlide()
 		mCtrl->unhideObj(mSeg2);
 	// execute command and reset state
 	mCtrl->doc()->doCommand(parent);
-	if (!mCtrl->pcbDoc()->traceList().segments().contains(mSegment))
+	if (!mCtrl->pcbDoc()->traceList()->segments().contains(mSegment))
 	{
 		emit editorFinished();
 		return;
@@ -596,7 +595,7 @@ void SegmentEditor::finishAddVtx()
 	// create a new segment
 	QSharedPointer<Segment> snew(new Segment(*mSegment));
 	// make the modifications
-	TraceList* tl = &mCtrl->pcbDoc()->traceList();
+	QSharedPointer<TraceList> tl = mCtrl->pcbDoc()->traceList();
 	tl->swapVtxCmd(mSegment, v2, vnew, parent);
 	tl->addSegmentCmd(snew, vnew, v2, parent);
 	mCtrl->doc()->doCommand(parent);
@@ -736,7 +735,7 @@ void VertexEditor::deleteVtx()
 	// do not delete tees or vertices with only one segment
 	if (segs.size() != 2)
 		return;
-	TraceList* tl = &mCtrl->pcbDoc()->traceList();
+	QSharedPointer<TraceList> tl = mCtrl->pcbDoc()->traceList();
 	QSharedPointer<Vertex> v2 = segs[1]->otherVertex(mVtx);
 	QUndoCommand *parent = new QUndoCommand("delete vertex");
 	// reattach the first segment

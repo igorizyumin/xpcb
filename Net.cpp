@@ -185,17 +185,18 @@ void NLNet::toXML(QXmlStreamWriter &writer) const
 	if (mPins.isEmpty()) return;
 	writer.writeStartElement("net");
 	writer.writeAttribute("name", mName);
-	// TODO visible
-	// TODO padstack
-	// workaround for foreach
-	typedef QPair<QString, QString> StringPair;
-	foreach(StringPair pin, mPins)
+	if (!mIsVisible)
+		writer.writeAttribute("visible", "0");
+	if (!mPadstack.isNull())
+		writer.writeAttribute("defViaPadstack", mPadstack.toString());
+	foreach(NLPin pin, mPins)
 	{
 		writer.writeStartElement("pinRef");
-		writer.writeAttribute("partref", pin.first);
-		writer.writeAttribute("pinname", pin.second);
+		writer.writeAttribute("partref", pin.refdes());
+		writer.writeAttribute("pinname", pin.pinName());
 		writer.writeEndElement();
 	}
+	writer.writeEndElement();
 }
 
 NLNet NLNet::newFromXML(QXmlStreamReader &reader)
@@ -204,14 +205,20 @@ NLNet NLNet::newFromXML(QXmlStreamReader &reader)
 
 	QXmlStreamAttributes attr = reader.attributes();
 	NLNet n(attr.value("name").toString());
-	// TODO visible/padstack
+	if (attr.hasAttribute("visible")
+			&& attr.value("visible").toString() == "0")
+		n.mIsVisible = false;
+
+	if (attr.hasAttribute("defViaPadstack"))
+		n.mPadstack = QUuid(attr.value("defViaPadstack").toString());
+
 	// read pins
 	while(reader.readNextStartElement())
 	{
 		Q_ASSERT(reader.isStartElement() && reader.name() == "pinRef");
 		attr = reader.attributes();
-		n.addPin(attr.value("partref").toString(),
-				 attr.value("pinname").toString());
+		n.addPin(NLPin(attr.value("partref").toString(),
+					   attr.value("pinname").toString()));
 		do
 				reader.readNext();
 		while(!reader.isEndElement());
@@ -222,26 +229,25 @@ NLNet NLNet::newFromXML(QXmlStreamReader &reader)
 
 /////////////////////////////////////////////////////////////////////
 
-QSharedPointer<Netlist> Netlist::loadFromFile(QString path)
+bool Netlist::loadFromFile(QString path)
 {
 	QFile f(path);
 	if (!f.open(QFile::ReadOnly | QFile::Text))
-		return QSharedPointer<Netlist>();
+	{
+		Log::error(QString("Unable to open file: %1").arg(path));
+		return false;
+	}
 
-	QSharedPointer<Netlist> n;
-	n = loadFromFile(f);
+	bool ok = loadFromFile(f);
 	f.close();
-	if (n)
-		return n;
-	else
-		return QSharedPointer<Netlist>();
+	return ok;
 }
 
-QSharedPointer<Netlist> Netlist::loadFromFile(QFile &file)
+bool Netlist::loadFromFile(QFile &file)
 {
 	enum State { Start, Header, PartSection, NetSection,
 				 InSignal, Done, Invalid };
-	QSharedPointer<Netlist> netlist(new Netlist());
+
 	file.reset();
 	int lineCnt = 0;
 	State state = Start;
@@ -279,7 +285,7 @@ QSharedPointer<Netlist> Netlist::loadFromFile(QFile &file)
 			s = line.split(' ');
 			// XXX TODO values are not supported yet
 			if (!line.startsWith("*") && s.length() == 2)
-				netlist->addPart(NLPart(s[0], s[1]));
+				addPart(NLPart(s[0], s[1]));
 			else if (line.startsWith("*NET*"))
 				state = NetSection;
 			else
@@ -298,7 +304,7 @@ QSharedPointer<Netlist> Netlist::loadFromFile(QFile &file)
 						line.startsWith("*END*")) && currNet.pins().size() > 0)
 				{
 					// add current net
-					netlist->addNet(currNet);
+					addNet(currNet);
 				}
 				if (line.startsWith("*SIGNAL*") && s.size() == 2)
 				{
@@ -332,7 +338,7 @@ QSharedPointer<Netlist> Netlist::loadFromFile(QFile &file)
 						break;
 					}
 					// add the pin to the current net
-					currNet.addPin(p[0], p[1]);
+					currNet.addPin(NLPin(p[0], p[1]));
 				}
 			}
 			else
@@ -346,16 +352,16 @@ QSharedPointer<Netlist> Netlist::loadFromFile(QFile &file)
 			break;
 		} // switch(state)
 		if (state == Invalid)
-			return QSharedPointer<Netlist>();
+			return false;
 	} // while loop
 
 	if (state != Done)
 	{
 		Log::error("Unexpected end of file while parsing netlist");
-		return QSharedPointer<Netlist>();
+		return false;
 	}
 
-	return netlist;
+	return true;
 }
 
 void Netlist::loadFromXML(QXmlStreamReader &reader)

@@ -10,6 +10,10 @@
     <height>492</height>
    </rect>
   </property>
+  <property name="windowIcon">
+   <iconset resource="qtfreepcb.qrc">
+    <normaloff>:/Resources/xpcb-icon.png</normaloff>:/Resources/xpcb-icon.png</iconset>
+  </property>
   <property name="dockNestingEnabled">
    <bool>true</bool>
   </property>

@@ -21,13 +21,34 @@
 #define NETLISTDIALOG_H
 
 #include "ui_NetlistDialog.h"
+#include "Net.h"
+
+class NLNet;
 
 class NetlistDialog : public QDialog, private Ui::NetlistDialog
 {
     Q_OBJECT
 
 public:
-    explicit NetlistDialog(QWidget *parent = 0);
+	explicit NetlistDialog(QWidget *parent, QSharedPointer<Netlist> netlist);
+
+protected:
+	virtual void closeEvent(QCloseEvent *);
+	virtual void hideEvent(QHideEvent *);
+
+private:
+	void populateLists();
+	void addItemsForNet(const NLNet& net);
+
+
+	void saveGeom();
+	void loadGeom();
+
+	QSharedPointer<Netlist> mNetlist;
+	QIcon mYesIcon;
+	QIcon mNoIcon;
+	QIcon mErrIcon;
+	QIcon mWarnIcon;
 };
 
 #endif // NETLISTDIALOG_H

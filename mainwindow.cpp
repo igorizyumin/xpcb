@@ -35,6 +35,7 @@
 #include "SelFilterWidget.h"
 #include "LayerWidget.h"
 #include "Plugin.h"
+#include "NetlistDialog.h"
 
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
@@ -280,8 +281,15 @@ void PCBEditWindow::on_actionImport_Netlist_triggered()
 	QString fileName = QFileDialog::getOpenFileName(this);
 	if (!fileName.isEmpty())
 	{
-		mDoc->netlist().loadFromFile(fileName);
+		mDoc->netlist()->loadFromFile(fileName);
 	}
+}
+
+void PCBEditWindow::on_actionNets_triggered()
+{
+	if (!mDoc) return;
+	NetlistDialog d(this, mDoc->netlist());
+	d.exec();
 }
 
 Document* PCBEditWindow::doc()

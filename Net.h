@@ -111,36 +111,67 @@ private:
 	QString mFp;
 };
 
+class NLPin
+{
+public:
+	NLPin(QString refdes, QString pin)
+		: mRefdes(refdes), mPinName(pin) {}
+
+	QString refdes() const { return mRefdes; }
+	QString pinName() const { return mPinName; }
+
+	bool operator==(const NLPin& other) const
+	{
+		return mRefdes == other.mRefdes &&
+				mPinName == other.mPinName;
+	}
+private:
+	QString mRefdes;
+	QString mPinName;
+};
+
+inline uint qHash(const NLPin& pin)
+{
+	return qHash(pin.refdes()) ^ qHash(pin.pinName());
+}
+
 class NLNet
 {
 public:
-	NLNet(QString name = QString(), QSet<QPair<QString, QString> > pins =
-		  QSet<QPair<QString, QString> >())
-		: mName(name), mPins(pins) {}
+	NLNet(QString name = QString(), QSet<NLPin> pins =
+		  QSet<NLPin>())
+		: mName(name), mPins(pins), mIsVisible(true) {}
 
 	QString name() const { return mName; }
-	QSet<QPair<QString, QString> > pins() const { return mPins; }
+	QSet<NLPin> pins() const { return mPins; }
+	bool visible() const { return mIsVisible; }
+	QUuid padstack() const { return mPadstack; }
 
-	void addPin(QString partref, QString pinname)
+	void setVisible(bool visible) { mIsVisible = visible; }
+	void setPadstack(QUuid newid) { mPadstack = newid; }
+
+	void addPin(const NLPin& pin)
 	{
-		mPins.insert(QPair<QString, QString>(partref, pinname));
+		mPins.insert(pin);
 	}
 
-	void removePin(QString partref, QString pinname)
+	void removePin(const NLPin& pin)
 	{
-		mPins.remove(QPair<QString, QString>(partref, pinname));
+		mPins.remove(pin);
 	}
 
-	bool hasPin(QString partref, QString pinname) const
+	bool hasPin(const NLPin& pin) const
 	{
-		return mPins.contains(QPair<QString, QString>(partref, pinname));
+		return mPins.contains(pin);
 	}
 
 	void toXML(QXmlStreamWriter &writer) const;
 	static NLNet newFromXML(QXmlStreamReader &reader);
 private:
 	QString mName;
-	QSet<QPair<QString, QString> > mPins;
+	QSet<NLPin> mPins;
+	bool mIsVisible;
+	QUuid mPadstack;
 };
 
 class Netlist
@@ -149,18 +180,19 @@ public:
 	void addNet(const NLNet& net) { mNets.insert(net.name(), net); }
 	void removeNet(QString name) { mNets.remove(name); }
 	NLNet net(QString &name) const { return mNets.value(name); }
+	QList<NLNet> nets() const { return mNets.values(); }
 
 	QList<NLPart> parts() const { return mParts.values(); }
 	NLPart part(QString ref) const { return mParts.value(ref); }
 
 	void addPart(const NLPart &part) { mParts.insert(part.refdes(), part); }
 
-	static QSharedPointer<Netlist> loadFromFile(QString path);
+	bool loadFromFile(QString path);
 
 	void toXML(QXmlStreamWriter &writer) const;
 	void loadFromXML(QXmlStreamReader &reader);
 protected:
-	static QSharedPointer<Netlist> loadFromFile(QFile &file);
+	bool loadFromFile(QFile &file);
 
 	/// List of nets in this netlist (keyed by net name).
 	QHash<QString, NLNet> mNets;
