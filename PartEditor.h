@@ -31,7 +31,11 @@ class PartEditor : public AbstractEditor
 {
 	Q_OBJECT
 public:
-	PartEditor(PCBController *ctrl, QSharedPointer<Part> part = QSharedPointer<Part>());
+	/// Add or edit a single new part.
+	PartEditor(PCBController *ctrl,
+			   QSharedPointer<Part> part = QSharedPointer<Part>());
+	/// Add multiple new parts from the netlist.
+	PartEditor(PCBController *ctrl, QList<NLPart> parts);
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
@@ -53,16 +57,19 @@ private slots:
 	void actionChangeSide();
 
 private:
-	void newPart();
+	void newPartFromDialog();
+	void newPartFromList();
+
 	enum State {NEW, SELECTED, MOVE, ADD_MOVE, EDIT_MOVE};
 
-	void startMove();
+	void startMove(bool newPart = false);
 	void finishEdit();
 	void finishNew();
 
 	PCBObjState mPrevPartState;
 	State mState;
 	QSharedPointer<Part> mPart;
+	QList<NLPart> mNetlistParts;
 	QSharedPointer<EditPartDialog> mDialog;
 	CtrlAction mChangeSideAction;
 	CtrlAction mRotateCWAction;

@@ -23,6 +23,7 @@
 #include "PCBView.h"
 #include "EditPartDialog.h"
 #include <QMessageBox>
+#include "Footprint.h"
 
 ////////////////////////// PART EDITOR //////////////////////////////////////
 
@@ -48,10 +49,40 @@ PartEditor::PartEditor(PCBController *ctrl, QSharedPointer<Part> part)
 	connect(&mDelAction, SIGNAL(execFired()), SLOT(actionDelete()));
 }
 
+PartEditor::PartEditor(PCBController *ctrl, QList<NLPart> parts)
+	: AbstractEditor(ctrl), mState(NEW), mNetlistParts(parts), mDialog(NULL),
+	mChangeSideAction(1, "Change Side"),
+	mRotateCWAction(2, "Rotate CW"),
+	mRotateCCWAction(3, "Rotate CCW"),
+	mEditAction(0, "Edit Part"),
+	mEditFPAction(1, "Edit Footprint"),
+	mLockAction(2, "Lock Part"),
+	mMoveAction(3, "Move Part"),
+	mDelAction(7, "Delete Part")
+{
+	connect(&mChangeSideAction, SIGNAL(execFired()), SLOT(actionChangeSide()));
+	connect(&mRotateCWAction, SIGNAL(execFired()), SLOT(actionRotate()));
+	connect(&mRotateCCWAction, SIGNAL(execFired()), SLOT(actionRotateCCW()));
+	connect(&mEditAction, SIGNAL(execFired()), SLOT(actionEdit()));
+//	connect(&mEditFPAction, SIGNAL(execFired()), SLOT(actionEdit()));
+	connect(&mLockAction, SIGNAL(execFired()), SLOT(actionLock()));
+	connect(&mMoveAction, SIGNAL(execFired()), SLOT(actionMove()));
+	connect(&mDelAction, SIGNAL(execFired()), SLOT(actionDelete()));
+}
+
 void PartEditor::init()
 {
 	if (!mPart)
-		newPart();
+	{
+		if (mNetlistParts.isEmpty())
+			newPartFromDialog();
+		else
+		{
+			newPartFromList();
+			if (!mPart)
+				emit editorFinished();
+		}
+	}
 	else
 	{
 		mState = SELECTED;
@@ -183,10 +214,16 @@ void PartEditor::actionLock()
 	emit actionsChanged();
 }
 
-void PartEditor::startMove()
+void PartEditor::startMove(bool newPart)
 {
-
-	QCursor::setPos(ctrl()->view()->mapToGlobal(ctrl()->view()->transform().map(mPart->pos())));
+	// if it is an existing part, snap the cursor to the part coordinates
+	if (!newPart)
+		QCursor::setPos(ctrl()->view()->mapToGlobal(ctrl()->view()->transform().map(mPart->pos())));
+	// if it is a new part, move the part to the current cursor location
+	else
+		mPart->setPos(ctrl()->snapToPlaceGrid(
+						  ctrl()->view()->transform().inverted().map(
+							  ctrl()->view()->mapFromGlobal(QCursor::pos()))));
 }
 
 void PartEditor::actionDelete()
@@ -210,7 +247,7 @@ void PartEditor::actionChangeSide()
 	emit overlayChanged();
 }
 
-void PartEditor::newPart()
+void PartEditor::newPartFromDialog()
 {
 	if (!mDialog)
 		mDialog = QSharedPointer<EditPartDialog>(new EditPartDialog(ctrl()->view(), dynamic_cast<PCBDoc*>(ctrl()->doc())));
@@ -235,10 +272,35 @@ void PartEditor::newPart()
 	}
 	else
 	{
-		startMove();
 		mState = ADD_MOVE;
+		startMove(true);
 		emit actionsChanged();
 	}
+}
+
+void PartEditor::newPartFromList()
+{
+	NLPart part;
+	QSharedPointer<const FPDBFile> file;
+	do {
+		if (mNetlistParts.empty()) return;
+		part = mNetlistParts.takeFirst();
+		file = FPDatabase::instance().getByName(part.footprint());
+		if (!file)
+			Log::warning(QString("Footprint %1 for %2 not found; skipping part.")
+								.arg(part.footprint()).arg(part.refdes()));
+	} while (file.isNull());
+
+	mPart = QSharedPointer<Part>(new Part(
+									 dynamic_cast<PCBDoc*>(ctrl()->doc())));
+	mPart->setFootprint(file->uuid());
+	mPart->refdesText()->setText(part.refdes());
+	mPart->setRefVisible(true);
+	mPart->valueText()->setText(part.value());
+	mPart->setValueVisible(!part.value().isEmpty());
+	mState = ADD_MOVE;
+	startMove(true);
+	emit actionsChanged();
 }
 
 void PartEditor::actionEdit()
@@ -276,12 +338,28 @@ void PartEditor::finishNew()
 {
 	PartNewCmd *cmd = new PartNewCmd(NULL, mPart, dynamic_cast<PCBDoc*>(ctrl()->doc()));
 	ctrl()->doc()->doCommand(cmd);
-	ctrl()->selectObj(mPart);
-	ctrl()->hideObj(mPart);
-	ctrl()->hideObj(mPart->refdesText());
-	ctrl()->hideObj(mPart->valueText());
-	mState = SELECTED;
-	emit overlayChanged();
+
+	if (!mNetlistParts.empty())
+	{
+		// more parts to be placed
+		mPart.clear();
+		newPartFromList();
+		if (!mPart)
+		{
+			// no valid parts left to place
+			emit editorFinished();
+			return;
+		}
+	}
+	else
+	{
+		ctrl()->selectObj(mPart);
+		ctrl()->hideObj(mPart);
+		ctrl()->hideObj(mPart->refdesText());
+		ctrl()->hideObj(mPart->valueText());
+		mState = SELECTED;
+		emit overlayChanged();
+	}
 }
 
 void PartEditor::finishEdit()

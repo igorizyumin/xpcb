@@ -267,7 +267,7 @@ QSharedPointer<Footprint> PCBDoc::getFootprint(QUuid uuid)
 	return ptr;
 }
 
-QSharedPointer<Part> PCBDoc::part(const QString &refdes)
+QSharedPointer<Part> PCBDoc::part(const QString &refdes) const
 {
 	foreach(QSharedPointer<Part> p, mParts)
 	{
@@ -477,12 +477,14 @@ void PCBDoc::addPart(QSharedPointer<Part> p)
 {
 	Q_ASSERT(!mParts.contains(p));
 	mParts.append(p);
+	emit partsChanged();
 }
 
 void PCBDoc::removePart(QSharedPointer<Part> p)
 {
 	Q_ASSERT(mParts.contains(p));
 	mParts.removeOne(p);
+	emit partsChanged();
 }
 
 
@@ -504,17 +506,16 @@ static void loadTexts(QXmlStreamReader &reader,
 					  QList<QSharedPointer<Text> >& texts);
 
 
-bool validateFile(QIODevice &file)
+bool validateFile(QIODevice &file, const QUrl &uri)
 {
-	const QString fileName = ":/xpcbschema.xsd";
-	QFile schemaFile(fileName);
+	QFile schemaFile(":/xpcbschema.xsd");
 	if (!schemaFile.open(QIODevice::ReadOnly))
 	{
 		Log::instance().error(QString("Error loading XML schema: %1").arg(schemaFile.errorString()));
 		return false;
 	}
 	QXmlSchema schema;
-	bool result = schema.load(&schemaFile, QUrl::fromLocalFile(fileName));
+	bool result = schema.load(&schemaFile);
 	if (!result)
 	{
 		Log::instance().error("Error reading XML schema");
@@ -523,7 +524,7 @@ bool validateFile(QIODevice &file)
 	schemaFile.close();
 	QXmlSchemaValidator validator;
 	validator.setSchema(schema);
-	return validator.validate(&file);
+	return validator.validate(&file, uri);
 }
 
 bool PCBDoc::saveToXml(QXmlStreamWriter &writer)
@@ -582,7 +583,7 @@ bool PCBDoc::saveToXml(QXmlStreamWriter &writer)
 
 bool PCBDoc::loadFromFile(QFile &inFile)
 {
-	if (!validateFile(inFile))
+	if (!validateFile(inFile, QUrl(inFile.fileName())))
 	{
 		Log::instance().error("Unable to load file: XML validation failed");
 		inFile.close();
@@ -649,7 +650,7 @@ bool PCBDoc::loadFromXml(QXmlStreamReader &reader)
 
 bool FPDoc::loadFromFile(QFile &file)
 {
-	if (!validateFile(file))
+	if (!validateFile(file, QUrl(file.fileName())))
 	{
 		Log::instance().error("Unable to load file: XML validation failed");
 		file.close();

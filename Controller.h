@@ -145,6 +145,7 @@ public:
 	void registerDoc(PCBDoc* doc);
 	virtual Document* doc();
 	PCBDoc* pcbDoc() { return mDoc; }
+	void placeParts(QList<NLPart> parts);
 
 protected slots:
 	void onAddTextAction();

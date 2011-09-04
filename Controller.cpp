@@ -336,6 +336,15 @@ Document* PCBController::doc()
 	return mDoc;
 }
 
+void PCBController::placeParts(QList<NLPart> parts)
+{
+	// stop any existing editor
+	mSelectedObjs.clear();
+	updateEditor();
+
+	installEditor(EditorFactory::instance().placePartEditor(this, parts));
+}
+
 void PCBController::onAddTextAction()
 {
 	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);

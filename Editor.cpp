@@ -145,3 +145,8 @@ QSharedPointer<AbstractEditor> EditorFactory::newTraceEditor(PCBController *ctrl
 {
 	return QSharedPointer<AbstractEditor>(new NewTraceEditor(ctrl));
 }
+
+QSharedPointer<AbstractEditor> EditorFactory::placePartEditor(PCBController *ctrl, QList<NLPart> parts)
+{
+	return QSharedPointer<AbstractEditor>(new PartEditor(ctrl, parts));
+}

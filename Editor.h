@@ -30,6 +30,7 @@ class FPController;
 class PCBController;
 class CtrlAction;
 class PCBDoc;
+class NLPart;
 
 class AbstractEditor : public QObject
 {
@@ -77,6 +78,7 @@ public:
 	QSharedPointer<AbstractEditor> newPartEditor(PCBController* ctrl);
 	QSharedPointer<AbstractEditor> newLineEditor(FPController* ctrl);
 	QSharedPointer<AbstractEditor> newTraceEditor(PCBController* ctrl);
+	QSharedPointer<AbstractEditor> placePartEditor(PCBController* ctrl, QList<NLPart> parts);
 
 	static void registerFactory(ObjType type, QSharedPointer<AbstractEditorFactory> factory) { instance().mFactories[type] = factory; }
 

@@ -17,42 +17,41 @@
 	along with xpcb.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef NETLISTDIALOG_H
-#define NETLISTDIALOG_H
+#ifndef PARTPLACER_H
+#define PARTPLACER_H
 
-#include "ui_NetlistDialog.h"
-#include "Net.h"
+#include "ui_PartPlacer.h"
 
-class NLNet;
-class PCBDoc;
+class PCBController;
 
-class NetlistDialog : public QDialog, private Ui::NetlistDialog
+class PartPlacer : public QDockWidget, private Ui::PartPlacer
 {
     Q_OBJECT
 
 public:
-	explicit NetlistDialog(QWidget *parent,
-						   QSharedPointer<Netlist> netlist,
-						   PCBDoc* doc);
+	explicit PartPlacer(QWidget *parent, PCBController* ctrl);
+
+public slots:
+	void updateList();
 
 protected:
-	virtual void closeEvent(QCloseEvent *);
-	virtual void hideEvent(QHideEvent *);
+	virtual void closeEvent(QCloseEvent *e);
+	virtual void hideEvent(QHideEvent *e);
+
+private slots:
+	void on_placeBtn_clicked();
 
 private:
-	void populateLists();
-	void addItemsForNet(const NLNet& net);
-
+	void populateItems();
 
 	void saveGeom();
 	void loadGeom();
 
-	QSharedPointer<Netlist> mNetlist;
-	PCBDoc* mDoc;
+	PCBController* mCtrl;
 	QIcon mYesIcon;
 	QIcon mNoIcon;
 	QIcon mErrIcon;
 	QIcon mWarnIcon;
 };
 
-#endif // NETLISTDIALOG_H
+#endif // PARTPLACER_H

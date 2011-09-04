@@ -828,6 +828,9 @@ QSharedPointer<FPDBFile> FPDatabase::createFile(QString path)
 							   doc.footprint()->desc(),
 							   doc.footprint()->uuid()));
 	mUuidHash.insert(doc.footprint()->uuid(), f);
+	if (!mNameHash.contains(doc.footprint()->name()))
+		mNameHash.insert(doc.footprint()->name(), f);
+
 	return f;
 }
 

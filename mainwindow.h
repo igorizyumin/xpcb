@@ -36,6 +36,7 @@ class FPController;
 class SelFilterWidget;
 class LayerWidget;
 class Plugin;
+class PartPlacer;
 
 /// The MainWindow class represents a single open PCB editor window
 class MainWindow : public QMainWindow, private Ui::MainWindowClass
@@ -49,10 +50,14 @@ public:
 	virtual Document* doc() = 0;
 	virtual Controller* ctrl() = 0;
 
+signals:
+	/// emitted whenever a document is opened or closed
+	void documentHasChanged();
+
 protected slots:
 	void on_actionAbout_triggered();
 	virtual void onViewCoords(QPoint pt);
-	void documentWasModified();
+	void updateModifiedFlag();
 	virtual void on_actionNew_triggered();
 	virtual void on_actionOpen_triggered();
 	virtual bool on_actionSave_triggered();
@@ -112,6 +117,7 @@ protected slots:
 private:
 	PCBDoc* mDoc;
 	PCBController* mCtrl;
+	PartPlacer* mPartPlacer;
 
 };
 

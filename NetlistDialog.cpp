@@ -19,15 +19,18 @@
 
 #include "NetlistDialog.h"
 #include "Net.h"
+#include "Document.h"
 #include <QPixmap>
 #include <QPair>
 #include <QSettings>
 #include <QTreeWidgetItem>
 #include <QTableWidgetItem>
 
-NetlistDialog::NetlistDialog(QWidget *parent, QSharedPointer<Netlist> netlist) :
+NetlistDialog::NetlistDialog(QWidget *parent, QSharedPointer<Netlist> netlist,
+							 PCBDoc* doc) :
 	QDialog(parent),
 	mNetlist(netlist),
+	mDoc(doc),
 	mYesIcon(":/Resources/icon-yes.png"),
 	mNoIcon(":/Resources/icon-no.png"),
 	mErrIcon(":/Resources/icon-error.png"),
@@ -48,7 +51,21 @@ void NetlistDialog::populateLists()
 		partItem->setText(0, part.refdes());
 		partItem->setText(1, part.value());
 		partItem->setText(2, part.footprint());
-		partItem->setIcon(3, mYesIcon);
+		switch(part.checkPart(mDoc))
+		{
+		case NLPart::OK:
+			partItem->setIcon(3, mYesIcon);
+			break;
+		case NLPart::Missing:
+			partItem->setIcon(3, mNoIcon);
+			break;
+		case NLPart::Mismatch:
+			partItem->setIcon(3, mWarnIcon);
+			break;
+		default:
+			partItem->setIcon(3, mErrIcon);
+			break;
+		}
 	}
 	foreach(const NLNet& net, mNetlist->nets())
 	{

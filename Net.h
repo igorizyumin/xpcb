@@ -93,6 +93,8 @@ private:
 class NLPart
 {
 public:
+	enum Status { OK, Mismatch, Missing };
+
 	NLPart(QString ref = QString(), QString footprint = QString(),
 		   QString value = QString())
 		: mRef(ref), mValue(value), mFp(footprint)
@@ -105,6 +107,8 @@ public:
 
 	void toXML(QXmlStreamWriter &writer) const;
 	static NLPart newFromXML(QXmlStreamReader &reader);
+
+	Status checkPart(const PCBDoc* doc) const;
 private:
 	QString mRef;
 	QString mValue;

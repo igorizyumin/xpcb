@@ -36,6 +36,7 @@
 #include "LayerWidget.h"
 #include "Plugin.h"
 #include "NetlistDialog.h"
+#include "PartPlacer.h"
 
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
@@ -86,6 +87,7 @@ void MainWindow::on_actionNew_triggered()
 	{
 		closeDoc();
 		newDoc();
+		emit documentHasChanged();
 	}
 }
 
@@ -100,6 +102,7 @@ void MainWindow::on_actionOpen_triggered()
 			newDoc();
 			if (!loadFile(fileName))
 				closeDoc();
+			emit documentHasChanged();
 		}
 	}
 }
@@ -118,6 +121,7 @@ bool MainWindow::on_actionClose_triggered()
 	if (maybeSave())
 	{
 		closeDoc();
+		emit documentHasChanged();
 		return true;
 	}
 	return false;
@@ -155,6 +159,7 @@ bool MainWindow::loadFile(const QString &fileName)
 	{
 		setCurrentFile(fileName);
 		statusBar()->showMessage(tr("File loaded"), 2000);
+		emit documentHasChanged();
 		return true;
 	}
 	return false;
@@ -174,8 +179,7 @@ bool MainWindow::saveFile(const QString &fileName)
 void MainWindow::setCurrentFile(const QString &fileName)
 {
 	m_curFile = fileName;
-	documentWasModified();
-
+	updateModifiedFlag();
 
 	QString shownName = m_curFile;
 	if (doc() && m_curFile.isEmpty())
@@ -202,7 +206,7 @@ void MainWindow::onViewCoords(QPoint pt)
 	m_statusbar_yc->setText(QString("Y: %1").arg(XPcb::pcbToInch(pt.y())*1000.0, -6, 'f', 1));
 }
 
-void MainWindow::documentWasModified()
+void MainWindow::updateModifiedFlag()
 {
 	if (doc())
 		setWindowModified(doc()->isModified());
@@ -245,6 +249,11 @@ PCBEditWindow::PCBEditWindow(QWidget *parent, QList<Plugin*> plugins)
 			mCtrl, SLOT(onRouteGridChanged(int)));
 	setCurrentFile("");
 
+	mPartPlacer = new PartPlacer(0, mCtrl);
+	this->addDockWidget(Qt::RightDockWidgetArea, mPartPlacer);
+	connect(this, SIGNAL(documentHasChanged()),
+			mPartPlacer, SLOT(updateList()));
+
 	foreach(Plugin* p, plugins)
 	{
 		p->installWidgets(*this);
@@ -257,9 +266,14 @@ PCBEditWindow::PCBEditWindow(QWidget *parent, QList<Plugin*> plugins)
 void PCBEditWindow::newDoc()
 {
 	mDoc = new PCBDoc();
-	connect(this->mDoc, SIGNAL(changed()), this, SLOT(documentWasModified()));
-	connect(this->mDoc, SIGNAL(canUndoChanged(bool)), this, SLOT(onUndoAvailableChanged(bool)));
-	connect(this->mDoc, SIGNAL(canRedoChanged(bool)), this, SLOT(onRedoAvailableChanged(bool)));
+	connect(this->mDoc, SIGNAL(changed()),
+			this, SLOT(updateModifiedFlag()));
+	connect(this->mDoc, SIGNAL(canUndoChanged(bool)),
+			this, SLOT(onUndoAvailableChanged(bool)));
+	connect(this->mDoc, SIGNAL(canRedoChanged(bool)),
+			this, SLOT(onRedoAvailableChanged(bool)));
+	connect(this->mDoc, SIGNAL(partsChanged()),
+			this->mPartPlacer, SLOT(updateList()));
 	mCtrl->registerDoc(mDoc);
 	setCurrentFile("");
 }
@@ -288,7 +302,7 @@ void PCBEditWindow::on_actionImport_Netlist_triggered()
 void PCBEditWindow::on_actionNets_triggered()
 {
 	if (!mDoc) return;
-	NetlistDialog d(this, mDoc->netlist());
+	NetlistDialog d(this, mDoc->netlist(), mDoc);
 	d.exec();
 }
 
@@ -344,7 +358,7 @@ FPEditWindow::FPEditWindow(QWidget *parent, QList<Plugin*> plugins)
 void FPEditWindow::newDoc()
 {
 	mDoc = new FPDoc();
-	connect(this->mDoc, SIGNAL(changed()), this, SLOT(documentWasModified()));
+	connect(this->mDoc, SIGNAL(changed()), this, SLOT(updateModifiedFlag()));
 	connect(this->mDoc, SIGNAL(canUndoChanged(bool)), this, SLOT(onUndoAvailableChanged(bool)));
 	connect(this->mDoc, SIGNAL(canRedoChanged(bool)), this, SLOT(onRedoAvailableChanged(bool)));
 	this->mCtrl->registerDoc(mDoc);

@@ -177,6 +177,14 @@ NLPart NLPart::newFromXML(QXmlStreamReader &reader)
 	return p;
 }
 
+NLPart::Status NLPart::checkPart(const PCBDoc* doc) const
+{
+	QSharedPointer<Part> part = doc->part(refdes());
+	if (part.isNull()) return NLPart::Missing;
+	if (part->footprint()->name() != footprint()) return NLPart::Mismatch;
+	return NLPart::OK;
+}
+
 /////////////////////////////////////////////////////////////////////
 
 void NLNet::toXML(QXmlStreamWriter &writer) const

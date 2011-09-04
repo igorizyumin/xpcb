@@ -163,7 +163,7 @@ public:
 	QSharedPointer<TraceList> traceList() const {return mTraceList;}
 	QSharedPointer<Netlist> netlist() const { return mNetlist; }
 
-	QSharedPointer<Part> part(const QString & refdes);
+	QSharedPointer<Part> part(const QString & refdes) const;
 
 	QSharedPointer<Footprint> getFootprint(QUuid uuid);
 	QList<QSharedPointer<Footprint> > footprints() { return mFootprints.values(); }
@@ -180,6 +180,9 @@ public:
 	virtual void addPadstack(QSharedPointer<Padstack> ps);
 	virtual void removePadstack(QSharedPointer<Padstack> ps);
 	virtual QSharedPointer<Padstack> padstack(QUuid uuid);
+
+signals:
+	void partsChanged();
 
 private:
 	void clearDoc();

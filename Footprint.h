@@ -306,12 +306,14 @@ public:
 
 	QList<QSharedPointer<FPDBFolder> > rootFolders() const { return mRootFolders; }
 	QSharedPointer<const FPDBFile> getByUuid(QUuid uuid) const { return mUuidHash.value(uuid); }
+	QSharedPointer<const FPDBFile> getByName(QString name) const { return mNameHash.value(name); }
 
 private:
 	FPDatabase();
 	static FPDatabase* mInst;
 	QList<QSharedPointer<FPDBFolder> > mRootFolders;
 	QHash<QUuid, QSharedPointer<FPDBFile> > mUuidHash;
+	QHash<QString, QSharedPointer<FPDBFile> > mNameHash;
 
 	QSharedPointer<FPDBFolder> createFolder(QString path, bool fullName = false);
 	QSharedPointer<FPDBFile> createFile(QString path);
