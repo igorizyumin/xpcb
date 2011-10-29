@@ -68,6 +68,11 @@ void Controller::draw(QPainter* painter, QRect &rect, const Layer& layer)
 		if (mEditor)
 			mEditor->drawOverlay(painter);
 	}
+	else if (layer == Layer::LAY_RAT_LINE)
+	{
+		if (dynamic_cast<PCBDoc*>(doc()))
+			dynamic_cast<PCBDoc*>(doc())->traceList()->draw(painter, layer);
+	}
 	else
 	{
 		QList<QSharedPointer<PCBObject> > objs = doc()->findObjs(rect);

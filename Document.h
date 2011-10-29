@@ -164,6 +164,7 @@ public:
 	QSharedPointer<Netlist> netlist() const { return mNetlist; }
 
 	QSharedPointer<Part> part(const QString & refdes) const;
+	QList<QSharedPointer<PartPin> > partPins() const;
 
 	QSharedPointer<Footprint> getFootprint(QUuid uuid);
 	QList<QSharedPointer<Footprint> > footprints() { return mFootprints.values(); }

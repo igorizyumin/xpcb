@@ -445,6 +445,7 @@
       <xs:sequence>
         <xs:element ref="vertices"/>
         <xs:element ref="segments"/>
+        <xs:element ref="vias"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
@@ -462,13 +463,18 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
+  <xs:element name="vias">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="via"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
   <!-- Vertex defintion -->
   <xs:element name="vertex">
     <xs:complexType>
       <xs:attribute name="id" use="required" type="ObjID"/>
       <xs:attributeGroup ref="CoordsAttr"/>
-      <xs:attribute name="forcevia" type="Bool"/>
-      <xs:attribute name="padstack" type="UuidStr"/>
     </xs:complexType>
   </xs:element>
   <!-- Segment definition -->
@@ -478,6 +484,13 @@
       <xs:attribute name="end" use="required" type="ObjID"/>
       <xs:attribute name="layer" use="required" type="Layer"/>
       <xs:attribute name="width" use="required" type="Dimension"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- Via definition -->
+  <xs:element name="via">
+    <xs:complexType>
+      <xs:attributeGroup ref="CoordsAttr"/>
+      <xs:attributeGroup ref="PSRef"/>
     </xs:complexType>
   </xs:element>
   <!-- polygon definition -->

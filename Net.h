@@ -181,15 +181,21 @@ private:
 class Netlist
 {
 public:
-	void addNet(const NLNet& net) { mNets.insert(net.name(), net); }
-	void removeNet(QString name) { mNets.remove(name); }
+	void addNet(const NLNet& net) { mNets.insert(net.name(), net); mIsDirty = true;}
+	void removeNet(QString name) { mNets.remove(name); mIsDirty = true;}
 	NLNet net(QString &name) const { return mNets.value(name); }
 	QList<NLNet> nets() const { return mNets.values(); }
 
 	QList<NLPart> parts() const { return mParts.values(); }
 	NLPart part(QString ref) const { return mParts.value(ref); }
 
-	void addPart(const NLPart &part) { mParts.insert(part.refdes(), part); }
+	NLNet findNet(QString partRef, QString pinName) const;
+
+	void addPart(const NLPart &part)
+	{
+		mParts.insert(part.refdes(), part);
+		mIsDirty = true;
+	}
 
 	bool loadFromFile(QString path);
 
@@ -197,11 +203,17 @@ public:
 	void loadFromXML(QXmlStreamReader &reader);
 protected:
 	bool loadFromFile(QFile &file);
+	void rebuildIndexes() const;
+
+	mutable bool mIsDirty;
 
 	/// List of nets in this netlist (keyed by net name).
 	QHash<QString, NLNet> mNets;
 	/// List of parts (keyed by refdes).
 	QHash<QString, NLPart> mParts;
+
+	/// List of nets keyed by (part, pin)
+	mutable QHash<QPair<QString, QString>, NLNet> mNetsByPartPin;
 };
 
 #endif // NET_H

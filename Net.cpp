@@ -404,3 +404,25 @@ void Netlist::toXML(QXmlStreamWriter &writer) const
 	}
 	writer.writeEndElement();
 }
+
+void Netlist::rebuildIndexes() const
+{
+	if (!mIsDirty) return;
+	mNetsByPartPin.clear();
+	foreach(NLNet net, mNets.values())
+	{
+		foreach(NLPin pin, net.pins())
+		{
+			QPair<QString, QString> name(pin.refdes(), pin.pinName());
+			mNetsByPartPin[name] = net;
+		}
+	}
+	mIsDirty = false;
+}
+
+NLNet Netlist::findNet(QString partRef, QString pinName) const
+{
+	rebuildIndexes();
+	QPair<QString,QString> name(partRef, pinName);
+	return mNetsByPartPin.value(name, NLNet());
+}

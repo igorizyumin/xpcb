@@ -190,15 +190,16 @@ Traces = element traces {
 	},
 	element segments {
 		Segment*
+	},
+	element vias {
+		Via*
 	}
 }
 
 # Vertex defintion
 Vertex = element vertex {
 	attribute id { ObjID },
-	CoordsAttr,
-	attribute forcevia { Bool }?,
-	PSRef?
+	CoordsAttr
 }
 
 # Segment definition
@@ -207,6 +208,12 @@ Segment = element segment {
 	attribute end { ObjID },
 	attribute layer { Layer },
 	attribute width { Dimension }
+}
+
+# Via definition
+Via = element via {
+	CoordsAttr,
+	PSRef
 }
 
 # polygon definition

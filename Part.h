@@ -41,11 +41,11 @@ public:
 
 	Pad getPadOnLayer(const Layer& layer) const;
 
-	void setNet(QString newnet) { mNet = newnet; }
-	QString net() const { return mNet; }
+	QString net() const;
 
-	void setVertex(QSharedPointer<Vertex> vertex) { mVertex = vertex.toWeakRef(); }
-	QSharedPointer<Vertex> vertex() const { return mVertex; }
+	void addVertex(QSharedPointer<Vertex> vertex) { mVertices.insert(vertex.toWeakRef()); }
+	void delVertex(QSharedPointer<Vertex> vertex) { mVertices.remove(vertex.toWeakRef()); }
+	QSet<QSharedPointer<Vertex> > vertices() const { return mVertices; }
 	Part* part() const { return mPart; }
 	QString name() const {return mPin->name(); }
 	QSharedPointer<Pin> fpPin() const { return mPin; }
@@ -69,13 +69,13 @@ private:
 		friend class PartPin;
 		PartPinState(const PartPin &p)
 			: pin(p.fpPin()), part(p.part()), net(p.net()),
-			vertex(p.vertex())
+			vertices(p.vertices())
 		{}
 
 		QSharedPointer<Pin> pin;
 		Part* part;
 		QString net;
-		QWeakPointer<Vertex> vertex;
+		QSet<QSharedPointer<Vertex> > vertices;
 	};
 
 	/// Maps a PCB layer to a pin layer (i.e. top copper -> start for parts on top side)
@@ -85,10 +85,8 @@ private:
 	QSharedPointer<Pin> mPin;
 	/// Pointer to parent part.
 	Part * mPart;
-	/// Name of assigned net.
-	QString mNet;
-	/// Pointer to attached vertex. May be NULL.
-	QWeakPointer<Vertex> mVertex;
+	/// Set of attached vertices.
+	QSet<QSharedPointer<Vertex> > mVertices;
 };
 
 /// A part is an instance of a Footprint on a printed circuit board.  Parts

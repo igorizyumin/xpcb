@@ -34,15 +34,80 @@ class PartPin;
 class Padstack;
 class TraceList;
 class Segment;
+class PCBDoc;
+
+
+/// Vias are objects that make electrical connections between layers.
+/// A via has an associated padstacks; all pads in the padstack are
+/// assumed to be electrically connected.
+class Via : public PCBObject
+{
+public:
+	Via(QPoint pos = QPoint(0, 0),
+		QSharedPointer<Padstack> ps = QSharedPointer<Padstack>());
+
+	virtual void draw(QPainter *painter, const Layer& layer) const;
+	virtual QRect bbox() const;
+	virtual bool testHit(QPoint p, int dist, const Layer &l) const;
+
+	virtual PCBObjState getState() const
+	{
+		return PCBObjState(new ViaState(*this));
+	}
+	virtual bool loadState(PCBObjState& state);
+
+	QPoint pos() const {return mPos;}
+	void setPos(QPoint pos) { mPos = pos; }
+
+	/// Adds a connected vertex to the via's vertex set.
+	void attach(Vertex* vtx);
+	void attach(PartPin* pin) { mPartPins.insert(pin); }
+	/// Removes a vertex from the set of connected vertices.
+	void detach(Vertex* vtx);
+	void detach(PartPin* pin) { mPartPins.remove(pin); }
+	/// Detaches all attached vertices
+	void detachAll();
+
+	/// Returns a reference to the vertex set.
+	QSet<Vertex*> vertices() const { return mVtxs; }
+	QSet<PartPin*> partpins() const { return mPartPins; }
+	/// Returns true if a pad is present on the given layer
+	bool onLayer(const Layer& layer) const;
+
+	/// Returns the via padstack
+	QSharedPointer<Padstack> padstack() const { return mPadstack; }
+	/// Replaces the via padstack
+	void setPadstack(QSharedPointer<Padstack> ps) { mPadstack = ps; }
+
+private:
+	class ViaState : public PCBObjStateInternal
+	{
+	public:
+		virtual ~ViaState() {}
+	private:
+		friend class Via;
+		ViaState(const Via &v)
+			: mPos(v.pos()),
+			  mPadstack(v.padstack())
+		{}
+
+		QPoint mPos;
+		QSharedPointer<Padstack> mPadstack;
+	};
+
+	QPoint mPos;
+	QSet<Vertex*> mVtxs;
+	QSet<PartPin*> mPartPins;
+	QSharedPointer<Padstack> mPadstack;
+};
 
 /// A trace vertex.
-
-/// Trace vertices are endpoints of trace segments.  They form
-/// connections to part pins and areas, and act as interlayer vias.
+/// Trace vertices are endpoints of trace segments.  They can be
+/// attached to part pins, vias, and areas.
 class Vertex : public PCBObject
 {
 public:
-	Vertex(QPoint pos = QPoint(0, 0), bool forcevia = false);
+	Vertex(QPoint pos = QPoint(0, 0));
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
@@ -61,19 +126,27 @@ public:
 	void addSegment(QSharedPointer<Segment> seg);
 	/// Removes a segment from the set of connected segments.
 	void removeSegment(QSharedPointer<Segment> seg);
-	/// Returns a reference to the segment set.
-	const QSet<QSharedPointer<Segment> > segments() const { return mSegs; }
-	/// Returns true if a vertex is present on the given layer
-	bool onLayer(const Layer& layer) const;
-	/// Returns true if the vertex is a via (exists on multiple layers)
-	bool isVia() const;
+	/// Returns the segment set.
+	QSet<QSharedPointer<Segment> > segments() const { return mSegs; }
+	/// Removes all connected segments
+	void clearSegments() { mSegs.clear(); }
 
-	/// Returns the via padstack
-	QSharedPointer<Padstack> padstack() const { return mPadstack; }
+	/// Attach a part pin to the vertex.  Detaches previous pin.
+	void attach(PartPin* pin);
+	/// Attach a via to the vertex.  Detaches previous via.
+	void attach(Via* via);
 
-	bool isForcedVia() const {return mForceVia; }
+	Via* via() { return mVia; }
+	PartPin* partpin() { return mPartPin; }
 
-	void clear() { mSegs.clear(); }
+	/// Detach the part pin from the vertex
+	void detachPin();
+	/// Detach the via from the vertex
+	void detachVia();
+	/// Detach all attached objects from the vertex
+	void detachAll();
+
+	Layer layer() const;
 
 private:
 	class VtxState : public PCBObjStateInternal
@@ -83,19 +156,15 @@ private:
 	private:
 		friend class Vertex;
 		VtxState(const Vertex &v)
-			: mPos(v.pos()),
-			  mPadstack(v.padstack()), mForceVia(v.isForcedVia())
+			: mPos(v.pos())
 		{}
 
 		QPoint mPos;
-		QSharedPointer<Padstack> mPadstack;
-		bool mForceVia;
 	};
 	QPoint mPos;
 	QSet<QSharedPointer<Segment> > mSegs;
-	QSharedPointer<Padstack> mPadstack;
-	bool mForceVia;
-
+	PartPin* mPartPin;
+	Via* mVia;
 };
 
 /// Trace segment
@@ -127,12 +196,25 @@ public:
 		return (v == mV1 || v == mV2);
 	}
 
+	bool hasVertex(Vertex* v) const
+	{
+		return (v == mV1 || v == mV2);
+	}
+
 	QSharedPointer<Vertex> otherVertex(QSharedPointer<Vertex> v) const
 	{
 		if (!hasVertex(v))
 			return QSharedPointer<Vertex>();
 		else
 			return (v == mV1 ? mV2 : mV1);
+	}
+
+	Vertex* otherVertex(Vertex* v) const
+	{
+		if (!hasVertex(v))
+			return 0;
+		else
+			return (v == mV1 ? mV2.data() : mV1.data());
 	}
 
 	QSharedPointer<Vertex> commonVertex(QSharedPointer<Segment> s) const
@@ -181,11 +263,14 @@ private:
 class TraceList
 {
 public:
-	TraceList() : mIsDirty(false) {}
+	TraceList(PCBDoc* doc) : mDoc(doc), mIsDirty(false) {}
 	~TraceList() { clear(); }
 
-	QSet<Vertex*> getConnectedVertices(Vertex* vtx) const;
+//	QSet<Vertex*> getConnectedVertices(Vertex* vtx) const;
 	QSet<Vertex*> getVerticesInArea(const Area& poly) const;
+
+	/// Draws ratlines and highlights shorted pins
+	void draw(QPainter *painter, const Layer& layer) const;
 
 	void addSegment(QSharedPointer<Segment> s,
 					QSharedPointer<Vertex> v1,
@@ -273,18 +358,47 @@ private:
 		QSharedPointer<Vertex> mVOld, mVNew;
 	};
 
+	class ConnGroup
+	{
+	public:
+		ConnGroup(PartPin* pin);
+
+		QSet<Vertex*> vertices() const { return mVertices; }
+		QSet<PartPin*> pins() const { return mPins; }
+		QSet<PartPin*> validPins() const { return mPins - mShortedPins; }
+		QSet<Via*> vias() const { return mVias; }
+		QSet<PartPin*> shortedPins() const { return mShortedPins; }
+		QString net() const { return mNet; }
+
+	private:
+		void DFS(Vertex* currVtx);
+		void update();
+
+
+		QString mNet;
+		QSet<Vertex*> mVertices;
+		QSet<PartPin*> mPins;
+		QSet<Via*> mVias;
+		QSet<PartPin*> mShortedPins;
+	};
+
 	friend class AddSegCmd;
 	friend class DelSegCmd;
 	friend class SwapVtxCmd;
 	void clear();
 	void update() const;
+	void rebuildRats() const;
+	void rebuildRatsForNet(QString net) const;
 
+	PCBDoc* mDoc;
 	QSet<QSharedPointer<Segment> > mySeg;		// set of segments
 	QSet<QSharedPointer<Vertex> > myVtx;		// set of vertices
+	QSet<QSharedPointer<Via> > myVias;			// set of vias
 
 	bool mIsDirty;
-	/// Master list of connections
-	mutable QList<QSet<Vertex*> > mConnections;
+	/// Master list of connections (maps net->list of conns)
+	mutable QHash<QString, QList<ConnGroup> > mConnections;
+	mutable QHash<QString, QList<QPair<PartPin*,PartPin*> > > mRats;
 };
 
 

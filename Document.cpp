@@ -247,7 +247,7 @@ QList<QSharedPointer<PCBObject> > FPDoc::findObjs(QRect &rect)
 ////////////////////////////// PCBDOC /////////////////////////////////
 
 PCBDoc::PCBDoc()
-		: mNumLayers(2), mTraceList(new TraceList()),
+		: mNumLayers(2), mTraceList(new TraceList(this)),
 		  mNetlist(new Netlist())
 {
 }
@@ -275,6 +275,16 @@ QSharedPointer<Part> PCBDoc::part(const QString &refdes) const
 			return p;
 	}
 	return QSharedPointer<Part>();
+}
+
+QList<QSharedPointer<PartPin> > PCBDoc::partPins() const
+{
+	QList<QSharedPointer<PartPin> > out;
+	foreach(QSharedPointer<Part> p, mParts)
+	{
+		out.append(p->pins());
+	}
+	return out;
 }
 
 void PCBDoc::addText(QSharedPointer<Text> t)
@@ -374,7 +384,7 @@ QList<QSharedPointer<PCBObject> > PCBDoc::findObjs(QPoint &pt, int dist)
 
 void PCBDoc::clearDoc()
 {
-	mTraceList = QSharedPointer<TraceList>(new TraceList());
+	mTraceList = QSharedPointer<TraceList>(new TraceList(this));
 
 	mParts.clear();
 	mTexts.clear();
@@ -599,7 +609,7 @@ bool PCBDoc::loadFromFile(QFile &inFile)
 bool PCBDoc::loadFromXml(QXmlStreamReader &reader)
 {
 	clearDoc();
-	mTraceList = QSharedPointer<TraceList>(new TraceList());
+	mTraceList = QSharedPointer<TraceList>(new TraceList(this));
 	mNetlist = QSharedPointer<Netlist>(new Netlist());
 
 	reader.readNextStartElement();

@@ -59,6 +59,8 @@ bool PartPin::testHit( const QPoint& pt, int dist, const Layer& layer) const
 
 QPoint PartPin::pos() const
 {
+	Q_ASSERT(mPart);
+	Q_ASSERT(mPin);
 	return mPart->transform().map(mPin->pos());
 }
 
@@ -70,6 +72,11 @@ bool PartPin::isSmt() const
 QRect PartPin::bbox() const
 {
 	return mPart->transform().mapRect(mPin->bbox());
+}
+
+QString PartPin::net() const
+{
+	return mPart->doc()->netlist()->findNet(mPart->refdes(), name()).name();
 }
 
 void PartPin::draw(QPainter *painter, const Layer& layer) const
@@ -101,8 +108,7 @@ bool PartPin::loadState(PCBObjState &state)
 	if (s.isNull()) return false;
 	mPin = s->pin;
 	mPart = s->part;
-	mNet = s->net;
-	mVertex = s->vertex;
+	mVertices = s->vertices;
 	return true;
 }
 

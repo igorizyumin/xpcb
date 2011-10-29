@@ -21,21 +21,113 @@
 #include <QXmlStreamWriter>
 #include "Trace.h"
 #include "Area.h"
+#include "Document.h"
+#include <QDebug>
 
-static void vertexDFS(QSet<QSharedPointer<Vertex> > &toVisit,
-					  QSet<Vertex* > &currSet,
-					  QSharedPointer<Vertex> currVtx);
+Via::Via(QPoint pos, QSharedPointer<Padstack> ps)
+	: mPos(pos), mPadstack(ps)
+{
+}
 
+void Via::draw(QPainter *painter, const Layer &layer) const
+{
+	if (!layer.isCopper())
+		return;
 
-Vertex::Vertex(QPoint pos, bool forcevia)
-	: mPos(pos), mForceVia(forcevia)
+	painter->save();
+	painter->translate(pos());
+
+	if (layer == Layer::LAY_TOP_COPPER)
+		padstack()->startPad().draw(painter);
+	else if (layer == Layer::LAY_BOTTOM_COPPER)
+		padstack()->endPad().draw(painter);
+	else
+		padstack()->innerPad().draw(painter);
+
+	painter->restore();
+
+}
+
+QRect Via::bbox() const
+{
+	return padstack()->bbox().translated(pos());
+}
+
+bool Via::testHit(QPoint p, int dist, const Layer &l) const
+{
+	if (!l.isCopper())
+		return false;
+
+	QPoint delta( p - pos() );
+	if (XPcb::norm(delta) < (padstack()->holeSize()/2+dist) )
+		return true;
+	if (l == Layer::LAY_TOP_COPPER)
+		return padstack()->startPad().testHit(delta, dist);
+	else if (l == Layer::LAY_BOTTOM_COPPER)
+		return padstack()->endPad().testHit(delta, dist);
+	else
+		return padstack()->innerPad().testHit(delta, dist);
+}
+
+bool Via::loadState(PCBObjState &state)
+{
+	// convert to via state
+	if (state.ptr().isNull())
+		return false;
+	QSharedPointer<ViaState> vs = state.ptr().dynamicCast<ViaState>();
+	if (vs.isNull())
+		return false;
+	// restore state
+	mPos = vs->mPos;
+	mPadstack = vs->mPadstack;
+	return true;
+}
+
+void Via::attach(Vertex* vtx)
+{
+	if (mVtxs.contains(vtx)) return;
+	mVtxs.insert(vtx);
+	vtx->attach(this);
+}
+
+void Via::detach(Vertex *vtx)
+{
+	if (!mVtxs.contains(vtx)) return;
+	mVtxs.remove(vtx);
+	vtx->detachVia();
+}
+
+void Via::detachAll()
+{
+	foreach(Vertex* vtx, mVtxs)
+	{
+		vtx->detachVia();
+	}
+	mVtxs.clear();
+	mPartPins.clear();
+}
+
+bool Via::onLayer(const Layer &layer) const
+{
+	if (!layer.isCopper()) return false;
+	if (layer == Layer::LAY_TOP_COPPER)
+		return !padstack()->startPad().isNull();
+	else if (layer == Layer::LAY_BOTTOM_COPPER)
+		return !padstack()->endPad().isNull();
+	else
+		return !padstack()->innerPad().isNull();
+}
+/////////////////////// VERTEX ///////////////////////
+
+Vertex::Vertex(QPoint pos)
+	: mPos(pos), mPartPin(NULL), mVia(NULL)
 {
 
 }
 
 void Vertex::draw(QPainter */*painter*/, const Layer& /*layer*/) const
 {
-	// XXX TODO draw via if needed
+	// XXX TODO draw appropriate things
 }
 
 QRect Vertex::bbox() const
@@ -68,6 +160,119 @@ void Vertex::removeSegment(QSharedPointer<Segment> seg)
 	mSegs.remove(seg);
 }
 
+bool Vertex::loadState(PCBObjState& state)
+{
+	// convert to vertex state
+	if (state.ptr().isNull())
+		return false;
+	QSharedPointer<VtxState> vs = state.ptr().dynamicCast<VtxState>();
+	if (vs.isNull())
+		return false;
+	// restore state
+	mPos = vs->mPos;
+	return true;
+}
+
+void Vertex::attach(PartPin *pin)
+{
+	if (mPartPin == pin) return;
+	if (mPartPin) detachPin();
+	mPartPin = pin;
+	// XXX TODO attach pin
+}
+
+void Vertex::attach(Via *via)
+{
+	if (mVia == via) return;
+	if (mVia) detachVia();
+	mVia = via;
+	via->attach(this);
+}
+
+void Vertex::detachPin()
+{
+	// XXX TODO detach pin
+	mPartPin = NULL;
+}
+
+void Vertex::detachVia()
+{
+	if (!mVia) return;
+	mVia->detach(this);
+	mVia = NULL;
+}
+
+void Vertex::detachAll()
+{
+	detachPin();
+	detachVia();
+}
+
+Layer Vertex::layer() const
+{
+	if (mSegs.isEmpty()) return Layer();
+	else return (*mSegs.begin())->layer();
+}
+
+/////////////////////// SEGMENT ///////////////////////
+
+Segment::Segment(const Layer& l, int w)
+	: mLayer(l), mWidth(w)
+{
+}
+
+Segment::Segment(const Segment &other)
+	: mLayer(other.mLayer), mWidth(other.mWidth)
+{
+}
+
+void Segment::draw(QPainter *painter, const Layer& layer) const
+{
+	if (mV1.isNull() || mV2.isNull()) return;
+	if (layer != mLayer && layer != Layer::LAY_SELECTION)
+		return;
+
+	QPen pen = painter->pen();
+	pen.setWidth(mWidth);
+	painter->setPen(pen);
+
+	painter->drawLine(mV1->pos(), mV2->pos());
+}
+
+QRect Segment::bbox() const
+{
+	if (mV1.isNull() || mV2.isNull()) return QRect();
+	return QRect(mV1->pos(),
+				 mV2->pos()).normalized().adjusted(-mWidth/2,
+												   -mWidth/2,
+												   mWidth/2,
+												   mWidth/2);
+}
+
+bool Segment::testHit(QPoint p, int dist, const Layer &l) const
+{
+	return (l == layer()) &&
+			(XPcb::distPtToSegment(p, mV1->pos(), mV2->pos())
+			 <= (dist + mWidth));
+}
+
+bool Segment::loadState(PCBObjState& state)
+{
+	// convert to vertex state
+	if (state.ptr().isNull())
+		return false;
+	QSharedPointer<SegState> vs = state.ptr().dynamicCast<SegState>();
+	if (vs.isNull())
+		return false;
+	// restore state
+	mLayer = vs->mLayer;
+	mWidth = vs->mWidth;
+	return true;
+}
+
+//////////////////////////    TRACELIST    /////////////////////////////////////
+
+#if 0
 QSet<Vertex*> TraceList::getConnectedVertices(Vertex* vtx) const
 {
 	update();
@@ -78,6 +283,7 @@ QSet<Vertex*> TraceList::getConnectedVertices(Vertex* vtx) const
 	}
 	return QSet<Vertex*>();
 }
+#endif
 
 QSet<Vertex*> TraceList::getVerticesInArea(const Area& a) const
 {
@@ -85,7 +291,7 @@ QSet<Vertex*> TraceList::getVerticesInArea(const Area& a) const
 	QSet<Vertex*> set;
 	foreach(QSharedPointer<Vertex> vtx, myVtx)
 	{
-		if (vtx->onLayer(layer)  && a.pointInside(vtx->pos()))
+		if (vtx->layer() == layer  && a.pointInside(vtx->pos()))
 			set.insert(vtx.data());
 	}
 	return set;
@@ -145,39 +351,7 @@ void TraceList::swapVtx(QSharedPointer<Segment> s,
 	vNew->addSegment(s);
 }
 
-void TraceList::update() const
-{
-	if (!mIsDirty) return;
-	// rebuild connection list
-	QSet<QSharedPointer<Vertex> > toVisit(myVtx);
-	QSet<Vertex* > currSet;
-	this->mConnections.clear();
-	while(!toVisit.empty())
-	{
-		currSet.clear();
-		QSharedPointer<Vertex> vtx = *toVisit.begin();
-		toVisit.remove(vtx);
-		vertexDFS(toVisit, currSet, vtx);
-		mConnections.append(currSet);
-	}
-}
 
-void vertexDFS(QSet<QSharedPointer<Vertex> > &toVisit,
-			   QSet<Vertex* > &currSet,
-			   QSharedPointer<Vertex> currVtx)
-{
-	foreach(QSharedPointer<Segment> seg, currVtx->segments())
-	{
-		QSharedPointer<Vertex> vtx = seg->otherVertex(currVtx);
-		if (toVisit.contains(vtx))
-		{
-			toVisit.remove(vtx);
-			currSet.insert(vtx.data());
-			vertexDFS(toVisit, currSet, vtx);
-		}
-
-	}
-}
 
 void TraceList::clear()
 {
@@ -189,7 +363,7 @@ void TraceList::clear()
 	mySeg.clear();
 	foreach(QSharedPointer<Vertex> vtx, myVtx)
 	{
-		vtx->clear();
+		vtx->clearSegments();
 	}
 	myVtx.clear();
 }
@@ -211,11 +385,8 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 		QPoint pt = QPoint(
 				attr.value("x").toString().toInt(),
 				attr.value("y").toString().toInt());
-		bool forcevia = attr.value("forcevia") == "1";
 
-		// XXX TODO find padstack / pin reference
-
-		QSharedPointer<Vertex> v(new Vertex(pt, forcevia));
+		QSharedPointer<Vertex> v(new Vertex(pt));
 		this->myVtx.insert(v);
 		vmap.insert(id, v);
 		do
@@ -232,7 +403,8 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 		QXmlStreamAttributes attr = reader.attributes();
 		int start = attr.value("start").toString().toInt();
 		int end = attr.value("end").toString().toInt();
-		Layer layer(static_cast<Layer::Type>(attr.value("layer").toString().toInt()));
+		Layer layer(static_cast<Layer::Type>(
+						attr.value("layer").toString().toInt()));
 		int width = attr.value("width").toString().toInt();
 
 		QSharedPointer<Segment> s(new Segment(layer, width));
@@ -243,6 +415,27 @@ void TraceList::loadFromXml(QXmlStreamReader &reader)
 				reader.readNext();
 		while(!reader.isEndElement());
 	}
+
+	// read vias
+	reader.readNextStartElement();
+	Q_ASSERT(reader.isStartElement() && reader.name() == "vias");
+	while(reader.readNextStartElement())
+	{
+		Q_ASSERT(reader.name() == "via");
+		QXmlStreamAttributes attr = reader.attributes();
+		QPoint pt = QPoint(
+				attr.value("x").toString().toInt(),
+				attr.value("y").toString().toInt());
+		QUuid psuuid(attr.value("padstack").toString());
+
+		QSharedPointer<Via> via(new Via(pt, mDoc->padstack(psuuid)));
+		myVias.insert(via);
+
+		do
+				reader.readNext();
+		while(!reader.isEndElement());
+	}
+	mIsDirty = true;
 }
 
 void TraceList::toXML(QXmlStreamWriter &writer) const
@@ -255,7 +448,6 @@ void TraceList::toXML(QXmlStreamWriter &writer) const
 		writer.writeAttribute("id", QString::number(v->getid()));
 		writer.writeAttribute("x", QString::number(v->pos().x()));
 		writer.writeAttribute("y", QString::number(v->pos().y()));
-		writer.writeAttribute("forcevia", v->isForcedVia() ? "1" : "0");
 		writer.writeEndElement();
 	}
 	writer.writeEndElement();
@@ -268,6 +460,19 @@ void TraceList::toXML(QXmlStreamWriter &writer) const
 		writer.writeAttribute("end", QString::number(s->v2()->getid()));
 		writer.writeAttribute("layer", QString::number(s->layer().toInt()));
 		writer.writeAttribute("width", QString::number(s->width()));
+		writer.writeEndElement();
+	}
+	writer.writeEndElement();
+
+	writer.writeStartElement("vias");
+	foreach(QSharedPointer<Via> v, myVias)
+	{
+		writer.writeStartElement("via");
+		writer.writeAttribute("x", QString::number(v->pos().x()));
+		writer.writeAttribute("y", QString::number(v->pos().y()));
+		writer.writeAttribute("padstack", v->padstack() ?
+								  v->padstack()->uuid().toString()
+								: QUuid().toString());
 		writer.writeEndElement();
 	}
 	writer.writeEndElement();
@@ -286,106 +491,9 @@ QSharedPointer<Segment> TraceList::segment(QSharedPointer<Vertex> v1,
 	return QSharedPointer<Segment>();
 }
 
-/////////////////////// SEGMENT ///////////////////////
-
-Segment::Segment(const Layer& l, int w)
-	: mLayer(l), mWidth(w)
-{
-}
-
-Segment::Segment(const Segment &other)
-	: mLayer(other.mLayer), mWidth(other.mWidth)
-{
-}
-
-void Segment::draw(QPainter *painter, const Layer& layer) const
-{
-	if (mV1.isNull() || mV2.isNull()) return;
-	if (layer != mLayer && layer != Layer::LAY_SELECTION)
-		return;
-
-	QPen pen = painter->pen();
-	pen.setWidth(mWidth);
-	painter->setPen(pen);
-
-	painter->drawLine(mV1->pos(), mV2->pos());
-}
-
-QRect Segment::bbox() const
-{
-	if (mV1.isNull() || mV2.isNull()) return QRect();
-	return QRect(mV1->pos(), mV2->pos()).normalized().adjusted(-mWidth/2, -mWidth/2, mWidth/2, mWidth/2);
-}
-
-bool Segment::testHit(QPoint p, int dist, const Layer &l) const
-{
-	return (l == layer()) &&
-			(XPcb::distPtToSegment(p, mV1->pos(), mV2->pos())
-			 <= (dist + mWidth));
-}
-
-bool Segment::loadState(PCBObjState& state)
-{
-	// convert to vertex state
-	if (state.ptr().isNull())
-		return false;
-	QSharedPointer<SegState> vs = state.ptr().dynamicCast<SegState>();
-	if (vs.isNull())
-		return false;
-	// restore state
-	mLayer = vs->mLayer;
-	mWidth = vs->mWidth;
-	return true;
-}
-
-/////////////////////// VERTEX ///////////////////////
-
-bool Vertex::isVia() const
-{
-	Layer layer;
-	bool first = true;
-	foreach(QSharedPointer<Segment> seg, this->mSegs)
-	{
-		if (!first && seg->layer() != layer)
-			return true; // consecutive segments on different layers
-		layer = seg->layer();
-		first = false;
-	}
-	// all segments on the same layer
-	return false;
-}
 
 
-bool Vertex::onLayer(const Layer& layer) const
-{
-	// vias are present on all layers
-	if (isVia())
-		return true;
-	else
-	{
-		// not a via, all segments must be on same layer
-		QSharedPointer<Segment> first = *this->mSegs.begin();
-		if (layer == first->layer())
-			return true;
-		else
-			return false;
-	}
-}
 
-bool Vertex::loadState(PCBObjState& state)
-{
-	// convert to vertex state
-	if (state.ptr().isNull())
-		return false;
-	QSharedPointer<VtxState> vs = state.ptr().dynamicCast<VtxState>();
-	if (vs.isNull())
-		return false;
-	// restore state
-	mPos = vs->mPos;
-	mPadstack = vs->mPadstack;
-	mForceVia = vs->mForceVia;
-	return true;
-}
 
 ////////////////////// UNDO COMMANDS //////////////////////
 
@@ -458,7 +566,8 @@ TraceList::SwapVtxCmd::SwapVtxCmd(QUndoCommand *parent, TraceList *tl,
 
 void TraceList::SwapVtxCmd::undo()
 {
-	Q_ASSERT((mSeg->v1() == mVNew && mSeg->v2() != mVNew) || (mSeg->v1() != mVNew && mSeg->v2() == mVNew));
+	Q_ASSERT((mSeg->v1() == mVNew && mSeg->v2() != mVNew)
+			 || (mSeg->v1() != mVNew && mSeg->v2() == mVNew));
 
 	Q_ASSERT(mSeg->v1()->segments().contains(mSeg));
 	Q_ASSERT(mSeg->v2()->segments().contains(mSeg));
@@ -478,12 +587,14 @@ void TraceList::SwapVtxCmd::undo()
 
 	Q_ASSERT(mSeg->v1()->segments().contains(mSeg));
 	Q_ASSERT(mSeg->v2()->segments().contains(mSeg));
-	Q_ASSERT((mSeg->v1() == mVOld && mSeg->v2() != mVOld) || (mSeg->v1() != mVOld && mSeg->v2() == mVOld));
+	Q_ASSERT((mSeg->v1() == mVOld && mSeg->v2() != mVOld)
+			 || (mSeg->v1() != mVOld && mSeg->v2() == mVOld));
 }
 
 void TraceList::SwapVtxCmd::redo()
 {
-	Q_ASSERT((mSeg->v1() == mVOld && mSeg->v2() != mVOld) || (mSeg->v1() != mVOld && mSeg->v2() == mVOld));
+	Q_ASSERT((mSeg->v1() == mVOld && mSeg->v2() != mVOld)
+			 || (mSeg->v1() != mVOld && mSeg->v2() == mVOld));
 	Q_ASSERT(mSeg->v1()->segments().contains(mSeg));
 	Q_ASSERT(mSeg->v2()->segments().contains(mSeg));
 
@@ -509,7 +620,194 @@ void TraceList::SwapVtxCmd::redo()
 
 	Q_ASSERT(mSeg->v1()->segments().contains(mSeg));
 	Q_ASSERT(mSeg->v2()->segments().contains(mSeg));
-	Q_ASSERT((mSeg->v1() == mVNew && mSeg->v2() != mVNew) || (mSeg->v1() != mVNew && mSeg->v2() == mVNew));
+	Q_ASSERT((mSeg->v1() == mVNew && mSeg->v2() != mVNew)
+			 || (mSeg->v1() != mVNew && mSeg->v2() == mVNew));
 
 }
 
+///////////////////////////   LVS   ////////////////////////////////////
+
+TraceList::ConnGroup::ConnGroup(PartPin *pin)
+{
+	mPins.insert(pin);
+	foreach(QWeakPointer<Vertex> wptr, pin->vertices())
+	{
+		QSharedPointer<Vertex> ptr = wptr.toStrongRef();
+		if (ptr.isNull()) continue;
+		DFS(ptr.data());
+	}
+	update();
+}
+
+void TraceList::ConnGroup::DFS(Vertex* currVtx)
+{
+	if (currVtx->partpin())
+		mPins.insert(currVtx->partpin());
+	if (currVtx->via())
+	{
+		mVias.insert(currVtx->via());
+		mPins.unite(currVtx->via()->partpins());
+		foreach(Vertex* v, currVtx->via()->vertices())
+		{
+			if (!mVertices.contains(v))
+			{
+				mVertices.insert(v);
+				DFS(v);
+			}
+		}
+	}
+	foreach(QSharedPointer<Segment> seg, currVtx->segments())
+	{
+		Vertex* vtx = seg->otherVertex(currVtx);
+		if (!mVertices.contains(vtx))
+		{
+			mVertices.insert(vtx);
+			DFS(vtx);
+		}
+	}
+}
+
+void TraceList::ConnGroup::update()
+{
+	mNet.clear();
+	mShortedPins.clear();
+
+	if (mPins.count() == 0)
+		return;
+
+	if (mPins.count() == 1)
+	{
+		mNet = (*mPins.begin())->net();
+		return;
+	}
+
+	QHash<QString, int> hash;
+	foreach(PartPin* p, mPins)
+	{
+		// pins not assigned to a net should not be connected to any
+		// other pin
+		if (p->net().isEmpty())
+			mShortedPins.insert(p);
+		else
+			hash[p->net()]++; // auto-inserted if not present
+	}
+	if (hash.count() == 1) // only one net
+	{
+		mNet = (hash.begin().key());
+		return;
+	}
+	// otherwise do majority voting
+	QHash<QString, int>::const_iterator i;
+	int max = -1;
+	for(i = hash.constBegin(); i != hash.constEnd(); i++)
+	{
+		if (i.value() > max)
+			mNet = i.key();
+	}
+	// insert shorted pins into array
+	foreach(PartPin* p, mPins)
+	{
+		if (p->net() != mNet)
+			mShortedPins.insert(p);
+	}
+}
+
+void TraceList::rebuildRats() const
+{
+	mRats.clear();
+	foreach(QString net, mConnections.keys())
+	{
+		if (!net.isEmpty())
+			rebuildRatsForNet(net);
+	}
+}
+
+void TraceList::rebuildRatsForNet(QString netName) const
+{
+	// Prim's algorithm for building a minimum spanning tree
+	// very inefficient, but who cares (for now)
+	QList<ConnGroup> net = mConnections[netName];
+	QList<ConnGroup> connected;
+	connected.append(net.takeLast());
+	QList<QPair<PartPin*, PartPin*> > rats;
+	while(!net.isEmpty())
+	{
+		// iterate over all pins in the connected set
+		int shortest_cg;
+		QPair<PartPin*, PartPin*> shortest;
+		double dist = 1e300; // really large value
+		foreach(ConnGroup cg, connected)
+		{
+			foreach(PartPin* pin, cg.validPins())
+			{
+				// now iterate over all pins in the remaining set and find the closest one
+				for(int i = 0; i < net.size(); i++)
+				{
+					ConnGroup curr(net[i]);
+					foreach(PartPin* currPin, curr.validPins())
+					{
+						double newdist = XPcb::distance(pin->pos(), currPin->pos());
+						if (newdist < dist)
+						{
+							dist = newdist;
+							shortest.first = pin;
+							shortest.second = currPin;
+							shortest_cg = i;
+						}
+					}
+				}
+			}
+		}
+		// done with this cg
+		connected.append(net[shortest_cg]);
+		net.removeAt(shortest_cg);
+		Q_ASSERT(shortest.first && shortest.second);
+		rats.append(shortest);
+	}
+
+	mRats[netName] = rats;
+}
+
+/// Rebuild connection list
+void TraceList::update() const
+{
+	if (!mIsDirty) return;
+
+	// convert to regular pointers
+	QSet<PartPin*> toVisit;
+	foreach(QSharedPointer<PartPin> pin, mDoc->partPins())
+	{
+		toVisit.insert(pin.data());
+	}
+
+	this->mConnections.clear();
+	while(!toVisit.empty())
+	{
+		PartPin* pin = *toVisit.begin();
+		ConnGroup cg(pin);
+		// remove visited pins
+		toVisit.subtract(cg.pins());
+		mConnections[cg.net()].append(cg);
+	}
+
+	rebuildRats();
+}
+
+void TraceList::draw(QPainter *painter, const Layer &layer) const
+{
+	painter->save();
+	QPen pen = painter->pen();
+	pen.setWidth(0);
+	painter->setPen(pen);
+	update();
+	if (layer != Layer::LAY_RAT_LINE) return;
+	typedef QPair<PartPin*, PartPin*> RatPair ;
+	foreach(QList<RatPair> l, mRats.values())
+	{
+		foreach(RatPair rat, l)
+		{
+			painter->drawLine(rat.first->pos(), rat.second->pos());
+		}
+	}
+	painter->restore();
+}
