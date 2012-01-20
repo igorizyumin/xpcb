@@ -108,7 +108,6 @@ bool PartPin::loadState(PCBObjState &state)
 	if (s.isNull()) return false;
 	mPin = s->pin;
 	mPart = s->part;
-	mVertices = s->vertices;
 	return true;
 }
 

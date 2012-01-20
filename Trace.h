@@ -60,17 +60,17 @@ public:
 	void setPos(QPoint pos) { mPos = pos; }
 
 	/// Adds a connected vertex to the via's vertex set.
-	void attach(Vertex* vtx);
-	void attach(PartPin* pin) { mPartPins.insert(pin); }
+	void attach(const Vertex* vtx) const;
+	void attach(const PartPin* pin) const { mPartPins.insert(pin); }
 	/// Removes a vertex from the set of connected vertices.
-	void detach(Vertex* vtx);
-	void detach(PartPin* pin) { mPartPins.remove(pin); }
+	void detach(const Vertex* vtx) const;
+	void detach(const PartPin* pin) const { mPartPins.remove(pin); }
 	/// Detaches all attached vertices
-	void detachAll();
+	void detachAll() const;
 
 	/// Returns a reference to the vertex set.
-	QSet<Vertex*> vertices() const { return mVtxs; }
-	QSet<PartPin*> partpins() const { return mPartPins; }
+	QSet<const Vertex*> vertices() const { return mVtxs; }
+	QSet<const PartPin*> partpins() const { return mPartPins; }
 	/// Returns true if a pad is present on the given layer
 	bool onLayer(const Layer& layer) const;
 
@@ -96,8 +96,8 @@ private:
 	};
 
 	QPoint mPos;
-	QSet<Vertex*> mVtxs;
-	QSet<PartPin*> mPartPins;
+	mutable QSet<const Vertex*> mVtxs;
+	mutable QSet<const PartPin*> mPartPins;
 	QSharedPointer<Padstack> mPadstack;
 };
 
@@ -132,19 +132,19 @@ public:
 	void clearSegments() { mSegs.clear(); }
 
 	/// Attach a part pin to the vertex.  Detaches previous pin.
-	void attach(PartPin* pin);
+	void attach(const PartPin* pin) const;
 	/// Attach a via to the vertex.  Detaches previous via.
-	void attach(Via* via);
+	void attach(const Via* via) const;
 
-	Via* via() { return mVia; }
-	PartPin* partpin() { return mPartPin; }
+	const Via* via() const { return mVia; }
+	const PartPin* partpin() const { return mPartPin; }
 
 	/// Detach the part pin from the vertex
-	void detachPin();
+	void detachPin() const;
 	/// Detach the via from the vertex
-	void detachVia();
+	void detachVia() const;
 	/// Detach all attached objects from the vertex
-	void detachAll();
+	void detachAll() const;
 
 	Layer layer() const;
 
@@ -163,8 +163,8 @@ private:
 	};
 	QPoint mPos;
 	QSet<QSharedPointer<Segment> > mSegs;
-	PartPin* mPartPin;
-	Via* mVia;
+	mutable const PartPin* mPartPin;
+	mutable const Via* mVia;
 };
 
 /// Trace segment
@@ -196,7 +196,7 @@ public:
 		return (v == mV1 || v == mV2);
 	}
 
-	bool hasVertex(Vertex* v) const
+	bool hasVertex(const Vertex* v) const
 	{
 		return (v == mV1 || v == mV2);
 	}
@@ -210,6 +210,14 @@ public:
 	}
 
 	Vertex* otherVertex(Vertex* v) const
+	{
+		if (!hasVertex(v))
+			return 0;
+		else
+			return (v == mV1 ? mV2.data() : mV1.data());
+	}
+
+	const Vertex* otherVertex(const Vertex* v) const
 	{
 		if (!hasVertex(v))
 			return 0;
@@ -361,25 +369,25 @@ private:
 	class ConnGroup
 	{
 	public:
-		ConnGroup(PartPin* pin);
+		ConnGroup(const PartPin* pin);
 
-		QSet<Vertex*> vertices() const { return mVertices; }
-		QSet<PartPin*> pins() const { return mPins; }
-		QSet<PartPin*> validPins() const { return mPins - mShortedPins; }
-		QSet<Via*> vias() const { return mVias; }
-		QSet<PartPin*> shortedPins() const { return mShortedPins; }
+		QSet<const Vertex*> vertices() const { return mVertices; }
+		QSet<const PartPin*> pins() const { return mPins; }
+		QSet<const PartPin*> validPins() const { return mPins - mShortedPins; }
+		QSet<const Via*> vias() const { return mVias; }
+		QSet<const PartPin*> shortedPins() const { return mShortedPins; }
 		QString net() const { return mNet; }
 
 	private:
-		void DFS(Vertex* currVtx);
+		void DFS(const Vertex* currVtx);
 		void update();
 
 
 		QString mNet;
-		QSet<Vertex*> mVertices;
-		QSet<PartPin*> mPins;
-		QSet<Via*> mVias;
-		QSet<PartPin*> mShortedPins;
+		QSet<const Vertex*> mVertices;
+		QSet<const PartPin*> mPins;
+		QSet<const Via*> mVias;
+		QSet<const PartPin*> mShortedPins;
 	};
 
 	friend class AddSegCmd;
@@ -387,6 +395,7 @@ private:
 	friend class SwapVtxCmd;
 	void clear();
 	void update() const;
+	void rebuildConnectivity() const;
 	void rebuildRats() const;
 	void rebuildRatsForNet(QString net) const;
 
@@ -395,10 +404,10 @@ private:
 	QSet<QSharedPointer<Vertex> > myVtx;		// set of vertices
 	QSet<QSharedPointer<Via> > myVias;			// set of vias
 
-	bool mIsDirty;
+	mutable bool mIsDirty;
 	/// Master list of connections (maps net->list of conns)
 	mutable QHash<QString, QList<ConnGroup> > mConnections;
-	mutable QHash<QString, QList<QPair<PartPin*,PartPin*> > > mRats;
+	mutable QHash<QString, QList<QPair<const PartPin*,const PartPin*> > > mRats;
 };
 
 

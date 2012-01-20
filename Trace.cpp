@@ -83,23 +83,23 @@ bool Via::loadState(PCBObjState &state)
 	return true;
 }
 
-void Via::attach(Vertex* vtx)
+void Via::attach(const Vertex* vtx) const
 {
 	if (mVtxs.contains(vtx)) return;
 	mVtxs.insert(vtx);
 	vtx->attach(this);
 }
 
-void Via::detach(Vertex *vtx)
+void Via::detach(const Vertex *vtx) const
 {
 	if (!mVtxs.contains(vtx)) return;
 	mVtxs.remove(vtx);
 	vtx->detachVia();
 }
 
-void Via::detachAll()
+void Via::detachAll() const
 {
-	foreach(Vertex* vtx, mVtxs)
+	foreach(const Vertex* vtx, mVtxs)
 	{
 		vtx->detachVia();
 	}
@@ -117,6 +117,7 @@ bool Via::onLayer(const Layer &layer) const
 	else
 		return !padstack()->innerPad().isNull();
 }
+
 /////////////////////// VERTEX ///////////////////////
 
 Vertex::Vertex(QPoint pos)
@@ -173,15 +174,15 @@ bool Vertex::loadState(PCBObjState& state)
 	return true;
 }
 
-void Vertex::attach(PartPin *pin)
+void Vertex::attach(const PartPin *pin) const
 {
 	if (mPartPin == pin) return;
 	if (mPartPin) detachPin();
 	mPartPin = pin;
-	// XXX TODO attach pin
+	mPartPin->attach(this);
 }
 
-void Vertex::attach(Via *via)
+void Vertex::attach(const Via *via) const
 {
 	if (mVia == via) return;
 	if (mVia) detachVia();
@@ -189,20 +190,21 @@ void Vertex::attach(Via *via)
 	via->attach(this);
 }
 
-void Vertex::detachPin()
+void Vertex::detachPin() const
 {
-	// XXX TODO detach pin
+	if (!mPartPin) return;
+	mPartPin->detach(this);
 	mPartPin = NULL;
 }
 
-void Vertex::detachVia()
+void Vertex::detachVia() const
 {
 	if (!mVia) return;
 	mVia->detach(this);
 	mVia = NULL;
 }
 
-void Vertex::detachAll()
+void Vertex::detachAll() const
 {
 	detachPin();
 	detachVia();
@@ -627,43 +629,36 @@ void TraceList::SwapVtxCmd::redo()
 
 ///////////////////////////   LVS   ////////////////////////////////////
 
-TraceList::ConnGroup::ConnGroup(PartPin *pin)
+TraceList::ConnGroup::ConnGroup(const PartPin *pin)
 {
 	mPins.insert(pin);
-	foreach(QWeakPointer<Vertex> wptr, pin->vertices())
+	foreach(const Vertex* v, pin->vertices())
 	{
-		QSharedPointer<Vertex> ptr = wptr.toStrongRef();
-		if (ptr.isNull()) continue;
-		DFS(ptr.data());
+		DFS(v);
 	}
 	update();
 }
 
-void TraceList::ConnGroup::DFS(Vertex* currVtx)
+void TraceList::ConnGroup::DFS(const Vertex* currVtx)
 {
+        mVertices.insert(currVtx);
 	if (currVtx->partpin())
 		mPins.insert(currVtx->partpin());
 	if (currVtx->via())
 	{
 		mVias.insert(currVtx->via());
 		mPins.unite(currVtx->via()->partpins());
-		foreach(Vertex* v, currVtx->via()->vertices())
+		foreach(const Vertex* v, currVtx->via()->vertices())
 		{
 			if (!mVertices.contains(v))
-			{
-				mVertices.insert(v);
 				DFS(v);
-			}
 		}
 	}
 	foreach(QSharedPointer<Segment> seg, currVtx->segments())
 	{
-		Vertex* vtx = seg->otherVertex(currVtx);
+		const Vertex* vtx = seg->otherVertex(currVtx);
 		if (!mVertices.contains(vtx))
-		{
-			mVertices.insert(vtx);
 			DFS(vtx);
-		}
 	}
 }
 
@@ -682,7 +677,7 @@ void TraceList::ConnGroup::update()
 	}
 
 	QHash<QString, int> hash;
-	foreach(PartPin* p, mPins)
+	foreach(const PartPin* p, mPins)
 	{
 		// pins not assigned to a net should not be connected to any
 		// other pin
@@ -705,7 +700,7 @@ void TraceList::ConnGroup::update()
 			mNet = i.key();
 	}
 	// insert shorted pins into array
-	foreach(PartPin* p, mPins)
+	foreach(const PartPin* p, mPins)
 	{
 		if (p->net() != mNet)
 			mShortedPins.insert(p);
@@ -729,22 +724,22 @@ void TraceList::rebuildRatsForNet(QString netName) const
 	QList<ConnGroup> net = mConnections[netName];
 	QList<ConnGroup> connected;
 	connected.append(net.takeLast());
-	QList<QPair<PartPin*, PartPin*> > rats;
+	QList<QPair<const PartPin*, const PartPin*> > rats;
 	while(!net.isEmpty())
 	{
 		// iterate over all pins in the connected set
 		int shortest_cg;
-		QPair<PartPin*, PartPin*> shortest;
+		QPair<const PartPin*, const PartPin*> shortest;
 		double dist = 1e300; // really large value
 		foreach(ConnGroup cg, connected)
 		{
-			foreach(PartPin* pin, cg.validPins())
+			foreach(const PartPin* pin, cg.validPins())
 			{
 				// now iterate over all pins in the remaining set and find the closest one
 				for(int i = 0; i < net.size(); i++)
 				{
 					ConnGroup curr(net[i]);
-					foreach(PartPin* currPin, curr.validPins())
+					foreach(const PartPin* currPin, curr.validPins())
 					{
 						double newdist = XPcb::distance(pin->pos(), currPin->pos());
 						if (newdist < dist)
@@ -773,8 +768,10 @@ void TraceList::update() const
 {
 	if (!mIsDirty) return;
 
+	rebuildConnectivity();
+
 	// convert to regular pointers
-	QSet<PartPin*> toVisit;
+	QSet<const PartPin*> toVisit;
 	foreach(QSharedPointer<PartPin> pin, mDoc->partPins())
 	{
 		toVisit.insert(pin.data());
@@ -783,7 +780,7 @@ void TraceList::update() const
 	this->mConnections.clear();
 	while(!toVisit.empty())
 	{
-		PartPin* pin = *toVisit.begin();
+		const PartPin* pin = *toVisit.begin();
 		ConnGroup cg(pin);
 		// remove visited pins
 		toVisit.subtract(cg.pins());
@@ -791,6 +788,8 @@ void TraceList::update() const
 	}
 
 	rebuildRats();
+
+//	mIsDirty = false;
 }
 
 void TraceList::draw(QPainter *painter, const Layer &layer) const
@@ -801,7 +800,7 @@ void TraceList::draw(QPainter *painter, const Layer &layer) const
 	painter->setPen(pen);
 	update();
 	if (layer != Layer::LAY_RAT_LINE) return;
-	typedef QPair<PartPin*, PartPin*> RatPair ;
+	typedef QPair<const PartPin*, const PartPin*> RatPair ;
 	foreach(QList<RatPair> l, mRats.values())
 	{
 		foreach(RatPair rat, l)
@@ -810,4 +809,49 @@ void TraceList::draw(QPainter *painter, const Layer &layer) const
 		}
 	}
 	painter->restore();
+}
+
+void TraceList::rebuildConnectivity() const
+{
+	// go through pins, clear everything
+	foreach(QSharedPointer<PartPin> pin, mDoc->partPins())
+	{
+		pin->detachAll();
+	}
+
+	// go through vias, check against pins
+	QList<Layer> layers = mDoc->layerList(Document::ListOrder, Document::Copper);
+	foreach(QSharedPointer<Via> via, myVias)
+	{
+		via->detachAll();
+		foreach(QSharedPointer<PartPin> pin, mDoc->partPins())
+		{
+			foreach(Layer layer, layers)
+			{
+				if (via->onLayer(layer) &&
+						pin->testHit(via->pos(), 0, layer))
+					via->attach(pin.data());
+			}
+		}
+	}
+	// go through the vertices
+	foreach(QSharedPointer<Vertex> vtx, myVtx)
+	{
+		// clear any existing connections
+		vtx->detachAll();
+		QPoint pos = vtx->pos();
+		Layer layer = vtx->layer();
+		// check each vertex against pins and vias
+		foreach(QSharedPointer<PartPin> pin, mDoc->partPins())
+		{
+			if (pin->testHit(pos, 0, layer))
+				vtx->attach(pin.data());
+		}
+		foreach(QSharedPointer<Via> via, myVias)
+		{
+			if (via->testHit(pos, 0, layer))
+				vtx->attach(via.data());
+		}
+	}
+
 }

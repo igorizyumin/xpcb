@@ -43,9 +43,15 @@ public:
 
 	QString net() const;
 
-	void addVertex(QSharedPointer<Vertex> vertex) { mVertices.insert(vertex.toWeakRef()); }
-	void delVertex(QSharedPointer<Vertex> vertex) { mVertices.remove(vertex.toWeakRef()); }
-	QSet<QSharedPointer<Vertex> > vertices() const { return mVertices; }
+	void attach(const Vertex* vertex) const { mVertices.insert(vertex); }
+	void detach(const Vertex* vertex) const
+	{
+		mVertices.remove(vertex);
+	}
+
+	void detachAll() const { mVertices.clear(); }
+	QSet<const Vertex*> vertices() const { return mVertices; }
+
 	Part* part() const { return mPart; }
 	QString name() const {return mPin->name(); }
 	QSharedPointer<Pin> fpPin() const { return mPin; }
@@ -68,14 +74,12 @@ private:
 	private:
 		friend class PartPin;
 		PartPinState(const PartPin &p)
-			: pin(p.fpPin()), part(p.part()), net(p.net()),
-			vertices(p.vertices())
+			: pin(p.fpPin()), part(p.part()), net(p.net())
 		{}
 
 		QSharedPointer<Pin> pin;
 		Part* part;
 		QString net;
-		QSet<QSharedPointer<Vertex> > vertices;
 	};
 
 	/// Maps a PCB layer to a pin layer (i.e. top copper -> start for parts on top side)
@@ -86,7 +90,7 @@ private:
 	/// Pointer to parent part.
 	Part * mPart;
 	/// Set of attached vertices.
-	QSet<QSharedPointer<Vertex> > mVertices;
+	mutable QSet<const Vertex* > mVertices;
 };
 
 /// A part is an instance of a Footprint on a printed circuit board.  Parts
