@@ -57,9 +57,6 @@ public:
 
 	static QSharedPointer<Line> newFromXml(QXmlStreamReader &reader);
 	void toXML(QXmlStreamWriter &writer) const;
-
-	static void drawArc(QPainter* painter, QPoint start, QPoint end, LineType type);
-
 private:
 	class LineState : public PCBObjStateInternal
 	{

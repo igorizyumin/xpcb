@@ -36,15 +36,15 @@ Area::~Area()
 {
 }
 
-void Area::draw(QPainter */*painter*/, const Layer& /*layer*/) const
+void Area::draw(QPainter *painter, const Layer& layer) const
 {
-	// XXX TODO draw via if needed
+	if (layer == mLayer)
+		mPoly.outline()->draw(painter);
 }
 
 QRect Area::bbox() const
 {
-	// XXX TODO do something useful here
-	return QRect();
+	return mPoly.bbox();
 }
 
 void Area::findConnections()
@@ -115,8 +115,7 @@ QSharedPointer<Area> Area::newFromXML(QXmlStreamReader &reader, const PCBDoc &do
 void Area::toXML(QXmlStreamWriter &writer)
 {
 	writer.writeStartElement("area");
-	if (!mNet.isEmpty())
-		writer.writeAttribute("net", mNet);
+	writer.writeAttribute("net", mNet);
 	writer.writeAttribute("layer", QString::number(mLayer.toInt()));
 	switch(mHatchStyle)
 	{

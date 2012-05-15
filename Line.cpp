@@ -87,7 +87,7 @@ void Line::draw(QPainter *painter, const Layer& layer) const
 	if (mType == LINE || mStart.x() == mEnd.x() || mStart.y() == mEnd.y())
 		painter->drawLine(mStart, mEnd);
 	else
-		drawArc(painter, mStart, mEnd, mType);
+		XPcb::drawArc(painter, mStart, mEnd, mType == ARC_CW);
 }
 
 QRect Line::bbox() const
@@ -101,57 +101,7 @@ bool Line::testHit(QPoint p, int dist, const Layer &l) const
 			(XPcb::distPtToSegment(p, mStart, mEnd) <= (dist + mWidth));
 }
 
-void Line::drawArc(QPainter* painter, QPoint start, QPoint end, LineType type)
-{
-	int x1, x2, y1, y2;
-	Q_ASSERT(type != LINE);
 
-	// make x/y always be clockwise values
-	if (type == ARC_CW)
-	{
-		x1 = start.x();
-		y1 = start.y();
-		x2 = end.x();
-		y2 = end.y();
-	}
-	else
-	{
-		x2 = start.x();
-		y2 = start.y();
-		x1 = end.x();
-		y1 = end.y();
-	}
-	QRect r;
-	int startAngle;
-
-	// figure out quadrant
-	if (x1 < x2 && y1 > y2)
-	{
-		// quadrant 1
-		r = QRect(2*x1-x2, 2*y2-y1, 2*(x2-x1), 2*(y1-y2));
-		startAngle = 270*16;
-	}
-	else if (x1 < x2 && y1 < y2)
-	{
-		// quadrant 2
-		r = QRect(x1, 2*y1-y2, 2*(x2-x1), 2*(y2-y1));
-		startAngle = 180*16;
-	}
-	else if (x1 > x2 && y1 < y2)
-	{
-		// quadrant 3
-		r = QRect(x2, y1, 2*(x1-x2), 2*(y2-y1));
-		startAngle = 90*16;
-	}
-	else // x1 > x2, y1 > y2
-	{
-		// quadrant 4
-		r = QRect(2*x2-x1, y2, 2*(x1-x2), 2*(y1-y2));
-		startAngle = 0;
-	}
-
-	painter->drawArc(r, startAngle, 90*16);
-}
 
 PCBObjState Line::getState() const
 {

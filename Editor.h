@@ -78,6 +78,7 @@ public:
 	QSharedPointer<AbstractEditor> newPartEditor(PCBController* ctrl);
 	QSharedPointer<AbstractEditor> newLineEditor(FPController* ctrl);
 	QSharedPointer<AbstractEditor> newTraceEditor(PCBController* ctrl);
+	QSharedPointer<AbstractEditor> newAreaEditor(PCBController* ctrl);
 	QSharedPointer<AbstractEditor> placePartEditor(PCBController* ctrl, QList<NLPart> parts);
 
 	static void registerFactory(ObjType type, QSharedPointer<AbstractEditorFactory> factory) { instance().mFactories[type] = factory; }

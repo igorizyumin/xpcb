@@ -151,12 +151,14 @@ protected slots:
 	void onAddTextAction();
 	void onAddPartAction();
 	void onAddTraceAction();
+	void onAddAreaAction();
 
 protected:
 	PCBDoc* mDoc;
 	CtrlAction mAddTraceAction;
 	CtrlAction mAddTextAction;
 	CtrlAction mAddPartAction;
+	CtrlAction mAddAreaAction;
 };
 
 class FPController : public Controller

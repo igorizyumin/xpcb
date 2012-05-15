@@ -38,6 +38,7 @@ inline bool segZeroLength(QSharedPointer<Segment> seg)
 	return seg->v1()->pos() == seg->v2()->pos();
 }
 
+// XXX TODO move this into the controller
 void drawCrosshair45(QPainter* painter, QPoint pos)
 {
 	// draw 45 degree crosshair

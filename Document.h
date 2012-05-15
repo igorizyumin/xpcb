@@ -175,6 +175,9 @@ public:
 	virtual void addPart(QSharedPointer<Part> p);
 	virtual void removePart(QSharedPointer<Part> p);
 
+	virtual void addArea(QSharedPointer<Area> a);
+	virtual void removeArea(QSharedPointer<Area> a);
+
 	int numLayers() const { return mNumLayers; }
 
 	virtual QList<QSharedPointer<Padstack> > padstacks() { return mPadstacks.values(); }

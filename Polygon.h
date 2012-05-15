@@ -28,6 +28,8 @@
 #include "PolygonList.h"
 #include "polybool.h"
 
+class QPainter;
+
 /// A polygon contour.
 /// Describes a single polygon contour.  A contour can represent either the
 /// outside boundary of a polygon, or a polygon cutout.  Contours consist of
@@ -39,19 +41,19 @@ class PolyContour
 public:
 	struct Segment
 	{
-
 		/// Segment types.
-		enum SEG_TYPE {START,		///< the beginning of the contour.
-					   LINE,		///< a straight line to the endpoint.
-					   ARC_CW,		///< a clockwise arc.
-					   ARC_CCW		///< a counterclockwise arc.
-				   };
+		enum SegType {START,		///< the beginning of the contour.
+					  LINE,		///< a straight line to the endpoint.
+					  ARC_CW,		///< a clockwise arc.
+					  ARC_CCW		///< a counterclockwise arc.
+					 };
 
-		Segment(SEG_TYPE t, const QPoint& endPt) :
-				type(t), end(endPt) {}
+		Segment(SegType t, const QPoint& endPt) :
+			type(t), end(endPt) {}
 
 		/// The type of this segment.
-		SEG_TYPE type;
+		SegType type;
+
 		/// Endpoint coordinates of this segment.  The starting point is the endpoint
 		/// of the previous segment, unless this is a START segment.
 		QPoint end;
@@ -69,6 +71,7 @@ public:
 	bool testPointInside(const QPoint& pt) const;
 
 	QRect bbox() const;
+	void draw(QPainter *painter) const;
 
 	void translate(const QPoint& vec);
 
@@ -100,6 +103,7 @@ public:
 
 	// functions for modifying polygon
 	PolyContour* outline() {return &mOutline;}
+	PolyContour const* outline() const {return &mOutline;}
 	PolyContour* hole(int n) {return &(mHoles[n]); }
 	int numHoles() const {return mHoles.size();}
 	void removeHole(int n);

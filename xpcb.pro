@@ -58,7 +58,8 @@ SOURCES += PCBView.cpp \
     WidgetTestDialog.cpp \
     UnitLineEdit.cpp \
     NetlistDialog.cpp \
-    PartPlacer.cpp
+    PartPlacer.cpp \
+    AreaEditor.cpp
 
 unittest {
 	QT += testlib
@@ -116,7 +117,8 @@ HEADERS  += PCBView.h \
 	WidgetTestDialog.h \
 	UnitLineEdit.h \
     NetlistDialog.h \
-    PartPlacer.h
+    PartPlacer.h \
+    AreaEditor.h
 
 
 FORMS    += GridToolbarWidget.ui \

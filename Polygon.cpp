@@ -17,8 +17,10 @@
 	along with xpcb.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <QPainter>
 #include "Polygon.h"
 #include "polybool.h"
+#include "global.h"
 
 using namespace POLYBOOLEAN;
 
@@ -45,7 +47,7 @@ PolyContour::PolyContour(PLINE2 *pline)
 		VNODE2* vn = pline->head;
 		do
 		{
-			Segment::SEG_TYPE st = Segment::LINE;
+			Segment::SegType st = Segment::LINE;
 			if (vn == pline->head)
 				st = Segment::START;
 			this->mSegs.append(Segment(st, ptFromGrid(vn->g)));
@@ -118,6 +120,20 @@ QRect PolyContour::bbox() const
 	return QRect(xmin, ymin, xmax-xmin, ymax-ymin);
 }
 
+void PolyContour::draw(QPainter *painter) const
+{
+	QPoint prev;
+	foreach(Segment s, mSegs)
+	{
+		if (s.type == Segment::LINE)
+			painter->drawLine(prev, s.end);
+		else if (s.type == Segment::ARC_CW ||
+				 s.type == Segment::ARC_CCW)
+			XPcb::drawArc(painter, prev, s.end, s.type == Segment::ARC_CW);
+		prev = s.end;
+	}
+}
+
 PolyContour PolyContour::newFromXML(QXmlStreamReader &reader)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "start");
@@ -142,7 +158,7 @@ PolyContour PolyContour::newFromXML(QXmlStreamReader &reader)
 		}
 		else if (t == "arcTo")
 		{
-			Segment::SEG_TYPE t = (attr.value("dir") == "cw")
+			Segment::SegType t = (attr.value("dir") == "cw")
 						 ? Segment::ARC_CW : Segment::ARC_CCW;
 			pc.mSegs.append(Segment(t, endPt));
 		}

@@ -60,7 +60,7 @@ public:
 
 	/// Sets the polygon layer.
 	/// \param layer the new layer.
-	void setLayer( const Layer& layer );
+	void setLayer( const Layer& layer ) { mLayer = layer; }
 	/// \returns the current polygon layer.
 	const Layer& layer() const {return mLayer;}
 

@@ -25,6 +25,8 @@
 #include <QPoint>
 #include <cmath>
 
+class QPainter;
+
 namespace XPcb
 {
 	// units for length
@@ -141,6 +143,8 @@ namespace XPcb
 		QPoint pb = start + b*v;
 		return distance(p, pb);
 	}
+
+	void drawArc(QPainter* painter, QPoint start, QPoint end, bool cw);
 };
 
 class Dimension

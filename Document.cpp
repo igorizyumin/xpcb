@@ -497,7 +497,17 @@ void PCBDoc::removePart(QSharedPointer<Part> p)
 	emit partsChanged();
 }
 
+void PCBDoc::addArea(QSharedPointer<Area> a)
+{
+	Q_ASSERT(!mAreas.contains(a));
+	mAreas.append(a);
+}
 
+void PCBDoc::removeArea(QSharedPointer<Area> a)
+{
+	Q_ASSERT(mAreas.contains(a));
+	mAreas.removeOne(a);
+}
 
 //////// XML PARSING /////////
 // parser methods

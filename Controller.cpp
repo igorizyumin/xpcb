@@ -304,14 +304,17 @@ PCBController::PCBController(QObject *parent)
 		: Controller(parent), mDoc(NULL),
 		  mAddTraceAction(1, "Add Trace"),
 		  mAddTextAction(2, "Add Text"),
-		  mAddPartAction(3, "Add Part")
+		  mAddPartAction(3, "Add Part"),
+		  mAddAreaAction(4, "Add Area")
 {
 	connect(&mAddTraceAction, SIGNAL(execFired()), this, SLOT(onAddTraceAction()));
 	connect(&mAddTextAction, SIGNAL(execFired()), this, SLOT(onAddTextAction()));
 	connect(&mAddPartAction, SIGNAL(execFired()), this, SLOT(onAddPartAction()));
+	connect(&mAddAreaAction, SIGNAL(execFired()), this, SLOT(onAddAreaAction()));
 	registerAction(&mAddTraceAction);
 	registerAction(&mAddTextAction);
 	registerAction(&mAddPartAction);
+	registerAction(&mAddAreaAction);
 }
 
 void PCBController::registerDoc(PCBDoc* doc)
@@ -371,6 +374,12 @@ void PCBController::onAddTraceAction()
 	installEditor(EditorFactory::instance().newTraceEditor(this));
 }
 
+void PCBController::onAddAreaAction()
+{
+	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
+
+	installEditor(EditorFactory::instance().newAreaEditor(this));
+}
 
 //////////////////////////// FPCONTROLLER /////////////////////////////////
 

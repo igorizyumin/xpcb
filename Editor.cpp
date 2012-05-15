@@ -27,6 +27,7 @@
 #include "Footprint.h"
 #include "Part.h"
 #include "TraceEditor.h"
+#include "AreaEditor.h"
 
 AbstractEditor::AbstractEditor(Controller *ctrl) :
 	QObject(ctrl), mCtrl(ctrl)
@@ -144,6 +145,11 @@ QSharedPointer<AbstractEditor> EditorFactory::newLineEditor(FPController *ctrl)
 QSharedPointer<AbstractEditor> EditorFactory::newTraceEditor(PCBController *ctrl)
 {
 	return QSharedPointer<AbstractEditor>(new NewTraceEditor(ctrl));
+}
+
+QSharedPointer<AbstractEditor> EditorFactory::newAreaEditor(PCBController *ctrl)
+{
+	return QSharedPointer<AbstractEditor>(new AreaEditor(ctrl));
 }
 
 QSharedPointer<AbstractEditor> EditorFactory::placePartEditor(PCBController *ctrl, QList<NLPart> parts)
