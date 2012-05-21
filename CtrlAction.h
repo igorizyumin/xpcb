@@ -17,41 +17,33 @@
 	along with xpcb.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PARTPLACER_H
-#define PARTPLACER_H
+#ifndef CTRLACTION_H
+#define CTRLACTION_H
 
-#include "ui_PartPlacer.h"
+#include <QObject>
+#include <QString>
 
-class Controller;
-
-class PartPlacer : public QDockWidget, private Ui::PartPlacer
+/// Action triggered by a function key
+class CtrlAction : public QObject
 {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-	explicit PartPlacer(QWidget *parent, Controller* ctrl);
+	CtrlAction(int key, QString text) : mKey(key), mText(text) {}
+
+	int key() const { return mKey; }
+	QString text() const { return mText; }
+	void setText(QString text) { mText = text; }
 
 public slots:
-	void updateList();
+	void exec() { emit execFired(); }
 
-protected:
-	virtual void closeEvent(QCloseEvent *e);
-	virtual void hideEvent(QHideEvent *e);
-
-private slots:
-	void on_placeBtn_clicked();
+signals:
+	void execFired();
 
 private:
-	void populateItems();
-
-	void saveGeom();
-	void loadGeom();
-
-	Controller* mCtrl;
-	QIcon mYesIcon;
-	QIcon mNoIcon;
-	QIcon mErrIcon;
-	QIcon mWarnIcon;
+	int mKey;
+	QString mText;
 };
 
-#endif // PARTPLACER_H
+#endif // CTRLACTION_H

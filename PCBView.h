@@ -25,7 +25,6 @@
 #include "global.h"
 
 class PCBDoc;
-class PCBObject;
 class Controller;
 
 class PCBView : public QWidget

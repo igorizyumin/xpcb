@@ -22,14 +22,14 @@
 
 #include "Editor.h"
 #include "Controller.h"
-#include "Footprint.h"
+#include "Part.h"
 #include "EditPinDialog.h"
 
 class PinEditor : public AbstractEditor
 {
 	Q_OBJECT
 public:
-	PinEditor(FPController* ctrl, QSharedPointer<Pin> pin = QSharedPointer<Pin>());
+	PinEditor(Controller* ctrl, QSharedPointer<Pin> pin = QSharedPointer<Pin>());
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();

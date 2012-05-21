@@ -21,14 +21,16 @@
 #define TRACEEDITOR_H
 
 #include "Editor.h"
+#include "Controller.h"
 #include "Trace.h"
+
 
 class NewTraceEditor : public AbstractEditor
 {
 	Q_OBJECT
 
 public:
-	explicit NewTraceEditor(PCBController *ctrl);
+	explicit NewTraceEditor(Controller *ctrl);
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
@@ -49,7 +51,7 @@ private:
 	void updateDogleg();
 	void toggleMode();
 
-	PCBController* mCtrl;
+	Controller* mCtrl;
 
 	State mState;
 	Mode mMode;
@@ -70,7 +72,7 @@ class SegmentEditor : public AbstractEditor
 	Q_OBJECT
 
 public:
-	explicit SegmentEditor(PCBController *ctrl, QSharedPointer<Segment> segment);
+	explicit SegmentEditor(Controller *ctrl, QSharedPointer<Segment> segment);
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
@@ -101,7 +103,7 @@ private:
 
 	State mState;
 
-	PCBController* mCtrl;
+	Controller* mCtrl;
 	QSharedPointer<Segment> mSegment;
 
 	QPoint mPos;
@@ -135,7 +137,7 @@ class VertexEditor : public AbstractEditor
 	Q_OBJECT
 
 public:
-	explicit VertexEditor(PCBController *ctrl, QSharedPointer<Vertex> vtx);
+	explicit VertexEditor(Controller *ctrl, QSharedPointer<Vertex> vtx);
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
@@ -160,7 +162,7 @@ private:
 
 	State mState;
 
-	PCBController* mCtrl;
+	Controller* mCtrl;
 	QSharedPointer<Vertex> mVtx;
 	PCBObjState mPrevState;
 

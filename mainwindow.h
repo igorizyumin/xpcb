@@ -31,8 +31,6 @@ class Document;
 class PCBDoc;
 class FPDoc;
 class Controller;
-class PCBController;
-class FPController;
 class SelFilterWidget;
 class LayerWidget;
 class Plugin;
@@ -48,7 +46,7 @@ public:
 
 	/// Returns the current document, or NULL if no document is open.
 	virtual Document* doc() = 0;
-	virtual Controller* ctrl() = 0;
+	Controller* ctrl() { return mCtrl; }
 
 signals:
 	/// emitted whenever a document is opened or closed
@@ -85,11 +83,13 @@ protected:
 	virtual void loadGeom() = 0;
 	virtual void saveGeom() = 0;
 
+private:
 	QLabel* m_statusbar_xc;
 	QLabel* m_statusbar_yc;
 	GridToolbarWidget* m_gridwidget;
 	ActionBar* m_actionbar;
 	PCBView *m_view;
+	Controller* mCtrl;
 	QString m_curFile;
 	SelFilterWidget *m_selmask;
 	LayerWidget *m_layers;
@@ -106,7 +106,6 @@ protected:
 	virtual void newDoc();
 	virtual void closeDoc();
 	virtual Document* doc();
-	virtual Controller* ctrl();
 	virtual void loadGeom();
 	virtual void saveGeom();
 
@@ -116,7 +115,6 @@ protected slots:
 
 private:
 	PCBDoc* mDoc;
-	PCBController* mCtrl;
 	PartPlacer* mPartPlacer;
 
 };
@@ -132,13 +130,11 @@ protected:
 	virtual void newDoc();
 	virtual void closeDoc();
 	virtual Document* doc();
-	virtual Controller* ctrl();
 	virtual void loadGeom();
 	virtual void saveGeom();
 
 private:
 	FPDoc* mDoc;
-	FPController* mCtrl;
 };
 
 #endif // MAINWINDOW_H

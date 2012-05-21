@@ -27,40 +27,18 @@
 #include <QMouseEvent>
 #include <QUndoCommand>
 #include "PCBView.h"
+#include "PCBObject.h"
 #include "Editor.h"
 
 class Document;
 class PCBDoc;
 class FPDoc;
-class PCBObject;
 class LayerWidget;
 class SelFilterWidget;
 class ActionBar;
 class Layer;
 class Controller;
-
-/// Action triggered by a function key
-class CtrlAction : public QObject
-{
-	Q_OBJECT
-
-public:
-	CtrlAction(int key, QString text) : mKey(key), mText(text) {}
-
-	int key() const { return mKey; }
-	QString text() const { return mText; }
-	void setText(QString text) { mText = text; }
-
-public slots:
-	void exec() { emit execFired(); }
-
-signals:
-	void execFired();
-
-private:
-	int mKey;
-	QString mText;
-};
+class CtrlAction;
 
 /// The controller mediates all interaction between the model and view.  It
 /// also manages selection.  Other control tasks are handled by delegates.
@@ -77,6 +55,7 @@ public:
 	void registerView(PCBView* view);
 	void registerActionBar(ActionBar* bar);
 	void registerLayerWidget(LayerWidget* widget);
+	void registerDoc(Document* doc);
 
 	void draw(QPainter* painter, QRect &rect, const Layer &layer);
 
@@ -86,7 +65,7 @@ public:
 	void hideObj(QSharedPointer<PCBObject> obj);
 	void unhideObj(QSharedPointer<PCBObject> obj);
 
-	virtual Document* doc() = 0;
+	Document* doc() {return mDoc; }
 	PCBView* view() {return mView; }
 
 	QPoint snapToPlaceGrid(const QPoint &p) const;
@@ -100,6 +79,7 @@ public:
 	void registerAction(const CtrlAction* action) { mActions.append(action); updateActions(); }
 	void installEditor(QSharedPointer<AbstractEditor> editor);
 
+	void clearSelection() { mSelectedObjs.clear(); updateEditor(); }
 public slots:
 	void onPlaceGridChanged(int grid) { mPlaceGrid = grid; }
 	void onRouteGridChanged(int grid) { mRouteGrid = grid; }
@@ -119,6 +99,7 @@ protected:
 	void updateActions();
 
 	PCBView* mView;
+	Document* mDoc;
 	QSharedPointer<AbstractEditor> mEditor;
 	LayerWidget* mLayerWidget;
 	ActionBar* mActionBar;
@@ -134,56 +115,6 @@ protected:
 
 	int mPlaceGrid;
 	int mRouteGrid;
-};
-
-class PCBController : public Controller
-{
-	Q_OBJECT
-public:
-	explicit PCBController(QObject *parent = 0);
-
-	void registerDoc(PCBDoc* doc);
-	virtual Document* doc();
-	PCBDoc* pcbDoc() { return mDoc; }
-	void placeParts(QList<NLPart> parts);
-
-protected slots:
-	void onAddTextAction();
-	void onAddPartAction();
-	void onAddTraceAction();
-	void onAddAreaAction();
-
-protected:
-	PCBDoc* mDoc;
-	CtrlAction mAddTraceAction;
-	CtrlAction mAddTextAction;
-	CtrlAction mAddPartAction;
-	CtrlAction mAddAreaAction;
-};
-
-class FPController : public Controller
-{
-	Q_OBJECT
-public:
-	explicit FPController(QObject *parent = 0);
-
-	void registerDoc(FPDoc* doc);
-	virtual Document* doc();
-	FPDoc* fpDoc() { return mDoc; }
-
-protected slots:
-	void onAddPinAction();
-	void onAddLineAction();
-	void onAddTextAction();
-	void onEditPropsAction();
-
-protected:
-	FPDoc* mDoc;
-	CtrlAction mAddLineAction;
-	CtrlAction mAddPinAction;
-	CtrlAction mAddTextAction;
-	CtrlAction mEditPropsAction;
-
 };
 
 #endif // CONTROLLER_H

@@ -22,7 +22,7 @@
 #include "Controller.h"
 #include "Document.h"
 
-PartPlacer::PartPlacer(QWidget *parent, PCBController* ctrl) :
+PartPlacer::PartPlacer(QWidget *parent, Controller* ctrl) :
 	QDockWidget(parent),
 	mCtrl(ctrl),
 	mYesIcon(":/Resources/icon-yes.png"),
@@ -66,7 +66,7 @@ void PartPlacer::loadGeom()
 void PartPlacer::populateItems()
 {
 	partsTree->clear();
-	PCBDoc* doc = mCtrl->pcbDoc();
+	PCBDoc* doc = dynamic_cast<PCBDoc*>(mCtrl->doc());
 	if (!doc) return;
 	foreach(const NLPart& part, doc->netlist()->parts())
 	{
@@ -104,7 +104,7 @@ void PartPlacer::updateList()
 
 void PartPlacer::on_placeBtn_clicked()
 {
-	PCBDoc* doc = mCtrl->pcbDoc();
+	PCBDoc* doc = dynamic_cast<PCBDoc*>(mCtrl->doc());
 	if (!doc) return;
 	QList<NLPart> parts;
 	foreach(QTreeWidgetItem* item, partsTree->selectedItems())
@@ -112,5 +112,7 @@ void PartPlacer::on_placeBtn_clicked()
 		parts.append(doc->netlist()->part(item->data(1, Qt::DisplayRole).toString()));
 	}
 	if (parts.isEmpty()) return;
-	mCtrl->placeParts(parts);
+
+	mCtrl->clearSelection();
+	mCtrl->installEditor(EditorFactory::instance().placePartEditor(mCtrl, parts));
 }

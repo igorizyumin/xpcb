@@ -25,7 +25,7 @@
 #include "Document.h"
 #include "Log.h"
 
-PinEditor::PinEditor(FPController* ctrl, QSharedPointer<Pin> pin)
+PinEditor::PinEditor(Controller* ctrl, QSharedPointer<Pin> pin)
 	: AbstractEditor(ctrl), mState(SELECTED), mDialog(NULL),
 	mAngle(0),
 	mRotateAction(2, "Rotate"),

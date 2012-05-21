@@ -59,10 +59,20 @@ MainWindow::MainWindow(QWidget *parent)
 	this->gridToolbar->addWidget(m_gridwidget);
 	this->m_view = new PCBView(this);
 
+	this->mCtrl = new Controller(this);
+	this->mCtrl->registerView(m_view);
+	this->mCtrl->registerActionBar(m_actionbar);
+	this->mCtrl->registerLayerWidget(m_layers);
+	connect(this->m_gridwidget, SIGNAL(placeGridChanged(int)),
+			mCtrl, SLOT(onPlaceGridChanged(int)));
+	connect(this->m_gridwidget, SIGNAL(routeGridChanged(int)),
+			mCtrl, SLOT(onRouteGridChanged(int)));
+
 	connect(this->m_view, SIGNAL(mouseMoved(QPoint)),
 					 this, SLOT(onViewCoords(QPoint)));
 	connect(this->m_gridwidget, SIGNAL(viewGridChanged(int)),
 			m_view, SLOT(visGridChanged(int)));
+
 
 	this->setCentralWidget(this->m_view);
 }
@@ -239,17 +249,9 @@ void MainWindow::on_action_Redo_triggered()
 PCBEditWindow::PCBEditWindow(QWidget *parent, QList<Plugin*> plugins)
 	: MainWindow(parent), mDoc(NULL)
 {
-	this->mCtrl = new PCBController(this);
-	this->mCtrl->registerView(m_view);
-	this->mCtrl->registerActionBar(m_actionbar);
-	this->mCtrl->registerLayerWidget(m_layers);
-	connect(this->m_gridwidget, SIGNAL(placeGridChanged(int)),
-			mCtrl, SLOT(onPlaceGridChanged(int)));
-	connect(this->m_gridwidget, SIGNAL(routeGridChanged(int)),
-			mCtrl, SLOT(onRouteGridChanged(int)));
 	setCurrentFile("");
 
-	mPartPlacer = new PartPlacer(0, mCtrl);
+	mPartPlacer = new PartPlacer(0, ctrl());
 	this->addDockWidget(Qt::RightDockWidgetArea, mPartPlacer);
 	connect(this, SIGNAL(documentHasChanged()),
 			mPartPlacer, SLOT(updateList()));
@@ -260,7 +262,6 @@ PCBEditWindow::PCBEditWindow(QWidget *parent, QList<Plugin*> plugins)
 	}
 
 	loadGeom();
-
 }
 
 void PCBEditWindow::newDoc()
@@ -274,7 +275,7 @@ void PCBEditWindow::newDoc()
 			this, SLOT(onRedoAvailableChanged(bool)));
 	connect(this->mDoc, SIGNAL(partsChanged()),
 			this->mPartPlacer, SLOT(updateList()));
-	mCtrl->registerDoc(mDoc);
+	ctrl()->registerDoc(mDoc);
 	setCurrentFile("");
 }
 
@@ -282,7 +283,7 @@ void PCBEditWindow::closeDoc()
 {
 	if (mDoc)
 	{
-		mCtrl->registerDoc(NULL);
+		ctrl()->registerDoc(NULL);
 		delete mDoc;
 		mDoc = NULL;
 	}
@@ -311,11 +312,6 @@ Document* PCBEditWindow::doc()
 	return mDoc;
 }
 
-Controller* PCBEditWindow::ctrl()
-{
-	return mCtrl;
-}
-
 void PCBEditWindow::loadGeom()
 {
 	// restore geometry
@@ -337,14 +333,6 @@ void PCBEditWindow::saveGeom()
 FPEditWindow::FPEditWindow(QWidget *parent, QList<Plugin*> plugins)
 	: MainWindow(parent), mDoc(NULL)
 {
-	this->mCtrl = new FPController(this);
-	this->mCtrl->registerView(m_view);
-	this->mCtrl->registerActionBar(m_actionbar);
-	this->mCtrl->registerLayerWidget(m_layers);
-	connect(this->m_gridwidget, SIGNAL(placeGridChanged(int)),
-			mCtrl, SLOT(onPlaceGridChanged(int)));
-	connect(this->m_gridwidget, SIGNAL(routeGridChanged(int)),
-			mCtrl, SLOT(onRouteGridChanged(int)));
 	setCurrentFile("");
 
 	foreach(Plugin* p, plugins)
@@ -361,7 +349,7 @@ void FPEditWindow::newDoc()
 	connect(this->mDoc, SIGNAL(changed()), this, SLOT(updateModifiedFlag()));
 	connect(this->mDoc, SIGNAL(canUndoChanged(bool)), this, SLOT(onUndoAvailableChanged(bool)));
 	connect(this->mDoc, SIGNAL(canRedoChanged(bool)), this, SLOT(onRedoAvailableChanged(bool)));
-	this->mCtrl->registerDoc(mDoc);
+	this->ctrl()->registerDoc(mDoc);
 	setCurrentFile("");
 }
 
@@ -369,7 +357,7 @@ void FPEditWindow::closeDoc()
 {
 	if (mDoc)
 	{
-		mCtrl->registerDoc(NULL);
+		ctrl()->registerDoc(NULL);
 		delete mDoc;
 		mDoc = NULL;
 	}
@@ -379,11 +367,6 @@ void FPEditWindow::closeDoc()
 Document* FPEditWindow::doc()
 {
 	return mDoc;
-}
-
-Controller* FPEditWindow::ctrl()
-{
-	return mCtrl;
 }
 
 void FPEditWindow::loadGeom()

@@ -42,7 +42,7 @@ private:
 
 
 
-AreaEditor::AreaEditor(PCBController *ctrl) :
+AreaEditor::AreaEditor(Controller *ctrl) :
 	AbstractEditor(ctrl), mCtrl(ctrl), mState(PICK_FIRST),
 	mCurrSegType(PolyContour::Segment::LINE), mLayer(Layer::LAY_TOP_COPPER)
 {
@@ -127,6 +127,8 @@ void AreaEditor::mouseReleaseEvent(QMouseEvent *event)
 				return;
 			}
 
+			// XXX TODO check for self intersection
+
 			// add segment
 			mSegments.append(PolyContour::Segment(mCurrSegType, mPos));
 
@@ -157,7 +159,7 @@ void AreaEditor::keyPressEvent(QKeyEvent *event)
 
 void AreaEditor::finishPolygon()
 {
-	QSharedPointer<Area> a(new Area(mCtrl->pcbDoc()));
+	QSharedPointer<Area> a(new Area(dynamic_cast<PCBDoc*>(mCtrl->doc())));
 	a->setLayer(mLayer);
 	foreach(PolyContour::Segment s, mSegments)
 	{
@@ -165,7 +167,7 @@ void AreaEditor::finishPolygon()
 	}
 	if (!a->poly().isVoid())
 	{
-		QUndoCommand *cmd = new AreaNewCmd(NULL, a, mCtrl->pcbDoc());
+		QUndoCommand *cmd = new AreaNewCmd(NULL, a, dynamic_cast<PCBDoc*>(mCtrl->doc()));
 		mCtrl->doc()->doCommand(cmd);
 	}
 	emit editorFinished();

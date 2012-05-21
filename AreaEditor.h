@@ -21,13 +21,15 @@
 #define AREAEDITOR_H
 
 #include "Editor.h"
+#include "Controller.h"
 #include "Polygon.h"
+#include "Trace.h"
 
 class AreaEditor : public AbstractEditor
 {
 	Q_OBJECT
 public:
-	explicit AreaEditor(PCBController *ctrl);
+	explicit AreaEditor(Controller *ctrl);
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
@@ -48,7 +50,7 @@ private:
 
 	QPoint mPos;
 
-	PCBController* mCtrl;
+	Controller* mCtrl;
 
 	State mState;
 	PolyContour::Segment::SegType mCurrSegType;
@@ -56,5 +58,72 @@ private:
 
 	QList<PolyContour::Segment> mSegments;
 };
+
+#if 0
+class AreaSegmentEditor : public AbstractEditor
+{
+	Q_OBJECT
+
+public:
+	explicit AreaSegmentEditor(Controller *ctrl, QSharedPointer<Segment> segment);
+
+	virtual void drawOverlay(QPainter* painter);
+	virtual void init();
+	virtual QList<const CtrlAction*> actions() const;
+
+protected:
+	virtual void mouseMoveEvent(QMouseEvent *event);
+	virtual void mousePressEvent(QMouseEvent *event);
+	virtual void mouseReleaseEvent(QMouseEvent *event);
+	virtual void keyPressEvent(QKeyEvent *event);
+
+private slots:
+	void startSlideSegment();
+	void startInsertVtx();
+	void deleteSegment();
+	void setLayer();
+	void setWidth();
+
+private:
+	enum State { SELECTED, SLIDE, ADD_VTX };
+
+	void updateSlide();
+	void finishSlide();
+	void abortSlide();
+	void finishAddVtx();
+	void cleanUpTrace(QList<QSharedPointer<Segment> > segments,
+									 QUndoCommand* parent);
+
+	State mState;
+
+	Controller* mCtrl;
+	QSharedPointer<Segment> mSegment;
+
+	QPoint mPos;
+
+	// stuff used by move functions
+	QPoint mPt1;
+	QPoint mPt2;
+	QPoint mSecantVec;
+	// neighboring segments
+	QSharedPointer<Segment> mSeg1;
+	QSharedPointer<Segment> mSeg2;
+	// direction vectors for neighboring vertices
+	QPoint mVector1;
+	QPoint mVector2;
+	// fixed points (outer vertices that stay put during a slide)
+	QPoint mFixedPt1;
+	QPoint mFixedPt2;
+	// signs (used to check move for validity)
+	short mSignX;
+	short mSignY;
+
+	CtrlAction mSlideAction;
+	CtrlAction mAddVtxAction;
+	CtrlAction mDelAction;
+	CtrlAction mSetLayerAction;
+	CtrlAction mSetWidthAction;
+};
+#endif
 
 #endif // AREAEDITOR_H

@@ -17,41 +17,9 @@
 	along with xpcb.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PARTPLACER_H
-#define PARTPLACER_H
+#include "EditPart.h"
 
-#include "ui_PartPlacer.h"
-
-class Controller;
-
-class PartPlacer : public QDockWidget, private Ui::PartPlacer
+EditPart::EditPart(QObject *parent) :
+    QObject(parent)
 {
-    Q_OBJECT
-
-public:
-	explicit PartPlacer(QWidget *parent, Controller* ctrl);
-
-public slots:
-	void updateList();
-
-protected:
-	virtual void closeEvent(QCloseEvent *e);
-	virtual void hideEvent(QHideEvent *e);
-
-private slots:
-	void on_placeBtn_clicked();
-
-private:
-	void populateItems();
-
-	void saveGeom();
-	void loadGeom();
-
-	Controller* mCtrl;
-	QIcon mYesIcon;
-	QIcon mNoIcon;
-	QIcon mErrIcon;
-	QIcon mWarnIcon;
-};
-
-#endif // PARTPLACER_H
+}

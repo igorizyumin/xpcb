@@ -21,7 +21,7 @@
 #include "Controller.h"
 #include "PCBObject.h"
 #include "Document.h"
-
+#include "EditLineDialog.h"
 
 class LineNewCmd : public QUndoCommand
 {
@@ -58,7 +58,7 @@ private:
 };
 
 
-LineEditor::LineEditor(FPController *ctrl, QSharedPointer<Line> line)
+LineEditor::LineEditor(Controller *ctrl, QSharedPointer<Line> line)
 	: AbstractEditor(ctrl),
 	  mState(SELECTED),
 	  mLine(line),

@@ -24,10 +24,10 @@
 #include <QAction>
 #include <QMouseEvent>
 #include "PCBObject.h"
+#include "CtrlAction.h"
 
 class Controller;
-class FPController;
-class PCBController;
+class Document;
 class CtrlAction;
 class PCBDoc;
 class NLPart;
@@ -38,8 +38,8 @@ class AbstractEditor : public QObject
 public:
 	explicit AbstractEditor(Controller *ctrl);
 	virtual void init() {}
-	virtual void drawOverlay(QPainter* painter) = 0;
-	virtual QList<const CtrlAction*> actions() const { return QList<const CtrlAction*>(); }
+	virtual void drawOverlay(QPainter* /*painter*/) {}
+	virtual QList<const CtrlAction*> actions() const;
 
 signals:
 	void actionsChanged();
@@ -73,13 +73,14 @@ public:
 	static EditorFactory& instance();
 
 	QSharedPointer<AbstractEditor> newEditor(QSharedPointer<PCBObject> obj, Controller *ctrl);
+	QSharedPointer<AbstractEditor> newEditor(Document* obj, Controller *ctrl);
 	QSharedPointer<AbstractEditor> newTextEditor(Controller *ctrl);
-	QSharedPointer<AbstractEditor> newPinEditor(FPController* ctrl);
-	QSharedPointer<AbstractEditor> newPartEditor(PCBController* ctrl);
-	QSharedPointer<AbstractEditor> newLineEditor(FPController* ctrl);
-	QSharedPointer<AbstractEditor> newTraceEditor(PCBController* ctrl);
-	QSharedPointer<AbstractEditor> newAreaEditor(PCBController* ctrl);
-	QSharedPointer<AbstractEditor> placePartEditor(PCBController* ctrl, QList<NLPart> parts);
+	QSharedPointer<AbstractEditor> newPinEditor(Controller* ctrl);
+	QSharedPointer<AbstractEditor> newPartEditor(Controller* ctrl);
+	QSharedPointer<AbstractEditor> newLineEditor(Controller* ctrl);
+	QSharedPointer<AbstractEditor> newTraceEditor(Controller* ctrl);
+	QSharedPointer<AbstractEditor> newAreaEditor(Controller* ctrl);
+	QSharedPointer<AbstractEditor> placePartEditor(Controller* ctrl, QList<NLPart> parts);
 
 	static void registerFactory(ObjType type, QSharedPointer<AbstractEditorFactory> factory) { instance().mFactories[type] = factory; }
 
@@ -94,6 +95,52 @@ private:
 	QSharedPointer<PCBObject> mObj;
 
 	QHash<ObjType, QSharedPointer<AbstractEditorFactory> > mFactories;
+};
+
+class DefaultPCBEditor : public AbstractEditor
+{
+	Q_OBJECT
+
+public:
+	explicit DefaultPCBEditor(Controller *ctrl);
+
+	virtual void init();
+	virtual QList<const CtrlAction*> actions() const;
+
+private slots:
+	void actionAddText();
+	void actionAddPart();
+	void actionAddTrace();
+	void actionAddArea();
+
+private:
+	CtrlAction mAddTraceAction;
+	CtrlAction mAddTextAction;
+	CtrlAction mAddPartAction;
+	CtrlAction mAddAreaAction;
+};
+
+class DefaultFPEditor : public AbstractEditor
+{
+	Q_OBJECT
+
+public:
+	explicit DefaultFPEditor(Controller *ctrl);
+
+	virtual void init();
+	virtual QList<const CtrlAction*> actions() const;
+
+private slots:
+	void actionAddPin();
+	void actionAddLine();
+	void actionAddText();
+	void actionEditProps();
+
+private:
+	CtrlAction mAddLineAction;
+	CtrlAction mAddPinAction;
+	CtrlAction mAddTextAction;
+	CtrlAction mEditPropsAction;
 };
 
 #endif // EDITOR_H

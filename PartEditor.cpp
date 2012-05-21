@@ -24,11 +24,12 @@
 #include "EditPartDialog.h"
 #include <QMessageBox>
 #include "Footprint.h"
+#include "Document.h"
 
 ////////////////////////// PART EDITOR //////////////////////////////////////
 
 
-PartEditor::PartEditor(PCBController *ctrl, QSharedPointer<Part> part)
+PartEditor::PartEditor(Controller *ctrl, QSharedPointer<Part> part)
 	: AbstractEditor(ctrl), mState(NEW), mPart(part), mDialog(NULL),
 	mChangeSideAction(1, "Change Side"),
 	mRotateCWAction(2, "Rotate CW"),
@@ -49,7 +50,7 @@ PartEditor::PartEditor(PCBController *ctrl, QSharedPointer<Part> part)
 	connect(&mDelAction, SIGNAL(execFired()), SLOT(actionDelete()));
 }
 
-PartEditor::PartEditor(PCBController *ctrl, QList<NLPart> parts)
+PartEditor::PartEditor(Controller *ctrl, QList<NLPart> parts)
 	: AbstractEditor(ctrl), mState(NEW), mNetlistParts(parts), mDialog(NULL),
 	mChangeSideAction(1, "Change Side"),
 	mRotateCWAction(2, "Rotate CW"),

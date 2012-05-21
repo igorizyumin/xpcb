@@ -24,10 +24,9 @@
 #include "LayerWidget.h"
 #include "Log.h"
 #include "ActionBar.h"
-#include "FPPropDialog.h"
 
 Controller::Controller(QObject *parent) :
-	QObject(parent), mView(NULL), mLayerWidget(NULL), mActionBar(NULL),
+	QObject(parent), mView(NULL), mDoc(NULL), mLayerWidget(NULL), mActionBar(NULL),
 	mPlaceGrid(XPcb::inchToPcb(0.05)), mRouteGrid(XPcb::inchToPcb(0.001))
 {
 }
@@ -55,7 +54,28 @@ void Controller::registerLayerWidget(LayerWidget *widget)
 		mLayerWidget->layersChanged(doc()->layerList());
 	connect(mLayerWidget, SIGNAL(layerVisibilityChanged()), this, SLOT(onDocumentChanged()));
 	connect(mLayerWidget, SIGNAL(currLayerChanged(const Layer&)), this, SLOT(onDocumentChanged()));
+}
 
+void Controller::registerDoc(Document* doc)
+{
+	if (!mDoc && doc)
+	{
+		mDoc = doc;
+		if (mLayerWidget)
+			mLayerWidget->layersChanged(mDoc->layerList());
+		connect(mDoc, SIGNAL(changed()), this, SLOT(onDocumentChanged()));
+		onDocumentChanged();
+	}
+	else if (mDoc && !doc)
+	{
+		disconnect(mDoc, SIGNAL(changed()), this, SIGNAL(onDocumentChanged()));
+		mDoc = NULL;
+		mSelectedObjs.clear();
+		mHiddenObjs.clear();
+		mEditor.clear();
+		onDocumentChanged();
+	}
+	updateEditor();
 }
 
 void Controller::draw(QPainter* painter, QRect &rect, const Layer& layer)
@@ -198,12 +218,14 @@ void Controller::updateEditor()
 		installEditor(EditorFactory::instance().newEditor(mSelectedObjs[0], this));
 	}
 	else
-		updateActions();
+	{
+		installEditor(EditorFactory::instance().newEditor(mDoc, this));
+	}
 }
 
 void Controller::installEditor(QSharedPointer<AbstractEditor> editor)
 {
-	Q_ASSERT(!mEditor);
+	mEditor.clear();
 	if (!editor) return;
 
 	mEditor = editor;
@@ -294,167 +316,5 @@ void Controller::updateActions()
 	else
 	{
 		mActionBar->setActions(mEditor->actions());
-	}
-}
-
-
-//////////////////////////// PCBCONTROLLER /////////////////////////////////
-
-PCBController::PCBController(QObject *parent)
-		: Controller(parent), mDoc(NULL),
-		  mAddTraceAction(1, "Add Trace"),
-		  mAddTextAction(2, "Add Text"),
-		  mAddPartAction(3, "Add Part"),
-		  mAddAreaAction(4, "Add Area")
-{
-	connect(&mAddTraceAction, SIGNAL(execFired()), this, SLOT(onAddTraceAction()));
-	connect(&mAddTextAction, SIGNAL(execFired()), this, SLOT(onAddTextAction()));
-	connect(&mAddPartAction, SIGNAL(execFired()), this, SLOT(onAddPartAction()));
-	connect(&mAddAreaAction, SIGNAL(execFired()), this, SLOT(onAddAreaAction()));
-	registerAction(&mAddTraceAction);
-	registerAction(&mAddTextAction);
-	registerAction(&mAddPartAction);
-	registerAction(&mAddAreaAction);
-}
-
-void PCBController::registerDoc(PCBDoc* doc)
-{
-	if (!mDoc && doc)
-	{
-		mDoc = doc;
-		if (mLayerWidget)
-			mLayerWidget->layersChanged(mDoc->layerList());
-		connect(mDoc, SIGNAL(changed()), this, SLOT(onDocumentChanged()));
-		onDocumentChanged();
-	}
-	else if (mDoc && !doc)
-	{
-		disconnect(mDoc, SIGNAL(changed()), this, SIGNAL(onDocumentChanged()));
-		mDoc = NULL;
-		mSelectedObjs.clear();
-		mHiddenObjs.clear();
-		mEditor.clear();
-		onDocumentChanged();
-	}
-	updateEditor();
-}
-
-Document* PCBController::doc()
-{
-	return mDoc;
-}
-
-void PCBController::placeParts(QList<NLPart> parts)
-{
-	// stop any existing editor
-	mSelectedObjs.clear();
-	updateEditor();
-
-	installEditor(EditorFactory::instance().placePartEditor(this, parts));
-}
-
-void PCBController::onAddTextAction()
-{
-	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
-
-	installEditor(EditorFactory::instance().newTextEditor(this));
-}
-
-void PCBController::onAddPartAction()
-{
-	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
-
-	installEditor(EditorFactory::instance().newPartEditor(this));
-}
-
-void PCBController::onAddTraceAction()
-{
-	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
-
-	installEditor(EditorFactory::instance().newTraceEditor(this));
-}
-
-void PCBController::onAddAreaAction()
-{
-	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
-
-	installEditor(EditorFactory::instance().newAreaEditor(this));
-}
-
-//////////////////////////// FPCONTROLLER /////////////////////////////////
-
-FPController::FPController(QObject *parent)
-		: Controller(parent), mDoc(NULL),
-		  mAddLineAction(2, "Add Line"),
-		  mAddPinAction(3, "Add Pin"),
-		  mAddTextAction(1, "Add Text"),
-		  mEditPropsAction(0, "Edit Properties")
-{
-	connect(&mAddLineAction, SIGNAL(execFired()), SLOT(onAddLineAction()));
-	connect(&mAddPinAction, SIGNAL(execFired()), SLOT(onAddPinAction()));
-	connect(&mAddTextAction, SIGNAL(execFired()), SLOT(onAddTextAction()));
-	connect(&mEditPropsAction, SIGNAL(execFired()), this, SLOT(onEditPropsAction()));
-	registerAction(&mAddLineAction);
-	registerAction(&mEditPropsAction);
-	registerAction(&mAddPinAction);
-	registerAction(&mAddTextAction);
-}
-
-void FPController::registerDoc(FPDoc* doc)
-{
-	if (!mDoc && doc)
-	{
-		mDoc = doc;
-		if (mLayerWidget)
-			mLayerWidget->layersChanged(mDoc->layerList());
-		connect(mDoc, SIGNAL(changed()), this, SLOT(onDocumentChanged()));
-		onDocumentChanged();
-	}
-	else if (mDoc && !doc)
-	{
-		disconnect(mDoc, SIGNAL(changed()), this, SIGNAL(onDocumentChanged()));
-		mDoc = NULL;
-		mSelectedObjs.clear();
-		mHiddenObjs.clear();
-		mEditor.clear();
-		onDocumentChanged();
-	}
-	updateEditor();
-}
-
-Document* FPController::doc()
-{
-	return mDoc;
-}
-
-void FPController::onAddPinAction()
-{
-	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
-
-	installEditor(EditorFactory::instance().newPinEditor(this));
-}
-
-void FPController::onAddTextAction()
-{
-	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
-
-	installEditor(EditorFactory::instance().newTextEditor(this));
-}
-
-void FPController::onAddLineAction()
-{
-	Q_ASSERT(mEditor == NULL && mSelectedObjs.size() == 0);
-
-	installEditor(EditorFactory::instance().newLineEditor(this));
-}
-
-void FPController::onEditPropsAction()
-{
-	FPPropDialog d(this->view());
-	d.init(mDoc->footprint().data());
-	int result = d.exec();
-	if (result == QDialog::Accepted)
-	{
-		d.updateFp(mDoc->footprint().data());
 	}
 }

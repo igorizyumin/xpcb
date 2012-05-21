@@ -59,7 +59,7 @@ void drawCrosshair45(QPainter* painter, QPoint pos)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-NewTraceEditor::NewTraceEditor(PCBController *ctrl)
+NewTraceEditor::NewTraceEditor(Controller *ctrl)
 	: AbstractEditor(ctrl), mCtrl(ctrl), mState(PICK_START),
 	  mMode(ModeStraight45), mWidth(XPcb::milToPcb(10)),
 	  mLayer(Layer::LAY_TOP_COPPER)
@@ -135,7 +135,7 @@ void NewTraceEditor::mouseReleaseEvent(QMouseEvent *event)
 			event->accept();
 			return;
 		}
-		QUndoCommand* cmd = mCtrl->pcbDoc()->traceList()
+		QUndoCommand* cmd = dynamic_cast<PCBDoc*>(mCtrl->doc())->traceList()
 				->addSegmentCmd(mSeg1, mVtxStart, mVtxMid);
 		mCtrl->doc()->doCommand(cmd);
 		mSeg1 = mSeg2;
@@ -188,7 +188,7 @@ void NewTraceEditor::toggleMode()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-SegmentEditor::SegmentEditor(PCBController *ctrl,
+SegmentEditor::SegmentEditor(Controller *ctrl,
 							 QSharedPointer<Segment> segment)
 	: AbstractEditor(ctrl), mState(SELECTED), mCtrl(ctrl), mSegment(segment),
 	  mSlideAction(3, "Slide Segment"), mAddVtxAction(2, "Add Vertex"),
@@ -309,7 +309,7 @@ void SegmentEditor::keyPressEvent(QKeyEvent *event)
 
 void SegmentEditor::deleteSegment()
 {
-	QUndoCommand *cmd = mCtrl->pcbDoc()->traceList()->removeSegmentCmd(mSegment);
+	QUndoCommand *cmd = dynamic_cast<PCBDoc*>(mCtrl->doc())->traceList()->removeSegmentCmd(mSegment);
 	// exec the command
 	mCtrl->doc()->doCommand(cmd);
 	emit editorFinished();
@@ -467,7 +467,7 @@ void SegmentEditor::cleanUpTrace(QList<QSharedPointer<Segment> > segments,
 								 QUndoCommand* parent)
 {
 	if (segments.length() < 2) return;
-	QSharedPointer<TraceList> tl = mCtrl->pcbDoc()->traceList();
+	QSharedPointer<TraceList> tl = dynamic_cast<PCBDoc*>(mCtrl->doc())->traceList();
 
 	// list of nonzero length segments and their start vertices
 	QList<SegListEntry> nzList;
@@ -566,7 +566,7 @@ void SegmentEditor::finishSlide()
 		mCtrl->unhideObj(mSeg2);
 	// execute command and reset state
 	mCtrl->doc()->doCommand(parent);
-	if (!mCtrl->pcbDoc()->traceList()->segments().contains(mSegment))
+	if (!dynamic_cast<PCBDoc*>(mCtrl->doc())->traceList()->segments().contains(mSegment))
 	{
 		emit editorFinished();
 		return;
@@ -596,7 +596,7 @@ void SegmentEditor::finishAddVtx()
 	// create a new segment
 	QSharedPointer<Segment> snew(new Segment(*mSegment));
 	// make the modifications
-	QSharedPointer<TraceList> tl = mCtrl->pcbDoc()->traceList();
+	QSharedPointer<TraceList> tl = dynamic_cast<PCBDoc*>(mCtrl->doc())->traceList();
 	tl->swapVtxCmd(mSegment, v2, vnew, parent);
 	tl->addSegmentCmd(snew, vnew, v2, parent);
 	mCtrl->doc()->doCommand(parent);
@@ -607,7 +607,7 @@ void SegmentEditor::finishAddVtx()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-VertexEditor::VertexEditor(PCBController *ctrl, QSharedPointer<Vertex> vtx)
+VertexEditor::VertexEditor(Controller *ctrl, QSharedPointer<Vertex> vtx)
 	: AbstractEditor(ctrl), mState(SELECTED), mCtrl(ctrl), mVtx(vtx),
 	  mMoveAction(3, "Move Vertex"), mDelAction(7, "Delete Vertex")
 {
@@ -736,7 +736,7 @@ void VertexEditor::deleteVtx()
 	// do not delete tees or vertices with only one segment
 	if (segs.size() != 2)
 		return;
-	QSharedPointer<TraceList> tl = mCtrl->pcbDoc()->traceList();
+	QSharedPointer<TraceList> tl = dynamic_cast<PCBDoc*>(mCtrl->doc())->traceList();
 	QSharedPointer<Vertex> v2 = segs[1]->otherVertex(mVtx);
 	QUndoCommand *parent = new QUndoCommand("delete vertex");
 	// reattach the first segment

@@ -22,15 +22,18 @@
 
 #include <QSharedPointer>
 #include "Editor.h"
-#include "Controller.h"
+#include "CtrlAction.h"
+#include "Line.h"
 #include "EditLineDialog.h"
+
+class Controller;
 
 class LineEditor : public AbstractEditor
 {
     Q_OBJECT
 
 public:
-	explicit LineEditor(FPController *ctrl, QSharedPointer<Line> part = QSharedPointer<Line>());
+	explicit LineEditor(Controller *ctrl, QSharedPointer<Line> part = QSharedPointer<Line>());
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();

@@ -28,11 +28,18 @@
 #include "Part.h"
 #include "TraceEditor.h"
 #include "AreaEditor.h"
+#include "FPPropDialog.h"
+#include "Document.h"
 
 AbstractEditor::AbstractEditor(Controller *ctrl) :
 	QObject(ctrl), mCtrl(ctrl)
 {
 
+}
+
+QList<const CtrlAction*> AbstractEditor::actions() const
+{
+	return QList<const CtrlAction*>();
 }
 
 bool AbstractEditor::eventFilter(QObject * /*watched*/, QEvent *event)
@@ -91,7 +98,7 @@ QSharedPointer<AbstractEditor> EditorFactory::newEditor(QSharedPointer<PCBObject
 	}
 	else if (QSharedPointer<Line> l = obj.dynamicCast<Line>())
 	{
-		return QSharedPointer<AbstractEditor>(new LineEditor(dynamic_cast<FPController*>(ctrl), l));
+		return QSharedPointer<AbstractEditor>(new LineEditor(ctrl, l));
 	}
 	else if (QSharedPointer<PartPin> pp = obj.dynamicCast<PartPin>())
 	{
@@ -100,11 +107,11 @@ QSharedPointer<AbstractEditor> EditorFactory::newEditor(QSharedPointer<PCBObject
 	}
 	else if (QSharedPointer<Pin> p = obj.dynamicCast<Pin>())
 	{
-		return QSharedPointer<AbstractEditor>(new PinEditor(dynamic_cast<FPController*>(ctrl), p));
+		return QSharedPointer<AbstractEditor>(new PinEditor(ctrl, p));
 	}
 	else if (QSharedPointer<Part> p = obj.dynamicCast<Part>())
 	{
-		return QSharedPointer<AbstractEditor>(new PartEditor(dynamic_cast<PCBController*>(ctrl), p));
+		return QSharedPointer<AbstractEditor>(new PartEditor(ctrl, p));
 	}
 	else if (QSharedPointer<Text> t = obj.dynamicCast<Text>())
 	{
@@ -112,13 +119,26 @@ QSharedPointer<AbstractEditor> EditorFactory::newEditor(QSharedPointer<PCBObject
 	}
 	else if (QSharedPointer<Vertex> v = obj.dynamicCast<Vertex>())
 	{
-		return QSharedPointer<AbstractEditor>(new VertexEditor(dynamic_cast<PCBController*>(ctrl), v));
+		return QSharedPointer<AbstractEditor>(new VertexEditor(ctrl, v));
 	}
 	else if (QSharedPointer<Segment> s = obj.dynamicCast<Segment>())
 	{
-		return QSharedPointer<AbstractEditor>(new SegmentEditor(dynamic_cast<PCBController*>(ctrl), s));
+		return QSharedPointer<AbstractEditor>(new SegmentEditor(ctrl, s));
 	}
 
+	return QSharedPointer<AbstractEditor>();
+}
+
+QSharedPointer<AbstractEditor> EditorFactory::newEditor(Document* doc, Controller *ctrl)
+{
+	if (dynamic_cast<PCBDoc*>(doc))
+	{
+		return QSharedPointer<AbstractEditor>(new DefaultPCBEditor(ctrl));
+	}
+	else if (dynamic_cast<FPDoc*>(doc))
+	{
+		return QSharedPointer<AbstractEditor>(new DefaultFPEditor(ctrl));
+	}
 	return QSharedPointer<AbstractEditor>();
 }
 
@@ -127,32 +147,134 @@ QSharedPointer<AbstractEditor> EditorFactory::newTextEditor(Controller *ctrl)
 	return QSharedPointer<AbstractEditor>(new TextEditor(ctrl));
 }
 
-QSharedPointer<AbstractEditor> EditorFactory::newPinEditor(FPController *ctrl)
+QSharedPointer<AbstractEditor> EditorFactory::newPinEditor(Controller *ctrl)
 {
 	return QSharedPointer<AbstractEditor>(new PinEditor(ctrl));
 }
 
-QSharedPointer<AbstractEditor> EditorFactory::newPartEditor(PCBController *ctrl)
+QSharedPointer<AbstractEditor> EditorFactory::newPartEditor(Controller *ctrl)
 {
 	return QSharedPointer<AbstractEditor>(new PartEditor(ctrl));
 }
 
-QSharedPointer<AbstractEditor> EditorFactory::newLineEditor(FPController *ctrl)
+QSharedPointer<AbstractEditor> EditorFactory::newLineEditor(Controller *ctrl)
 {
 	return QSharedPointer<AbstractEditor>(new LineEditor(ctrl));
 }
 
-QSharedPointer<AbstractEditor> EditorFactory::newTraceEditor(PCBController *ctrl)
+QSharedPointer<AbstractEditor> EditorFactory::newTraceEditor(Controller *ctrl)
 {
 	return QSharedPointer<AbstractEditor>(new NewTraceEditor(ctrl));
 }
 
-QSharedPointer<AbstractEditor> EditorFactory::newAreaEditor(PCBController *ctrl)
+QSharedPointer<AbstractEditor> EditorFactory::newAreaEditor(Controller *ctrl)
 {
 	return QSharedPointer<AbstractEditor>(new AreaEditor(ctrl));
 }
 
-QSharedPointer<AbstractEditor> EditorFactory::placePartEditor(PCBController *ctrl, QList<NLPart> parts)
+QSharedPointer<AbstractEditor> EditorFactory::placePartEditor(Controller *ctrl, QList<NLPart> parts)
 {
 	return QSharedPointer<AbstractEditor>(new PartEditor(ctrl, parts));
+}
+
+///////////////////////// DEFAULTPCBEDITOR ////////////////////
+
+DefaultPCBEditor::DefaultPCBEditor(Controller *ctrl)
+		: AbstractEditor(ctrl),
+		  mAddTraceAction(1, "Add Trace"),
+		  mAddTextAction(2, "Add Text"),
+		  mAddPartAction(3, "Add Part"),
+		  mAddAreaAction(4, "Add Area")
+{
+	connect(&mAddTraceAction, SIGNAL(execFired()), this, SLOT(actionAddTrace()));
+	connect(&mAddTextAction, SIGNAL(execFired()), this, SLOT(actionAddText()));
+	connect(&mAddPartAction, SIGNAL(execFired()), this, SLOT(actionAddPart()));
+	connect(&mAddAreaAction, SIGNAL(execFired()), this, SLOT(actionAddArea()));
+}
+
+void DefaultPCBEditor::init()
+{
+	emit actionsChanged();
+}
+
+QList<const CtrlAction*> DefaultPCBEditor::actions() const
+{
+	QList<const CtrlAction*> out;
+	out << &mAddTraceAction << &mAddTextAction << &mAddPartAction << &mAddAreaAction;
+	return out;
+}
+
+void DefaultPCBEditor::actionAddText()
+{
+	ctrl()->installEditor(EditorFactory::instance().newTextEditor(ctrl()));
+}
+
+void DefaultPCBEditor::actionAddPart()
+{
+	ctrl()->installEditor(EditorFactory::instance().newPartEditor(ctrl()));
+}
+
+void DefaultPCBEditor::actionAddTrace()
+{
+	ctrl()->installEditor(EditorFactory::instance().newTraceEditor(ctrl()));
+}
+
+void DefaultPCBEditor::actionAddArea()
+{
+	ctrl()->installEditor(EditorFactory::instance().newAreaEditor(ctrl()));
+}
+
+///////////////////////// DEFAULTFPEDITOR ////////////////////
+
+DefaultFPEditor::DefaultFPEditor(Controller *ctrl)
+		: AbstractEditor(ctrl),
+		  mAddLineAction(2, "Add Line"),
+		  mAddPinAction(3, "Add Pin"),
+		  mAddTextAction(1, "Add Text"),
+		  mEditPropsAction(0, "Edit Properties")
+{
+	connect(&mAddLineAction, SIGNAL(execFired()), SLOT(actionAddLine()));
+	connect(&mAddPinAction, SIGNAL(execFired()), SLOT(actionAddPin()));
+	connect(&mAddTextAction, SIGNAL(execFired()), SLOT(actionAddText()));
+	connect(&mEditPropsAction, SIGNAL(execFired()), this, SLOT(actionEditProps()));
+}
+
+void DefaultFPEditor::init()
+{
+	emit actionsChanged();
+}
+
+QList<const CtrlAction*> DefaultFPEditor::actions() const
+{
+	QList<const CtrlAction*> out;
+	out << &mAddLineAction << &mAddTextAction << &mAddPinAction << &mEditPropsAction;
+	return out;
+}
+
+
+void DefaultFPEditor::actionAddPin()
+{
+	ctrl()->installEditor(EditorFactory::instance().newPinEditor(ctrl()));
+}
+
+void DefaultFPEditor::actionAddText()
+{
+	ctrl()->installEditor(EditorFactory::instance().newTextEditor(ctrl()));
+}
+
+void DefaultFPEditor::actionAddLine()
+{
+	ctrl()->installEditor(EditorFactory::instance().newLineEditor(ctrl()));
+}
+
+void DefaultFPEditor::actionEditProps()
+{
+	FPPropDialog d(ctrl()->view());
+	FPDoc* doc = dynamic_cast<FPDoc*>(ctrl()->doc());
+	d.init(doc->footprint().data());
+	int result = d.exec();
+	if (result == QDialog::Accepted)
+	{
+		d.updateFp(doc->footprint().data());
+	}
 }

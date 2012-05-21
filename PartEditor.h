@@ -21,21 +21,22 @@
 #define PARTEDITOR_H
 
 #include "Editor.h"
-#include "Document.h"
+#include "Controller.h"
+#include "Part.h"
+#include "Net.h"
 #include "EditPartDialog.h"
 
-class Part;
-class Controller;
+class PCBDoc;
 
 class PartEditor : public AbstractEditor
 {
 	Q_OBJECT
 public:
 	/// Add or edit a single new part.
-	PartEditor(PCBController *ctrl,
+	PartEditor(Controller *ctrl,
 			   QSharedPointer<Part> part = QSharedPointer<Part>());
 	/// Add multiple new parts from the netlist.
-	PartEditor(PCBController *ctrl, QList<NLPart> parts);
+	PartEditor(Controller *ctrl, QList<NLPart> parts);
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
