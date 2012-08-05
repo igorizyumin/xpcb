@@ -43,6 +43,8 @@ class QXmlStreamWriter;
 /// is computed by subtracting all pad/trace clearances from the master polygon.
 class Area : public PCBObject
 {
+	Q_OBJECT
+
 public:
 	/// A list of the possible fill styles for the polygon when drawing.
 	enum HatchStyle { NO_HATCH,		///< No hatch lines; only the outline is drawn.
@@ -50,7 +52,7 @@ public:
 					   DIAGONAL_EDGE	///< Short diagonal hatch lines are drawn on the inside part of the edges.
 				   };
 
-	Area(const PCBDoc *doc);
+	Area(PCBDoc *doc);
 	~Area();
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
@@ -79,7 +81,7 @@ public:
 	/// \returns true if p is inside area.
 	bool pointInside(const QPoint &p) const;
 
-	static QSharedPointer<Area> newFromXML(QXmlStreamReader &reader, const PCBDoc &doc);
+	static QSharedPointer<Area> newFromXML(QXmlStreamReader &reader, PCBDoc &doc);
 	void toXML(QXmlStreamWriter &writer);
 
 private:

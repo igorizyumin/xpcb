@@ -24,10 +24,6 @@
 
 ///////////////////// PART PIN /////////////////////
 
-PartPin::~PartPin()
-{
-}
-
 Pad PartPin::getPadOnLayer(const Layer& layer) const
 {
 	return mPin->getPadOnLayer(mapLayer(layer));
@@ -113,7 +109,7 @@ bool PartPin::loadState(PCBObjState &state)
 
 ///////////////////// PART /////////////////////
 Part::Part(PCBDoc *doc)
-	: mAngle(0), mSide(SIDE_TOP), mLocked(false), mRefVisible(false),
+	: PCBObject(doc), mAngle(0), mSide(SIDE_TOP), mLocked(false), mRefVisible(false),
 	mValueVisible(false), mDoc(doc)
 {
 
@@ -151,9 +147,9 @@ void Part::updateFp()
 	}
 
 	// create texts
-	mRefdes = QSharedPointer<Text>(new Text(*mFp->refText()));
+	mRefdes = mFp->refText()->clone();
 	mRefdes->setParent(this);
-	mValue = QSharedPointer<Text>(new Text(*mFp->valueText()));
+	mValue = mFp->valueText()->clone();
 	mValue->setParent(this);
 }
 
@@ -283,8 +279,7 @@ void Part::updateTransform()
 	if (mSide == SIDE_BOTTOM)
 		mTransform.scale(-1, 1);
 	mTransform.rotate(mAngle);
-	this->mRefdes->parentChanged();
-	this->mValue->parentChanged();
+	transformChanged(mTransform);
 }
 
 void Part::draw(QPainter *painter, const Layer& layer) const
@@ -347,7 +342,6 @@ bool Part::loadState(PCBObjState &state)
 	mFpUuid = s->uuid;
 	mPins = s->pins;
 	mDoc = s->doc;
-	mRefdes->parentChanged();
-	mValue->parentChanged();
+	transformChanged(mTransform);
 	return true;
 }

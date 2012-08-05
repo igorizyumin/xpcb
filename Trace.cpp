@@ -24,8 +24,8 @@
 #include "Document.h"
 #include <QDebug>
 
-Via::Via(QPoint pos, QSharedPointer<Padstack> ps)
-	: mPos(pos), mPadstack(ps)
+Via::Via(QPoint pos, QSharedPointer<Padstack> ps, QObject *parent)
+	: PCBObject(parent), mPos(pos), mPadstack(ps)
 {
 }
 
@@ -120,8 +120,8 @@ bool Via::onLayer(const Layer &layer) const
 
 /////////////////////// VERTEX ///////////////////////
 
-Vertex::Vertex(QPoint pos)
-	: mPos(pos), mPartPin(NULL), mVia(NULL)
+Vertex::Vertex(QPoint pos, QObject *parent)
+	: PCBObject(parent), mPos(pos), mPartPin(NULL), mVia(NULL)
 {
 
 }
@@ -218,13 +218,8 @@ Layer Vertex::layer() const
 
 /////////////////////// SEGMENT ///////////////////////
 
-Segment::Segment(const Layer& l, int w)
-	: mLayer(l), mWidth(w)
-{
-}
-
-Segment::Segment(const Segment &other)
-	: mLayer(other.mLayer), mWidth(other.mWidth)
+Segment::Segment(const Layer& l, int w, QObject *parent)
+	: PCBObject(parent), mLayer(l), mWidth(w)
 {
 }
 

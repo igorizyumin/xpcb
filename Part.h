@@ -27,82 +27,20 @@
 // forward declarations
 class Vertex;
 class PCBDoc;
-class Part;
-
-/// A PartPin represents an instance of a footprint Pin
-/// that is associated with a specific part.  PartPins store
-/// net attachment information.  Drawing/editing is delegated to the
-/// footprint pin.
-class PartPin : public PCBObject
-{
-public:
-	PartPin(Part* parent, QSharedPointer<Pin> pin) : mPin(pin), mPart(parent) {}
-	~PartPin();
-
-	Pad getPadOnLayer(const Layer& layer) const;
-
-	QString net() const;
-
-	void attach(const Vertex* vertex) const { mVertices.insert(vertex); }
-	void detach(const Vertex* vertex) const
-	{
-		mVertices.remove(vertex);
-	}
-
-	void detachAll() const { mVertices.clear(); }
-	QSet<const Vertex*> vertices() const { return mVertices; }
-
-	Part* part() const { return mPart; }
-	QString name() const {return mPin->name(); }
-	QSharedPointer<Pin> fpPin() const { return mPin; }
-
-	QPoint pos() const;
-	bool isSmt() const;
-
-	virtual void draw(QPainter *painter, const Layer& layer) const;
-	virtual QRect bbox() const;
-	virtual PCBObjState getState() const;
-	virtual bool loadState(PCBObjState &state);
-
-	bool testHit(const QPoint &pt, int dist, const Layer& layer) const;
-
-private:
-	class PartPinState : public PCBObjStateInternal
-	{
-	public:
-		virtual ~PartPinState() {}
-	private:
-		friend class PartPin;
-		PartPinState(const PartPin &p)
-			: pin(p.fpPin()), part(p.part()), net(p.net())
-		{}
-
-		QSharedPointer<Pin> pin;
-		Part* part;
-		QString net;
-	};
-
-	/// Maps a PCB layer to a pin layer (i.e. top copper -> start for parts on top side)
-	Layer mapLayer(const Layer& layer) const;
-
-	/// Pointer to footprint pin (contains position, etc.)
-	QSharedPointer<Pin> mPin;
-	/// Pointer to parent part.
-	Part * mPart;
-	/// Set of attached vertices.
-	mutable QSet<const Vertex* > mVertices;
-};
+class PartPin;
 
 /// A part is an instance of a Footprint on a printed circuit board.  Parts
 /// have an associated position and rotation.  Child elements include part pins,
 /// and reference/value texts.
 class Part : public PCBObject
 {
+	Q_OBJECT
+
 public:
 	enum SIDE { SIDE_TOP = 0, SIDE_BOTTOM };
 
 	Part(PCBDoc* doc);
-	~Part();
+	virtual ~Part();
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
@@ -199,6 +137,71 @@ private:
 	QList<QSharedPointer<PartPin> > mPins;
 	/// Parent document
 	PCBDoc* mDoc;
+};
+
+/// A PartPin represents an instance of a footprint Pin
+/// that is associated with a specific part.  PartPins store
+/// net attachment information.  Drawing/editing is delegated to the
+/// footprint pin.
+class PartPin : public PCBObject
+{
+	Q_OBJECT
+
+public:
+	PartPin(Part* parent, QSharedPointer<Pin> pin) : PCBObject(parent), mPin(pin), mPart(parent) {}
+
+	Pad getPadOnLayer(const Layer& layer) const;
+
+	QString net() const;
+
+	void attach(const Vertex* vertex) const { mVertices.insert(vertex); }
+	void detach(const Vertex* vertex) const
+	{
+		mVertices.remove(vertex);
+	}
+
+	void detachAll() const { mVertices.clear(); }
+	QSet<const Vertex*> vertices() const { return mVertices; }
+
+	Part* part() const { return mPart; }
+	QString name() const {return mPin->name(); }
+	QSharedPointer<Pin> fpPin() const { return mPin; }
+
+	QPoint pos() const;
+	bool isSmt() const;
+
+	virtual void draw(QPainter *painter, const Layer& layer) const;
+	virtual QRect bbox() const;
+	virtual PCBObjState getState() const;
+	virtual bool loadState(PCBObjState &state);
+
+	bool testHit(const QPoint &pt, int dist, const Layer& layer) const;
+
+private:
+	class PartPinState : public PCBObjStateInternal
+	{
+	public:
+		virtual ~PartPinState() {}
+	private:
+		friend class PartPin;
+		PartPinState(const PartPin &p)
+			: pin(p.fpPin()), part(p.part()), net(p.net())
+		{}
+
+		QSharedPointer<Pin> pin;
+		Part* part;
+		QString net;
+	};
+
+	/// Maps a PCB layer to a pin layer (i.e. top copper -> start for parts on top side)
+	Layer mapLayer(const Layer& layer) const;
+
+	/// Pointer to footprint pin (contains position, etc.)
+	QSharedPointer<Pin> mPin;
+	/// Pointer to parent part.
+	Part * mPart;
+	/// Set of attached vertices.
+	mutable QSet<const Vertex* > mVertices;
 };
 
 #endif // PART_H

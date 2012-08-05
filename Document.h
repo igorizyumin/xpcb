@@ -101,6 +101,9 @@ public:
 	virtual QString name() const { return mName; }
 	virtual XPcb::UNIT units() const { return mUnits; }
 
+	/// Returns all objects in document
+	virtual QList<QSharedPointer<PCBObject> > objects() = 0;
+
 	/// Returns a list of all objects that are hit
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt, int dist = 1) = 0;
 	/// Returns list of all objects touching rect
@@ -157,6 +160,9 @@ public:
 	virtual bool loadFromXml(QXmlStreamReader &reader);
 	virtual QList<Layer> layerList(LayerOrder order = ListOrder,
 								   Document::LayerMask mask = Document::All);
+
+	virtual QList<QSharedPointer<PCBObject> > objects();
+
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt, int dist = 1);
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QRect &rect);
 
@@ -219,6 +225,8 @@ public:
 
 	virtual QList<Layer> layerList(LayerOrder order = ListOrder,
 								   Document::LayerMask mask = Document::All);
+
+	virtual QList<QSharedPointer<PCBObject> > objects();
 
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QPoint &pt, int dist = 1);
 	virtual QList<QSharedPointer<PCBObject> > findObjs(QRect &rect);

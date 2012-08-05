@@ -33,10 +33,12 @@ class LineState;
 /// end points and an orientation flag (clockwise/counterclockwise).
 class Line : public PCBObject
 {
+	Q_OBJECT
+
 public:
 	enum LineType { LINE, ARC_CW, ARC_CCW };
 
-    Line();
+	Line(QObject *parent = NULL);
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;

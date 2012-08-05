@@ -42,9 +42,12 @@ class PCBDoc;
 /// assumed to be electrically connected.
 class Via : public PCBObject
 {
+	Q_OBJECT
+
 public:
 	Via(QPoint pos = QPoint(0, 0),
-		QSharedPointer<Padstack> ps = QSharedPointer<Padstack>());
+		QSharedPointer<Padstack> ps = QSharedPointer<Padstack>(),
+		QObject *parent = NULL);
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
@@ -106,8 +109,10 @@ private:
 /// attached to part pins, vias, and areas.
 class Vertex : public PCBObject
 {
+	Q_OBJECT
+
 public:
-	Vertex(QPoint pos = QPoint(0, 0));
+	Vertex(QPoint pos = QPoint(0, 0), QObject *parent = NULL);
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
@@ -172,9 +177,10 @@ private:
 /// A trace segment is a straight line between two trace vertices
 class Segment : public PCBObject
 {
+	Q_OBJECT
+
 public:
-	Segment(const Layer& layer, int w = 0);
-	Segment(const Segment& other);
+	Segment(const Layer& layer, int w = 0, QObject* parent = NULL);
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
@@ -243,6 +249,7 @@ public:
 
 	void clear() { mV1.clear(); mV2.clear(); }
 
+	QSharedPointer<Segment> clone() const { return QSharedPointer<Segment>(new Segment(mLayer, mWidth)); }
 private:
 	class SegState : public PCBObjStateInternal
 	{

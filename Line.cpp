@@ -22,8 +22,8 @@
 #include <QXmlStreamWriter>
 #include <QDebug>
 
-Line::Line()
-	: mWidth(0), mType(LINE)
+Line::Line(QObject* parent)
+	: PCBObject(parent), mWidth(0), mType(LINE)
 {
 }
 

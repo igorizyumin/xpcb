@@ -190,6 +190,7 @@ void LineEditor::drawOverlay(QPainter* painter)
 
 void LineEditor::actionMove()
 {
+	if (!mLine) return;
 	mPrevState = mLine->getState();
 	mState = PICK_REF;
 	mRefPt = mPos;
@@ -198,6 +199,7 @@ void LineEditor::actionMove()
 
 void LineEditor::actionMoveVtx()
 {
+	if (!mLine) return;
 	if (mState == VTX_SEL_START)
 	{
 		mState = VTX_MOVE_START;

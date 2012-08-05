@@ -21,11 +21,33 @@
 
 int PCBObject::nextObjID = 1000;
 
-PCBObject::PCBObject() : objID(getNextID())
+PCBObject::PCBObject(QObject *parent) : QObject(parent), objID(getNextID())
 {
+}
+
+QTransform PCBObject::transform() const
+{
+	return QTransform();
 }
 
 int PCBObject::getNextID()
 {
 	return nextObjID++;
+}
+
+void PCBObject::childEvent(QChildEvent * e)
+{
+	if (e->type() == QChildEvent::ChildAdded)
+	{
+		if (!dynamic_cast<PCBObject*>(e->child())) return;
+		connect(this, SIGNAL(transformChanged(QTransform)),
+				dynamic_cast<PCBObject*>(e->child()), SLOT(onParentTransformChanged(QTransform)));
+	}
+	else if (e->type() == QChildEvent::ChildRemoved)
+	{
+		if (!dynamic_cast<PCBObject*>(e->child())) return;
+		disconnect(this, SIGNAL(transformChanged(QTransform)),
+				dynamic_cast<PCBObject*>(e->child()), SLOT(onParentTransformChanged(QTransform)));
+
+	}
 }

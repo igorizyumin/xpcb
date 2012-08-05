@@ -28,16 +28,16 @@
 #include "Document.h"
 #include "EditTextDialog.h"
 
-Text::Text()
-	: PCBObject(), mAngle(0), mIsMirrored(false), mIsNegative(false),
+Text::Text(QObject* parent)
+	: PCBObject(parent), mAngle(0), mIsMirrored(false), mIsNegative(false),
 	mFontSize(XPcb::milToPcb(100)), mStrokeWidth(XPcb::milToPcb(10)), mParent(NULL), mIsDirty(true)
 {
 }
 
 Text::Text( const QPoint &pos, int angle, bool mirror,
 			bool negative, const Layer& layer, int font_size, int stroke_width,
-			const QString &str ) :
-PCBObject(), mPos(pos), mLayer(layer), mAngle(angle), mIsMirrored(mirror), mIsNegative(negative),
+			const QString &str, QObject* parent) :
+PCBObject(parent), mPos(pos), mLayer(layer), mAngle(angle), mIsMirrored(mirror), mIsNegative(negative),
 mFontSize(font_size), mStrokeWidth(stroke_width), mText(str), mParent(NULL), mIsDirty(true)
 {
 
@@ -63,8 +63,9 @@ void Text::rebuild() const
 	SMFontUtil::instance().GetStrokes(text(), fontSize(), strokeWidth(),
 									  mStrokes, mStrokeBBox);
 	double yoffset = 9.0*mFontSize/22.0;
-	if (mParent)
-		mTransform = mParent->transform();
+	PCBObject* p = dynamic_cast<PCBObject*>(parent());
+	if (p)
+		mTransform = p->transform();
 	else
 		mTransform.reset();
 	mTransform.translate(mPos.x(), mPos.y());
@@ -72,8 +73,6 @@ void Text::rebuild() const
 		mTransform.scale(-1, 1);
 	mTransform.rotate(mAngle);
 	mTransform.translate(0, yoffset);
-//	if (mParent)
-//		mTransform *= mParent->transform();
 }
 
 QRect Text::bbox() const
@@ -175,6 +174,13 @@ bool Text::loadState(PCBObjState &state)
 	mText = s->text;
 	changed();
 	return true;
+}
+
+QSharedPointer<Text> Text::clone() const
+{
+	return QSharedPointer<Text>(new Text(mPos, mAngle, mIsMirrored,
+										 mIsNegative, mLayer, mFontSize,
+										 mStrokeWidth, mText));
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -301,7 +307,7 @@ void TextEditor::keyPressEvent(QKeyEvent *event)
 
 void TextEditor::actionMove()
 {
-
+	if (!mText) return;
 	mState = MOVE;
 	startMove();
 	QCursor::setPos(ctrl()->view()->mapToGlobal(ctrl()->view()->transform().map(mPos)));
@@ -318,6 +324,7 @@ void TextEditor::startMove()
 
 void TextEditor::actionDelete()
 {
+	if (!mText) return;
 	TextDeleteCmd* cmd = new TextDeleteCmd(NULL, mText, ctrl()->doc());
 	ctrl()->doc()->doCommand(cmd);
 	emit editorFinished();
@@ -325,6 +332,7 @@ void TextEditor::actionDelete()
 
 void TextEditor::actionRotate()
 {
+	if (!mText) return;
 	mAngleDelta += 90;
 	mAngleDelta %= 360;
 	emit overlayChanged();
@@ -360,6 +368,8 @@ void TextEditor::newText()
 
 void TextEditor::actionEdit()
 {
+	// XXX hack -- need to disable actions until an object exists
+	if (!mText) return;
 	if (mDialog.isNull())
 		mDialog = QSharedPointer<EditTextDialog>(new EditTextDialog(ctrl()->view()));
 	mDialog->init(mText);

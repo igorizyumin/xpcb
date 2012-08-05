@@ -26,9 +26,10 @@
 #include "Document.h"
 #include "Polygon.h"
 
-Area::Area(const PCBDoc *doc) :
-		mDoc(doc), mConnectSMT(true),
-		mPoly(NULL), mHatchStyle(NO_HATCH)
+Area::Area(PCBDoc *doc) :
+	PCBObject(doc),
+	mDoc(doc), mConnectSMT(true),
+	mPoly(NULL), mHatchStyle(NO_HATCH)
 {
 }
 
@@ -90,7 +91,7 @@ bool Area::pointInside(const QPoint &p) const
 	return mPoly.testPointInside(p);
 }
 
-QSharedPointer<Area> Area::newFromXML(QXmlStreamReader &reader, const PCBDoc &doc)
+QSharedPointer<Area> Area::newFromXML(QXmlStreamReader &reader, PCBDoc &doc)
 {
 	Q_ASSERT(reader.isStartElement() && reader.name() == "area");
 

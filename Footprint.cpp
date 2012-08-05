@@ -464,8 +464,8 @@ bool Pin::loadState(PCBObjState &state)
 
 /////////////////////// FOOTPRINT /////////////////////////
 
-Footprint::Footprint()
-	: mName("EMPTY_SHAPE"), mUnits(XPcb::MIL),
+Footprint::Footprint(QObject* parent)
+	: PCBObject(parent), mName("EMPTY_SHAPE"), mUnits(XPcb::MIL),
 	  mRefText(QSharedPointer<Text>(new Text())),
 	  mValueText(QSharedPointer<Text>(new Text())),
 	  mCustomCentroid(false), mUuid(QUuid::createUuid())
@@ -477,12 +477,13 @@ Footprint::Footprint()
 	mRefText->setLayer(Layer::LAY_SILK_TOP);
 }
 
+#if 0
 Footprint::Footprint(const Footprint &other)
 	: mName(other.mName), mAuthor(other.mAuthor),
 	  mSource(other.mSource), mDesc(other.mDesc),
 	  mUnits(other.mUnits),
-	  mRefText(QSharedPointer<Text>(new Text(*other.mRefText))),
-	  mValueText(QSharedPointer<Text>(new Text(*other.mValueText))),
+	  mRefText(other.mRefText->clone()),
+	  mValueText(other.mValueText->clone()),
 	  mCentroid(other.mCentroid),
 	  mCustomCentroid(other.mCustomCentroid),
 	  mUuid(other.mUuid)
@@ -512,6 +513,7 @@ Footprint::Footprint(const Footprint &other)
 		mTexts.append(QSharedPointer<Text>(new Text(*p)));
 	}
 }
+#endif
 
 void Footprint::draw(QPainter *painter, FP_DRAW_LAYER layer) const
 {
@@ -842,9 +844,9 @@ FPDBFile::FPDBFile(QString path, QString name, QString author, QString source, Q
 QSharedPointer<Footprint> FPDBFile::loadFootprint() const
 {
 	FPDoc doc;
-	if(!static_cast<Document*>(&doc)->loadFromFile(path()))
+	if(!doc.loadFromFile(path()))
 		return QSharedPointer<Footprint>();
-	return QSharedPointer<Footprint>(new Footprint(*doc.footprint()));
+	return doc.footprint();
 }
 
 FPDBFolder::FPDBFolder(QString name, QList<QSharedPointer<FPDBFolder> > folders,

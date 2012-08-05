@@ -179,6 +179,31 @@ QList<Layer> FPDoc::layerList(LayerOrder order, Document::LayerMask mask)
 	return l;
 }
 
+QList<QSharedPointer<PCBObject> > FPDoc::objects()
+{
+	Q_ASSERT(mFp && mFp->refText() && mFp->valueText());
+
+	QList<QSharedPointer<PCBObject> > out;
+
+	foreach(QSharedPointer<Pin> p, mFp->pins())
+	{
+		out.append(p);
+	}
+	foreach(QSharedPointer<Text> p, mFp->texts())
+	{
+		out.append(p);
+	}
+	foreach(QSharedPointer<Line> p, mFp->lines())
+	{
+		out.append(p);
+	}
+
+	out.append(mFp->refText());
+	out.append(mFp->valueText());
+
+	return out;
+}
+
 QList<QSharedPointer<PCBObject> > FPDoc::findObjs(QPoint &pt, int dist)
 {
 	Q_ASSERT(mFp && mFp->refText() && mFp->valueText());
@@ -304,6 +329,42 @@ void PCBDoc::removeText(QSharedPointer<Text> t)
 	}
 	else
 		Log::instance().error("Text object does not exist in document");
+}
+
+QList<QSharedPointer<PCBObject> > PCBDoc::objects()
+{
+	QList<QSharedPointer<PCBObject> > out;
+
+	// have to do this the inefficient way thanks to C++ retardation
+	// (no way to convert QList<Pin*> to QList<PCBObject*>)
+	foreach(QSharedPointer<Segment> s, mTraceList->segments())
+	{
+		out.append(s);
+	}
+
+	foreach(QSharedPointer<Vertex> v, mTraceList->vertices())
+	{
+		out.append(v);
+	}
+
+	foreach(QSharedPointer<Part> p, mParts)
+	{
+		out.append(p);
+		out.append(p->refdesText());
+		out.append(p->valueText());
+	}
+
+	foreach(QSharedPointer<Text> t, mTexts)
+	{
+		out.append(t);
+	}
+
+	foreach(QSharedPointer<Area> a, mAreas)
+	{
+		out.append(a);
+	}
+
+	return out;
 }
 
 QList<QSharedPointer<PCBObject> > PCBDoc::findObjs(QRect &rect)

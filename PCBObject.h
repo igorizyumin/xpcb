@@ -20,8 +20,10 @@
 #ifndef PCBOBJECT_H
 #define PCBOBJECT_H
 
+#include <QObject>
 #include <QPainter>
 #include <QUndoCommand>
+#include <QChildEvent>
 #include "global.h"
 #include "Log.h"
 
@@ -44,10 +46,11 @@ class PCBObjState;
 /// PCBObject is an abstract base class for all graphical PCB objects.  It provides a common
 /// interface for working with PCB objects, such as selection, collision detection, visibility,
 /// and drawing.  It also provides a facility for identifying particular objects
-class PCBObject
+class PCBObject : public QObject
 {
+	Q_OBJECT
 public:
-	PCBObject();
+	explicit PCBObject(QObject *parent);
 
 	/// Draws the object using the provided QPainter.  This function is
 	/// called multiple times during a single redraw operation, once for each layer.
@@ -73,11 +76,7 @@ public:
 	/// This is used by part and footprint description text, pins, padstacks,
 	/// and other PCBObjects that are contained in another PCBObject.
 	/// The default implementation returns a null transform.
-	virtual QTransform transform() const { return QTransform(); }
-
-	/// Notifies the object that its parent has changed.  The default implementation
-	/// does nothing.
-	virtual void parentChanged() {}
+	virtual QTransform transform() const;
 
 	/// Returns a snapshot of this object's state (the memento pattern).
 	virtual PCBObjState getState() const = 0;
@@ -85,8 +84,20 @@ public:
 	/// if successful, false otherwise.
 	virtual bool loadState(PCBObjState &state) = 0;
 
-	static int getNextID();
+signals:
+	/// Emitted when the object is modified
+	void changed();
+	/// Emitted when the object's transform changes
+	void transformChanged(QTransform t);
+
+protected slots:
+	virtual void onParentTransformChanged(QTransform) {}
+
+protected:
+	virtual void childEvent(QChildEvent *);
+
 private:
+	static int getNextID();
 	int objID;
 	static int nextObjID;
 };

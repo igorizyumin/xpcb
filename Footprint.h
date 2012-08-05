@@ -29,6 +29,7 @@
 #include "Line.h"
 
 class Footprint;
+class Pin;
 
 /// A pad is a padstack component; it describes the
 /// shape of a pad on a given layer of the padstack.
@@ -123,14 +124,121 @@ private:
 	QUuid mUuid;
 };
 
+
+
+class Footprint : public PCBObject
+{
+	Q_OBJECT
+
+public:
+	Footprint(QObject *parent = NULL);
+
+	enum FP_DRAW_LAYER { LAY_START, LAY_INNER, LAY_END };
+
+	virtual void draw(QPainter *, const Layer& ) const {}
+	void draw(QPainter *painter, FP_DRAW_LAYER layer) const;
+	QRect bbox() const;
+
+	QString name() const { return mName; }
+	void setName(QString name) { mName = name; }
+
+	QString author() const { return mAuthor; }
+	void setAuthor(QString author) { mAuthor = author; }
+
+	QString source() const { return mSource; }
+	void setSource(QString src) { mSource = src; }
+
+	QString desc() const { return mDesc; }
+	void setDesc(QString desc) { mDesc = desc; }
+
+
+	QList<QSharedPointer<Padstack> > padstacks() { return mPadstacks; }
+	void addPadstack(QSharedPointer<Padstack> ps) { mPadstacks.append(ps); }
+	void removePadstack(QSharedPointer<Padstack> ps);
+	QSharedPointer<Padstack> padstack(QUuid uuid) const;
+
+	int numPins() const;
+	QSharedPointer<Pin> pin(const QString & pin) const;
+	QSharedPointer<Pin> pin(int i) {return mPins.at(i);}
+	const QList<QSharedPointer<Pin> > pins() { return mPins; }
+	void addPin(QSharedPointer<Pin> p) { mPins.append(p); }
+	void removePin(QSharedPointer<Pin> p) { mPins.removeOne(p); }
+
+	const QList<QSharedPointer<Text> > texts() { return mTexts; }
+	void addText(QSharedPointer<Text> t) { mTexts.append(t); }
+	void removeText(QSharedPointer<Text> t) { mTexts.removeOne(t); }
+
+	const QList<QSharedPointer<Line> > lines() { return mOutlineLines; }
+
+	void addLine(QSharedPointer<Line> l) { mOutlineLines.append(l); }
+	void removeLine(QSharedPointer<Line> l) { mOutlineLines.removeOne(l); }
+
+	QRect getPinBounds() const;
+
+	QSharedPointer<Text> refText() {return mRefText;}
+	QSharedPointer<Text> valueText() {return mValueText;}
+
+	QPoint centroid() {return mCentroid;}
+	bool isCustomCentroid() {return mCustomCentroid;}
+	XPcb::UNIT units() {return mUnits; }
+
+	static QSharedPointer<Footprint> newFromXML(QXmlStreamReader &reader);
+	void toXML(QXmlStreamWriter &writer) const;
+
+	const QUuid& uuid() const { return mUuid; }
+
+	virtual PCBObjState getState() const { return PCBObjState(); }
+	virtual bool loadState(PCBObjState &) { return false; }
+
+private:
+//	Footprint(const Footprint& other);
+
+	/// Assignment operator (disabled)
+	Footprint& operator=(Footprint& other);
+
+	/// Computes the default centroid (center of all pins)
+	QPoint getDefaultCentroid();
+
+	/// Footprint name (i.e. DIP20)
+	QString mName;
+	/// Footprint author
+	QString mAuthor;
+	/// Source document used to create footprint (i.e. mfg datasheet)
+	QString mSource;
+	/// Description of footprint
+	QString mDesc;
+	/// Units used to draw the footprint
+	XPcb::UNIT mUnits;
+	/// Reference designator text
+	QSharedPointer<Text> mRefText;
+	/// Value text
+	QSharedPointer<Text> mValueText;
+	/// Centroid point; can be automatic or user-defined
+	QPoint mCentroid;
+	/// If false, centroid is automatically set to the center of all pins
+	/// If true, centroid is user-defined
+	bool mCustomCentroid;
+	/// Footprint padstacks
+	QList<QSharedPointer<Padstack> > mPadstacks;
+	/// Footprint pins
+	QList<QSharedPointer<Pin> > mPins;
+	/// Silkscreen lines (used for part outline)
+	QList<QSharedPointer<Line> > mOutlineLines;
+	/// Silkscreen text
+	QList<QSharedPointer<Text> > mTexts;
+	/// UUID for this footprint
+	QUuid mUuid;
+};
+
 /// A pin is an instance of a padstack associated with a footprint.
 /// It stores the name, coordinates, rotation, and the associated padstack
 /// of each pin within a footprint.
 class Pin : public PCBObject
 {
+	Q_OBJECT
 public:
 
-	Pin(Footprint* fp) : mAngle(0), mIsDirty(true), mFootprint(fp) {}
+	Pin(Footprint* fp) : PCBObject(fp), mAngle(0), mIsDirty(true), mFootprint(fp) {}
 
 	int angle() const { return mAngle; }
 	QPoint pos() const { return mPos; }
@@ -194,104 +302,6 @@ private:
 	QSharedPointer<Padstack> mPadstack;
 	/// Parent footprint
 	Footprint* mFootprint;
-};
-
-class Footprint
-{
-
-public:
-	Footprint();
-	Footprint(const Footprint& other);
-
-	enum FP_DRAW_LAYER { LAY_START, LAY_INNER, LAY_END };
-
-	void draw(QPainter *painter, FP_DRAW_LAYER layer) const;
-	QRect bbox() const;
-
-	QString name() const { return mName; }
-	void setName(QString name) { mName = name; }
-
-	QString author() const { return mAuthor; }
-	void setAuthor(QString author) { mAuthor = author; }
-
-	QString source() const { return mSource; }
-	void setSource(QString src) { mSource = src; }
-
-	QString desc() const { return mDesc; }
-	void setDesc(QString desc) { mDesc = desc; }
-
-
-	QList<QSharedPointer<Padstack> > padstacks() { return mPadstacks; }
-	void addPadstack(QSharedPointer<Padstack> ps) { mPadstacks.append(ps); }
-	void removePadstack(QSharedPointer<Padstack> ps);
-	QSharedPointer<Padstack> padstack(QUuid uuid) const;
-
-	int numPins() const;
-	QSharedPointer<Pin> pin(const QString & pin) const;
-	QSharedPointer<Pin> pin(int i) {return mPins.at(i);}
-	const QList<QSharedPointer<Pin> > pins() { return mPins; }
-	void addPin(QSharedPointer<Pin> p) { mPins.append(p); }
-	void removePin(QSharedPointer<Pin> p) { mPins.removeOne(p); }
-
-	const QList<QSharedPointer<Text> > texts() { return mTexts; }
-	void addText(QSharedPointer<Text> t) { mTexts.append(t); }
-	void removeText(QSharedPointer<Text> t) { mTexts.removeOne(t); }
-
-	const QList<QSharedPointer<Line> > lines() { return mOutlineLines; }
-
-	void addLine(QSharedPointer<Line> l) { mOutlineLines.append(l); }
-	void removeLine(QSharedPointer<Line> l) { mOutlineLines.removeOne(l); }
-
-	QRect getPinBounds() const;
-
-	QSharedPointer<Text> refText() {return mRefText;}
-	QSharedPointer<Text> valueText() {return mValueText;}
-
-	QPoint centroid() {return mCentroid;}
-	bool isCustomCentroid() {return mCustomCentroid;}
-	XPcb::UNIT units() {return mUnits; }
-
-	static QSharedPointer<Footprint> newFromXML(QXmlStreamReader &reader);
-	void toXML(QXmlStreamWriter &writer) const;
-
-	const QUuid& uuid() const { return mUuid; }
-
-private:
-	/// Assignment operator (disabled)
-	Footprint& operator=(Footprint& other);
-
-	/// Computes the default centroid (center of all pins)
-	QPoint getDefaultCentroid();
-
-	/// Footprint name (i.e. DIP20)
-	QString mName;
-	/// Footprint author
-	QString mAuthor;
-	/// Source document used to create footprint (i.e. mfg datasheet)
-	QString mSource;
-	/// Description of footprint
-	QString mDesc;
-	/// Units used to draw the footprint
-	XPcb::UNIT mUnits;
-	/// Reference designator text
-	QSharedPointer<Text> mRefText;
-	/// Value text
-	QSharedPointer<Text> mValueText;
-	/// Centroid point; can be automatic or user-defined
-	QPoint mCentroid;
-	/// If false, centroid is automatically set to the center of all pins
-	/// If true, centroid is user-defined
-	bool mCustomCentroid;
-	/// Footprint padstacks
-	QList<QSharedPointer<Padstack> > mPadstacks;
-	/// Footprint pins
-	QList<QSharedPointer<Pin> > mPins;
-	/// Silkscreen lines (used for part outline)
-	QList<QSharedPointer<Line> > mOutlineLines;
-	/// Silkscreen text
-	QList<QSharedPointer<Text> > mTexts;
-	/// UUID for this footprint
-	QUuid mUuid;
 };
 
 class FPDBFile;

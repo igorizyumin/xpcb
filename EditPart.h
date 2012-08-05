@@ -22,6 +22,7 @@
 
 #include <QPainter>
 #include "global.h"
+#include "PCBObject.h"
 
 /// Abstract class that implements the controller of each PCB element.
 /// Links together model and view.
@@ -50,6 +51,15 @@ signals:
 
 public slots:
 
+};
+
+class EditPartFactory
+{
+	static QSharedPointer<EditPart> newEditPart(QSharedPointer<PCBObject> obj);
+
+private:
+	EditPartFactory();
+	EditPartFactory(EditPartFactory &other);
 };
 
 #endif // EDITPART_H

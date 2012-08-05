@@ -594,7 +594,7 @@ void SegmentEditor::finishAddVtx()
 	// create a new vertex
 	QSharedPointer<Vertex> vnew(new Vertex(mPos));
 	// create a new segment
-	QSharedPointer<Segment> snew(new Segment(*mSegment));
+	QSharedPointer<Segment> snew(mSegment->clone());
 	// make the modifications
 	QSharedPointer<TraceList> tl = dynamic_cast<PCBDoc*>(mCtrl->doc())->traceList();
 	tl->swapVtxCmd(mSegment, v2, vnew, parent);

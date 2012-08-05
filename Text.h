@@ -31,17 +31,19 @@ class EditTextDialog;
 
 class Text : public PCBObject
 {
+	Q_OBJECT
+
 public:
-	Text();
+	Text(QObject* parent = NULL);
 	Text(const QPoint &pos, int angle,
 		bool mirror, bool negative, const Layer& layer, int font_size,
-		int stroke_width, const QString &text );
+		int stroke_width, const QString &text, QObject *parent = NULL);
 
 	/// Sets the object's parent.  When the object has a parent, its internal
 	/// coordinates are in the parent's coordinate system.  All getters and setters
 	/// still use world coordinates, and the parent's transform is used to map
 	/// them to the parent's coordinate system.
-	void setParent(PCBObject *parent) { mParent = parent; changed(); }
+//	void setParent(PCBObject *parent) { mParent = parent; changed(); }
 
 	// overrides
 	virtual void draw(QPainter *painter, const Layer& layer) const;
@@ -81,8 +83,10 @@ public:
 	const Layer& layer() const {return mLayer;}
 	void setLayer(const Layer& l) {mLayer = l; changed();}
 
+	QSharedPointer<Text> clone() const;
 
-	virtual void parentChanged() { changed(); }
+protected slots:
+	virtual void onParentTransformChanged(QTransform) { changed(); }
 
 protected:
 	void changed() { mIsDirty = true; }
