@@ -439,6 +439,11 @@ QList<QSharedPointer<PCBObject> > PCBDoc::findObjs(QPoint &pt, int dist)
 		if (v->bbox().intersects(hitRect))
 			out.append(v);
 	}
+    foreach(QSharedPointer<Area> a, mAreas)
+    {
+        if (a->bbox().intersects(hitRect))
+            out.append(a);
+    }
 
 	return out;
 }

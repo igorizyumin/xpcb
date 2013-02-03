@@ -71,6 +71,11 @@ PartEditor::PartEditor(Controller *ctrl, QList<NLPart> parts)
 	connect(&mDelAction, SIGNAL(execFired()), SLOT(actionDelete()));
 }
 
+PartEditor::~PartEditor()
+{
+    delete mDialog;
+}
+
 void PartEditor::init()
 {
 	if (!mPart)
@@ -251,7 +256,9 @@ void PartEditor::actionChangeSide()
 void PartEditor::newPartFromDialog()
 {
 	if (!mDialog)
-		mDialog = QSharedPointer<EditPartDialog>(new EditPartDialog(ctrl()->view(), dynamic_cast<PCBDoc*>(ctrl()->doc())));
+    {
+        mDialog = new EditPartDialog(ctrl()->view(), dynamic_cast<PCBDoc*>(ctrl()->doc()));
+    }
 	mDialog->init();
 	if (mDialog->exec() == QDialog::Rejected)
 	{
@@ -307,7 +314,7 @@ void PartEditor::newPartFromList()
 void PartEditor::actionEdit()
 {
 	if (!mDialog)
-		mDialog = QSharedPointer<EditPartDialog>(new EditPartDialog(ctrl()->view(), dynamic_cast<PCBDoc*>(ctrl()->doc())));
+        mDialog = new EditPartDialog(ctrl()->view(), dynamic_cast<PCBDoc*>(ctrl()->doc()));
 	mPrevPartState = mPart->getState();
 	mDialog->init(mPart);
 	if (mDialog->exec() == QDialog::Accepted)

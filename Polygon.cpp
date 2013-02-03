@@ -347,7 +347,7 @@ void Polygon::rebuildPb() const
 
 	if (mArea)
 		PAREA::Del(&mArea);
-	PLINE2 *pline;
+    PLINE2 *pline = NULL;
 
 	// add outline to area
 	this->mOutline.toPline(&pline);

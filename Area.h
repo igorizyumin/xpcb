@@ -57,8 +57,10 @@ public:
 
 	virtual void draw(QPainter *painter, const Layer& layer) const;
 	virtual QRect bbox() const;
-	virtual PCBObjState getState() const { return PCBObjState(NULL); }
-	virtual bool loadState(PCBObjState &/*state*/) { return false; }
+    virtual PCBObjState getState() const { return PCBObjState(new AreaState(*this)); }
+    virtual bool loadState(PCBObjState &state);
+    virtual bool testHit(QPoint pt, int distance,
+                         const Layer& l) const;
 
 	/// Sets the polygon layer.
 	/// \param layer the new layer.
@@ -85,6 +87,34 @@ public:
 	void toXML(QXmlStreamWriter &writer);
 
 private:
+    class AreaState : public PCBObjStateInternal
+    {
+    public:
+        virtual ~AreaState() {}
+    private:
+        friend class Area;
+        AreaState(const Area &a)
+            : mDoc(a.mDoc),
+              mNet(a.mNet),
+              mConnectSMT(a.mConnectSMT),
+              mPoly(a.mPoly),
+              mConnPins(a.mConnPins),
+              mConnVtx(a.mConnVtx),
+              mLayer(a.mLayer),
+              mHatchStyle(a.mHatchStyle)
+        {}
+
+        const PCBDoc* mDoc;
+        QString mNet;
+        bool mConnectSMT;
+        Polygon mPoly;
+        QList<QWeakPointer<PartPin> > mConnPins;
+        QSet<Vertex* > mConnVtx;
+        Layer mLayer;
+        HatchStyle mHatchStyle;
+    };
+
+
 	/// Compute list of connected pins and vertices
 	void findConnections();
 

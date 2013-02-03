@@ -93,8 +93,7 @@ QSharedPointer<AbstractEditor> EditorFactory::newEditor(QSharedPointer<PCBObject
 {
 	if (QSharedPointer<Area> a = obj.dynamicCast<Area>())
 	{
-		if (mFactories.contains(ObjArea))
-			return mFactories.value(ObjArea)->makeEditor(ctrl, a);
+        return QSharedPointer<AbstractEditor>(new AreaEditor(ctrl, a));
 	}
 	else if (QSharedPointer<Line> l = obj.dynamicCast<Line>())
 	{
@@ -169,7 +168,7 @@ QSharedPointer<AbstractEditor> EditorFactory::newTraceEditor(Controller *ctrl)
 
 QSharedPointer<AbstractEditor> EditorFactory::newAreaEditor(Controller *ctrl)
 {
-	return QSharedPointer<AbstractEditor>(new AreaEditor(ctrl));
+    return QSharedPointer<AbstractEditor>(new NewAreaEditor(ctrl));
 }
 
 QSharedPointer<AbstractEditor> EditorFactory::placePartEditor(Controller *ctrl, QList<NLPart> parts)

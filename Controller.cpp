@@ -318,3 +318,21 @@ void Controller::updateActions()
 		mActionBar->setActions(mEditor->actions());
 	}
 }
+
+void Controller::drawCrosshair45(QPainter* painter, QPoint pos)
+{
+    // draw 45 degree crosshair
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing, false);
+    painter->setBrush(Qt::NoBrush);
+    QPen p = painter->pen();
+    p.setStyle(Qt::DashLine);
+    p.setColor(QColor(128, 128, 128));
+    painter->setPen(p);
+    painter->translate(pos);
+    painter->drawLine(QPoint(0, -INT_MAX), QPoint(0, INT_MAX));
+    painter->drawLine(QPoint(-INT_MAX, -INT_MAX), QPoint(INT_MAX, INT_MAX));
+    painter->drawLine(QPoint(-INT_MAX, 0), QPoint(INT_MAX, 0));
+    painter->drawLine(QPoint(-INT_MAX, INT_MAX), QPoint(INT_MAX, -INT_MAX));
+    painter->restore();
+}

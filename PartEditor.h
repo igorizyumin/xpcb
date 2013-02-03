@@ -37,6 +37,7 @@ public:
 			   QSharedPointer<Part> part = QSharedPointer<Part>());
 	/// Add multiple new parts from the netlist.
 	PartEditor(Controller *ctrl, QList<NLPart> parts);
+    virtual ~PartEditor();
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
@@ -71,7 +72,7 @@ private:
 	State mState;
 	QSharedPointer<Part> mPart;
 	QList<NLPart> mNetlistParts;
-	QSharedPointer<EditPartDialog> mDialog;
+    EditPartDialog* mDialog;
 	CtrlAction mChangeSideAction;
 	CtrlAction mRotateCWAction;
 	CtrlAction mRotateCCWAction;

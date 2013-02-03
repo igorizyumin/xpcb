@@ -30,7 +30,7 @@
 
 Text::Text(QObject* parent)
 	: PCBObject(parent), mAngle(0), mIsMirrored(false), mIsNegative(false),
-	mFontSize(XPcb::milToPcb(100)), mStrokeWidth(XPcb::milToPcb(10)), mParent(NULL), mIsDirty(true)
+	mFontSize(XPcb::milToPcb(100)), mStrokeWidth(XPcb::milToPcb(10)), mIsDirty(true)
 {
 }
 
@@ -38,22 +38,24 @@ Text::Text( const QPoint &pos, int angle, bool mirror,
 			bool negative, const Layer& layer, int font_size, int stroke_width,
 			const QString &str, QObject* parent) :
 PCBObject(parent), mPos(pos), mLayer(layer), mAngle(angle), mIsMirrored(mirror), mIsNegative(negative),
-mFontSize(font_size), mStrokeWidth(stroke_width), mText(str), mParent(NULL), mIsDirty(true)
+mFontSize(font_size), mStrokeWidth(stroke_width), mText(str), mIsDirty(true)
 {
 
 }
 
 QPoint Text::pos() const
 {
-	if (mParent)
-		return mParent->transform().map(mPos);
+	PCBObject* p = dynamic_cast<PCBObject*>(parent());
+	if (p)
+		return p->transform().map(mPos);
 	else return mPos;
 }
 
 void Text::setPos(const QPoint &newpos)
 {
-	if (mParent)
-		mPos = mParent->transform().inverted().map(newpos);
+	PCBObject* p = dynamic_cast<PCBObject*>(parent());
+	if (p)
+		mPos = p->transform().inverted().map(newpos);
 	else mPos = newpos;
 	changed();
 }
@@ -210,6 +212,7 @@ void TextEditor::init()
 
 TextEditor::~TextEditor()
 {
+    delete mDialog;
 }
 
 QList<const CtrlAction*> TextEditor::actions() const
@@ -340,8 +343,8 @@ void TextEditor::actionRotate()
 
 void TextEditor::newText()
 {
-	if (mDialog.isNull())
-		mDialog = QSharedPointer<EditTextDialog>(new EditTextDialog(ctrl()->view()));
+    if (!mDialog)
+        mDialog = new EditTextDialog(ctrl()->view());
 	mDialog->init();
 	if (mDialog->exec() == QDialog::Rejected || mDialog->text().isEmpty())
 	{
@@ -370,8 +373,8 @@ void TextEditor::actionEdit()
 {
 	// XXX hack -- need to disable actions until an object exists
 	if (!mText) return;
-	if (mDialog.isNull())
-		mDialog = QSharedPointer<EditTextDialog>(new EditTextDialog(ctrl()->view()));
+    if (!mDialog)
+        mDialog = new EditTextDialog(ctrl()->view());
 	mDialog->init(mText);
 	if (mDialog->exec() == QDialog::Accepted)
 	{

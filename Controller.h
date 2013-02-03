@@ -80,6 +80,9 @@ public:
 	void installEditor(QSharedPointer<AbstractEditor> editor);
 
 	void clearSelection() { mSelectedObjs.clear(); updateEditor(); }
+
+    static void drawCrosshair45(QPainter* painter, QPoint pos);
+
 public slots:
 	void onPlaceGridChanged(int grid) { mPlaceGrid = grid; }
 	void onRouteGridChanged(int grid) { mRouteGrid = grid; }

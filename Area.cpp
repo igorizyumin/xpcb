@@ -37,6 +37,26 @@ Area::~Area()
 {
 }
 
+bool Area::loadState(PCBObjState &state)
+{
+    // convert to area state
+    if (state.ptr().isNull())
+        return false;
+    QSharedPointer<AreaState> s = state.ptr().dynamicCast<AreaState>();
+    if (s.isNull())
+        return false;
+    // restore state
+    mDoc = s->mDoc;
+    mNet = s->mNet;
+    mConnectSMT = s->mConnectSMT;
+    mPoly = s->mPoly;
+    mConnPins = s->mConnPins;
+    mConnVtx = s->mConnVtx;
+    mLayer = s->mLayer;
+    mHatchStyle = s->mHatchStyle;
+    return true;
+}
+
 void Area::draw(QPainter *painter, const Layer& layer) const
 {
 	if (layer == mLayer)
@@ -133,4 +153,13 @@ void Area::toXML(QXmlStreamWriter &writer)
 	writer.writeAttribute("connectSmt", mConnectSMT ? "1" : "0");
 	mPoly.toXML(writer);
 	writer.writeEndElement();
+}
+
+bool Area::testHit(QPoint pt, int distance, const Layer& l) const
+{
+    if (l != mLayer)
+        return false;
+    if(pointInside(pt))
+            return true;
+    return false;
 }

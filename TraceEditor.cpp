@@ -38,25 +38,6 @@ inline bool segZeroLength(QSharedPointer<Segment> seg)
 	return seg->v1()->pos() == seg->v2()->pos();
 }
 
-// XXX TODO move this into the controller
-void drawCrosshair45(QPainter* painter, QPoint pos)
-{
-	// draw 45 degree crosshair
-	painter->save();
-	painter->setRenderHint(QPainter::Antialiasing, false);
-	painter->setBrush(Qt::NoBrush);
-	QPen p = painter->pen();
-	p.setStyle(Qt::DashLine);
-	p.setColor(QColor(128, 128, 128));
-	painter->setPen(p);
-	painter->translate(pos);
-	painter->drawLine(QPoint(0, -INT_MAX), QPoint(0, INT_MAX));
-	painter->drawLine(QPoint(-INT_MAX, -INT_MAX), QPoint(INT_MAX, INT_MAX));
-	painter->drawLine(QPoint(-INT_MAX, 0), QPoint(INT_MAX, 0));
-	painter->drawLine(QPoint(-INT_MAX, INT_MAX), QPoint(INT_MAX, -INT_MAX));
-	painter->restore();
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 
 NewTraceEditor::NewTraceEditor(Controller *ctrl)
@@ -69,7 +50,7 @@ NewTraceEditor::NewTraceEditor(Controller *ctrl)
 
 void NewTraceEditor::drawOverlay(QPainter* painter)
 {
-	drawCrosshair45(painter, mPos);
+    Controller::drawCrosshair45(painter, mPos);
 
 	if (mState == PICK_END)
 	{
@@ -211,7 +192,7 @@ SegmentEditor::SegmentEditor(Controller *ctrl,
 void SegmentEditor::drawOverlay(QPainter* painter)
 {
 	if (mState == ADD_VTX || mState == SLIDE)
-		drawCrosshair45(painter, mPos);
+        Controller::drawCrosshair45(painter, mPos);
 
 	if (mState == SELECTED)
 	{
@@ -621,7 +602,7 @@ VertexEditor::VertexEditor(Controller *ctrl, QSharedPointer<Vertex> vtx)
 void VertexEditor::drawOverlay(QPainter* painter)
 {
 	if (mState == MOVE)
-		drawCrosshair45(painter, mPos);
+        Controller::drawCrosshair45(painter, mPos);
 
 	if (mState == SELECTED)
 	{

@@ -40,15 +40,30 @@ private:
 	PCBDoc* mDoc;
 };
 
+class AreaDelCmd : public QUndoCommand
+{
+public:
+    AreaDelCmd(QUndoCommand *parent,
+               QSharedPointer<Area> obj,
+               PCBDoc* doc)
+        : QUndoCommand(parent), mArea(obj),
+          mDoc(doc) {}
 
+    virtual void undo() { mDoc->addArea(mArea); }
+    virtual void redo() { mDoc->removeArea(mArea); }
 
-AreaEditor::AreaEditor(Controller *ctrl) :
+private:
+    QSharedPointer<Area> mArea;
+    PCBDoc* mDoc;
+};
+
+NewAreaEditor::NewAreaEditor(Controller *ctrl) :
 	AbstractEditor(ctrl), mCtrl(ctrl), mState(PICK_FIRST),
 	mCurrSegType(PolyContour::Segment::LINE), mLayer(Layer::LAY_TOP_COPPER)
 {
 }
 
-void AreaEditor::drawSeg(QPainter *painter, QPoint start, QPoint end,
+void NewAreaEditor::drawSeg(QPainter *painter, QPoint start, QPoint end,
 						 PolyContour::Segment::SegType type)
 {
 	switch(type)
@@ -67,7 +82,7 @@ void AreaEditor::drawSeg(QPainter *painter, QPoint start, QPoint end,
 	}
 }
 
-void AreaEditor::drawOverlay(QPainter *painter)
+void NewAreaEditor::drawOverlay(QPainter *painter)
 {
 	QPoint prev;
 	if (mSegments.isEmpty())
@@ -80,17 +95,17 @@ void AreaEditor::drawOverlay(QPainter *painter)
 	drawSeg(painter, prev, mPos, mCurrSegType);
 }
 
-void AreaEditor::init()
+void NewAreaEditor::init()
 {
 	emit actionsChanged();
 }
 
-QList<const CtrlAction*> AreaEditor::actions() const
+QList<const CtrlAction*> NewAreaEditor::actions() const
 {
 	return QList<const CtrlAction*>();
 }
 
-void AreaEditor::mouseMoveEvent(QMouseEvent *event)
+void NewAreaEditor::mouseMoveEvent(QMouseEvent *event)
 {
 	updatePos(mCtrl->snapToRouteGrid(mCtrl->view()->transform().inverted()
 								  .map(event->pos())));
@@ -98,18 +113,18 @@ void AreaEditor::mouseMoveEvent(QMouseEvent *event)
 	emit overlayChanged();
 }
 
-void AreaEditor::updatePos(QPoint pos)
+void NewAreaEditor::updatePos(QPoint pos)
 {
 	// XXX TODO snap to 45 degrees or whatever
 	mPos = pos;
 }
 
-void AreaEditor::mousePressEvent(QMouseEvent *event)
+void NewAreaEditor::mousePressEvent(QMouseEvent *event)
 {
 	event->accept();
 }
 
-void AreaEditor::mouseReleaseEvent(QMouseEvent *event)
+void NewAreaEditor::mouseReleaseEvent(QMouseEvent *event)
 {
 	if (event->button() == Qt::LeftButton)
 	{
@@ -151,13 +166,13 @@ void AreaEditor::mouseReleaseEvent(QMouseEvent *event)
 	}
 }
 
-void AreaEditor::keyPressEvent(QKeyEvent *event)
+void NewAreaEditor::keyPressEvent(QKeyEvent *event)
 {
 	if (event->key() == Qt::Key_Escape)
 		emit editorFinished();
 }
 
-void AreaEditor::finishPolygon()
+void NewAreaEditor::finishPolygon()
 {
 	QSharedPointer<Area> a(new Area(dynamic_cast<PCBDoc*>(mCtrl->doc())));
 	a->setLayer(mLayer);
@@ -171,4 +186,149 @@ void AreaEditor::finishPolygon()
 		mCtrl->doc()->doCommand(cmd);
 	}
 	emit editorFinished();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+AreaEditor::AreaEditor(Controller *ctrl, QSharedPointer<Area> a)
+    : AbstractEditor(ctrl), mState(SELECTED), mCtrl(ctrl), mArea(a),
+      mMoveAction(3, "Move Area"), mDelAction(7, "Delete Area")
+{
+    connect(&mMoveAction, SIGNAL(execFired()),
+            this, SLOT(startMoveArea()));
+    connect(&mDelAction, SIGNAL(execFired()),
+            this, SLOT(deleteArea()));
+}
+
+void AreaEditor::drawOverlay(QPainter* painter)
+{
+    painter->save();
+    painter->setBrush(Layer::color(Layer::LAY_SELECTION));
+    QPen pen = painter->pen();
+    pen.setWidth(0);
+    painter->setPen(pen);
+
+    if (mState == MOVE || mState == PICK_REF)
+    {
+        Controller::drawCrosshair45(painter, mPos);
+    }
+
+    mArea->poly().outline()->draw(painter);
+
+    painter->restore();
+}
+
+void AreaEditor::init()
+{
+    emit actionsChanged();
+}
+
+QList<const CtrlAction*> AreaEditor::actions() const
+{
+    QList<const CtrlAction*> out;
+    if (mState == SELECTED)
+    {
+        out << &mMoveAction;
+        out << &mDelAction;
+    }
+    return out;
+}
+
+void AreaEditor::mouseMoveEvent(QMouseEvent *event)
+{
+    if (mState == MOVE || mState == PICK_REF)
+    {
+        mPos = mCtrl->snapToRouteGrid(mCtrl->view()->transform().inverted()
+                                      .map(event->pos()));
+        if (mState == MOVE)
+            updateMove();
+
+        emit overlayChanged();
+    }
+}
+
+void AreaEditor::mousePressEvent(QMouseEvent *event)
+{
+    if (mState == MOVE || mState == PICK_REF)
+    {
+        event->accept();
+    }
+    else
+    {
+        event->ignore();
+    }
+}
+
+void AreaEditor::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (mState == MOVE)
+    {
+        event->accept();
+        finishMove();
+    }
+    else if (mState == PICK_REF)
+    {
+        event->accept();
+        mPrevPt = mPos;
+        mState = MOVE;
+        emit actionsChanged();
+        emit overlayChanged();
+    }
+    else
+    {
+        event->ignore();
+    }
+}
+
+void AreaEditor::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_Escape)
+    {
+        if (mState == MOVE)
+            abortMove();
+        if (mState == PICK_REF)
+        {
+            mState = SELECTED;
+            emit actionsChanged();
+            emit overlayChanged();
+        }
+    }
+}
+
+void AreaEditor::startMoveArea()
+{
+    mPrevState = mArea->getState();
+    mState = PICK_REF;
+    emit actionsChanged();
+    emit overlayChanged();
+}
+
+void AreaEditor::updateMove()
+{
+    mArea->poly().translate(mPos - mPrevPt);
+    mPrevPt = mPos;
+}
+
+void AreaEditor::finishMove()
+{
+    PCBObjEditCmd* cmd = new PCBObjEditCmd(NULL, mArea, mPrevState);
+    mCtrl->doc()->doCommand(cmd);
+    mState = SELECTED;
+    emit actionsChanged();
+    emit overlayChanged();
+}
+
+void AreaEditor::abortMove()
+{
+    mArea->loadState(mPrevState);
+    mState = SELECTED;
+    emit actionsChanged();
+    emit overlayChanged();
+}
+
+void AreaEditor::deleteArea()
+{
+    QUndoCommand *cmd = new AreaDelCmd(NULL, mArea, dynamic_cast<PCBDoc*>(mCtrl->doc()));
+    mCtrl->doc()->doCommand(cmd);
+    emit editorFinished();
 }

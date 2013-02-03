@@ -124,8 +124,6 @@ private:
 	int mStrokeWidth;
 	QString mText;
 
-	PCBObject* mParent;
-
 	/// mStrokes stores the untransformed font strokes.
 	/// Rotation and scaling are applied during the draw operation.
 	mutable QList<QPainterPath> mStrokes;
@@ -173,7 +171,7 @@ private:
 
 	State mState;
 	QSharedPointer<Text> mText;
-	QSharedPointer<EditTextDialog> mDialog;
+    EditTextDialog* mDialog;
 	QPoint mPos;
 	QRect mBox;
 	int mAngleDelta;

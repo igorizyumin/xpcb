@@ -25,11 +25,11 @@
 #include "Polygon.h"
 #include "Trace.h"
 
-class AreaEditor : public AbstractEditor
+class NewAreaEditor : public AbstractEditor
 {
 	Q_OBJECT
 public:
-	explicit AreaEditor(Controller *ctrl);
+    explicit NewAreaEditor(Controller *ctrl);
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
@@ -59,13 +59,12 @@ private:
 	QList<PolyContour::Segment> mSegments;
 };
 
-#if 0
-class AreaSegmentEditor : public AbstractEditor
+class AreaEditor : public AbstractEditor
 {
 	Q_OBJECT
 
 public:
-	explicit AreaSegmentEditor(Controller *ctrl, QSharedPointer<Segment> segment);
+    explicit AreaEditor(Controller *ctrl, QSharedPointer<Area> area);
 
 	virtual void drawOverlay(QPainter* painter);
 	virtual void init();
@@ -78,52 +77,29 @@ protected:
 	virtual void keyPressEvent(QKeyEvent *event);
 
 private slots:
-	void startSlideSegment();
-	void startInsertVtx();
-	void deleteSegment();
-	void setLayer();
-	void setWidth();
+    void startMoveArea();
+    void deleteArea();
 
 private:
-	enum State { SELECTED, SLIDE, ADD_VTX };
+    enum State { SELECTED, PICK_REF, MOVE };
 
-	void updateSlide();
-	void finishSlide();
-	void abortSlide();
-	void finishAddVtx();
-	void cleanUpTrace(QList<QSharedPointer<Segment> > segments,
-									 QUndoCommand* parent);
+    void updateMove();
+    void finishMove();
+    void abortMove();
 
 	State mState;
 
 	Controller* mCtrl;
-	QSharedPointer<Segment> mSegment;
+    QSharedPointer<Area> mArea;
 
-	QPoint mPos;
+    PCBObjState mPrevState;
 
-	// stuff used by move functions
-	QPoint mPt1;
-	QPoint mPt2;
-	QPoint mSecantVec;
-	// neighboring segments
-	QSharedPointer<Segment> mSeg1;
-	QSharedPointer<Segment> mSeg2;
-	// direction vectors for neighboring vertices
-	QPoint mVector1;
-	QPoint mVector2;
-	// fixed points (outer vertices that stay put during a slide)
-	QPoint mFixedPt1;
-	QPoint mFixedPt2;
-	// signs (used to check move for validity)
-	short mSignX;
-	short mSignY;
+    QPoint mPos;
 
-	CtrlAction mSlideAction;
-	CtrlAction mAddVtxAction;
-	CtrlAction mDelAction;
-	CtrlAction mSetLayerAction;
-	CtrlAction mSetWidthAction;
+    QPoint mPrevPt;
+
+    CtrlAction mMoveAction;
+    CtrlAction mDelAction;
 };
-#endif
 
 #endif // AREAEDITOR_H
